@@ -1,6 +1,8 @@
 open MM_wrk_editor
 open Common
 
+let version = 2
+
 type stmtSnapshot = {
     id: stmtId,
     label: string,
@@ -28,21 +30,52 @@ type editorDiff =
     | StmtBkm({stmtId: stmtId, isBkm: bool})
     | StmtJstf({stmtId: stmtId, jstfText: string})
     | StmtCont({stmtId: stmtId, cont: string})
-    | StmtStatus({stmtId: stmtId, proofStatus: option<proofStatus>})
-    | StmtStatusUnset({stmtIds: array<stmtId>})
+    | StmtStatus({stmtIds: array<stmtId>, proofStatus: option<proofStatus>})
     | StmtAdd({idx: int, stmt: stmtSnapshot})
     | StmtRemove({stmtId: stmtId})
     | StmtMove({stmtId: stmtId, idx: int})
 
 type editorHistory = {
+    ver:int,
     head: editorSnapshot,
     prev: array<array<editorDiff>>,
     maxLength: int,
 }
 
+let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
+    switch a {
+        | None => {
+            switch b {
+                | None => true
+                | Some(_) => false
+            }
+        }
+        | Some(aStatus) => {
+            switch b {
+                | None => false
+                | Some(bStatus) => aStatus == bStatus
+            }
+        }
+    }
+}
+
+module ProofStatusHash = Belt.Id.MakeHashableU({
+    type t = option<proofStatus>
+    let hash = (status:option<proofStatus>):int => {
+        switch status {
+            | None => 0
+            | Some(Ready) => 1
+            | Some(Waiting) => 2
+            | Some(NoJstf) => 3
+            | Some(JstfIsIncorrect) => 4
+        }
+    }
+    let eq = proofStatusEq
+})
+
 let isStmtStatusRemove = (diff:editorDiff):bool => {
     switch diff {
-        | StmtStatus({proofStatus:None}) | StmtStatusUnset(_) => true
+        | StmtStatus({proofStatus:None}) => true
         | _ => false
     }
 }
@@ -135,23 +168,6 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
     }
 }
 
-let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
-    switch a {
-        | None => {
-            switch b {
-                | None => true
-                | Some(_) => false
-            }
-        }
-        | Some(aStatus) => {
-            switch b {
-                | None => false
-                | Some(bStatus) => aStatus == bStatus
-            }
-        }
-    }
-}
-
 let updateStmt = (sn:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
     {
         ...sn,
@@ -195,13 +211,12 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
         | StmtBkm({stmtId, isBkm}) => sn->updateStmt(stmtId, stmt => {...stmt, isBkm})
         | StmtJstf({stmtId, jstfText}) => sn->updateStmt(stmtId, stmt => {...stmt, jstfText})
         | StmtCont({stmtId, cont}) => sn->updateStmt(stmtId, stmt => {...stmt, cont})
-        | StmtStatus({stmtId, proofStatus}) => sn->updateStmt(stmtId, stmt => {...stmt, proofStatus})
-        | StmtStatusUnset({stmtIds}) => {
+        | StmtStatus({stmtIds, proofStatus}) => {
             {
                 ...sn,
                 stmts: sn.stmts->Array.map(stmt => {
                     if (stmtIds->Array.includes(stmt.id)) {
-                        {...stmt, proofStatus:None}
+                        {...stmt, proofStatus}
                     } else {
                         stmt
                     }
@@ -258,29 +273,37 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         }
     }
 
+    let proofStatuses:Belt_HashMap.t<option<proofStatus>,array<stmtId>,ProofStatusHash.identity>
+        = Belt_HashMap.make(~hintSize=5, ~id=module(ProofStatusHash))
     b.stmts->Array.forEachWithIndex((stmtB,i) => {
         let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
             raise(MmException({msg:`stmtA.id != stmtB.id`}))
         }
         if (stmtA.label != stmtB.label) {
-            diffs->Array.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))
+            diffs->Array.push(StmtLabel({stmtId:stmtB.id, label:stmtB.label}))
         }
         if (stmtA.typ != stmtB.typ || stmtA.isGoal != stmtB.isGoal) {
-            diffs->Array.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))
+            diffs->Array.push(StmtTyp({stmtId:stmtB.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))
         }
         if (stmtA.isBkm != stmtB.isBkm) {
-            diffs->Array.push(StmtBkm({stmtId:stmtA.id, isBkm:stmtB.isBkm}))
+            diffs->Array.push(StmtBkm({stmtId:stmtB.id, isBkm:stmtB.isBkm}))
         }
         if (stmtA.jstfText != stmtB.jstfText) {
-            diffs->Array.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))
+            diffs->Array.push(StmtJstf({stmtId:stmtB.id, jstfText:stmtB.jstfText}))
         }
         if (stmtA.cont != stmtB.cont) {
-            diffs->Array.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))
+            diffs->Array.push(StmtCont({stmtId:stmtB.id, cont:stmtB.cont}))
         }
         if (!(stmtA.proofStatus->proofStatusEq(stmtB.proofStatus))) {
-            diffs->Array.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))
+            switch proofStatuses->Belt_HashMap.get(stmtB.proofStatus) {
+                | None => proofStatuses->Belt_HashMap.set(stmtB.proofStatus, [stmtB.id])
+                | Some(stmtIds) => stmtIds->Array.push(stmtB.id)
+            }
         }
+    })
+    proofStatuses->Belt_HashMap.forEach((proofStatus,stmtIds) => {
+        diffs->Array.push(StmtStatus({stmtIds, proofStatus}))
     })
 
     if (a.descr != b.descr) {
@@ -293,25 +316,12 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         diffs->Array.push(Disj(b.disjText))
     }
 
-    if (diffs->Array.length > 1 && diffs->allStatusUnset) {
-        [
-            StmtStatusUnset({ 
-                stmtIds: diffs->Array.map(diff => {
-                    switch diff {
-                        | StmtStatus({stmtId, proofStatus:None}) => stmtId
-                        | _ => raise(MmException({msg:`getStmtIdsFromStatusUnset: unexpected type of diff.`}))
-                    }
-                })
-            })
-        ]
-    } else {
-        diffs
-    }
-
+    diffs
 }
 
 let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
     {
+        ver:version,
         maxLength: Math.Int.max(0, Math.Int.min(1000, maxLength)),
         head: initState->editorSnapshotMake,
         prev: []
@@ -447,8 +457,7 @@ let getMaxIntStmtIdFromDiffs = (diffs:array<editorDiff>):option<int> => {
             | StmtBkm({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtJstf({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtCont({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
-            | StmtStatus({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
-            | StmtStatusUnset({stmtIds}) => {
+            | StmtStatus({stmtIds}) => {
                 stmtIds->Array.reduce(maxId, (maxId,stmtId) => selectMaxId(maxId, stmtId->Int.fromString))
             }
             | StmtAdd({stmt: {id}}) => selectMaxId(maxId, id->Int.fromString)
@@ -533,6 +542,7 @@ type editorDiffLocStor = {
 }
 
 type editorHistoryLocStor = {
+    ver: int,
     head: editorSnapshotLocStor,
     prev: array<array<editorDiffLocStor>>,
     maxLength: int,
@@ -619,10 +629,8 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
             { t:"SJ", d:stmtId, s:jstfText }
         | StmtCont({stmtId, cont}) => 
             { t:"SC", d:stmtId, s:cont }
-        | StmtStatus({stmtId, proofStatus}) => 
-            { t:"SS", d:stmtId, s:?(proofStatus->Belt_Option.map(proofStatusToStr)) }
-        | StmtStatusUnset({stmtIds}) => 
-            { t:"SU", a:stmtIds }
+        | StmtStatus({stmtIds, proofStatus}) => 
+            { t:"SS", a:stmtIds, s:?(proofStatus->Belt_Option.map(proofStatusToStr)) }
         | StmtAdd({idx, stmt}) => 
             { t:"SA", i:idx, m:stmt->stmtSnapshotToLocStor }
         | StmtRemove({stmtId}) => 
@@ -656,8 +664,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | "SB" => StmtBkm({stmtId:diff->edlsGetId, isBkm:diff->edlsGetBool})
         | "SJ" => StmtJstf({stmtId:diff->edlsGetId, jstfText:diff->edlsGetStr})
         | "SC" => StmtCont({stmtId:diff->edlsGetId, cont:diff->edlsGetStr})
-        | "SS" => StmtStatus({stmtId:diff->edlsGetId, proofStatus:diff.s->Belt.Option.map(proofStatusFromStr)})
-        | "SU" => StmtStatusUnset({stmtIds:diff->edlsGetIds})
+        | "SS" => StmtStatus({stmtIds:diff->edlsGetIds, proofStatus:diff.s->Belt.Option.map(proofStatusFromStr)})
         | "SA" => StmtAdd({idx:diff->edlsGetInt, stmt:diff->edlsGetStmt->stmtSnapshotFromLocStor})
         | "SR" => StmtRemove({stmtId:diff->edlsGetId})
         | "SM" => StmtMove({stmtId:diff->edlsGetId, idx:diff->edlsGetInt})
@@ -667,6 +674,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
 
 let editorHistoryToLocStor = (ht:editorHistory):editorHistoryLocStor => {
     {
+        ver: ht.ver,
         head: ht.head->editorSnapshotToLocStor,
         prev: ht.prev->Array.map(diff => diff->Array.map(editorDiffToLocStor)),
         maxLength: ht.maxLength,
@@ -675,6 +683,7 @@ let editorHistoryToLocStor = (ht:editorHistory):editorHistoryLocStor => {
 
 let editorHistoryFromLocStor = (ht:editorHistoryLocStor):editorHistory => {
     {
+        ver: ht.ver,
         head: ht.head->editorSnapshotFromLocStor,
         prev: ht.prev->Array.map(diff => diff->Array.map(editorDiffFromLocStor)),
         maxLength: ht.maxLength,
@@ -703,6 +712,17 @@ let editorHistFromString = (jsonStr:string):result<editorHistory,string> => {
     open Expln_utils_jsonParse
     parseJson(jsonStr, asObj(_, d=>{
         {
+            ver: d->int(
+                "ver", 
+                ~validator = v => {
+                    v == version
+                        ?Ok(v)
+                        :Error(
+                            `History protocol version mismatch, ` 
+                                ++ `expected ${version->Int.toString}, got ${v->Int.toString}.`
+                        )
+                }
+            ),
             head: d->obj("head", d=>{
                 {
                     d: d->str("d"),
@@ -788,10 +808,9 @@ let diffToStringExtendedSingle = (diff:editorDiff):string => {
             `StmtBkm({stmtId=${stmtId}, isBkm=${isBkm->Expln_utils_common.stringify}})`
         | StmtJstf({stmtId, jstfText}) => `StmtJstf({stmtId=${stmtId}, jstfText=${jstfText}})`
         | StmtCont({stmtId, cont}) => `StmtCont({stmtId=${stmtId}, cont=${cont}})`
-        | StmtStatus({stmtId, proofStatus}) => 
-            `StmtStatus({stmtId=${stmtId}, proofStatus=${proofStatus->Belt_Option.map(proofStatusToStr)->Belt_Option.getWithDefault("None")}})`
-        | StmtStatusUnset({stmtIds}) => 
-            `StmtStatusUnset({stmtIds=[${stmtIds->Array.joinUnsafe(", ")}]})`
+        | StmtStatus({stmtIds, proofStatus}) => 
+            `StmtStatus({stmtIds=[${stmtIds->Array.joinUnsafe(", ")}], ` 
+                ++ `proofStatus=${proofStatus->Belt_Option.map(proofStatusToStr)->Belt_Option.getWithDefault("None")}})`
         | StmtAdd({idx, stmt}) => `StmtAdd({idx=${idx->Belt.Int.toString}, stmtId=${stmt.id}})`
         | StmtRemove({stmtId}) => `StmtRemove({stmtId=${stmtId}})`
         | StmtMove({stmtId, idx}) => `StmtMove({stmtId=${stmtId}, idx=${idx->Belt.Int.toString}})`
@@ -905,7 +924,7 @@ let mm_editor_history__test_findDiff = ():unit => {
         )
         assertEq( 
             findDiff(a, a->updateStmt("2", stmt => {...stmt, proofStatus: None})), 
-            [StmtStatus({stmtId: "2", proofStatus: None})]
+            [StmtStatus({stmtIds: ["2"], proofStatus: None})]
         )
 
         assertEq( 
@@ -1008,9 +1027,9 @@ let mm_editor_history__test_findDiff = ():unit => {
                     ->updateStmt("3", stmt => {...stmt, proofStatus:Some(JstfIsIncorrect)}),
             ), 
             [
-                StmtStatus({stmtId: "1", proofStatus: Some(Ready)}),
-                StmtStatus({stmtId: "2", proofStatus: Some(Waiting)}),
-                StmtStatus({stmtId: "3", proofStatus: Some(JstfIsIncorrect)}),
+                StmtStatus({stmtIds: ["1"], proofStatus: Some(Ready)}),
+                StmtStatus({stmtIds: ["2"], proofStatus: Some(Waiting)}),
+                StmtStatus({stmtIds: ["3"], proofStatus: Some(JstfIsIncorrect)}),
             ] 
         )
 
@@ -1026,11 +1045,11 @@ let mm_editor_history__test_findDiff = ():unit => {
             [
                 StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
                 StmtLabel({stmtId: "1", label: "ABC"}),
-                StmtStatus({stmtId: "1", proofStatus: Some(NoJstf)}),
                 StmtTyp({stmtId: "2", typ:E, isGoal:true}),
                 StmtBkm({stmtId: "3", isBkm:true}),
                 StmtJstf({stmtId: "3", jstfText:"BBB"}),
                 StmtCont({stmtId: "3", cont:"TTTTT"}),
+                StmtStatus({stmtIds: ["1"], proofStatus: Some(NoJstf)}),
                 Descr("descr-new"),
                 Vars("varsText-new"),
                 Disj("disjText-new"),
@@ -1052,10 +1071,10 @@ let mm_editor_history__test_findDiff = ():unit => {
                 StmtAdd({idx: 4, stmt: { id: "5", label: "label5", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }}),
                 StmtLabel({stmtId: "1", label: "ABC"}),
                 StmtBkm({stmtId: "1", isBkm: true}),
-                StmtStatus({stmtId: "1", proofStatus: Some(NoJstf)}),
                 StmtTyp({stmtId: "2", typ:E, isGoal:true}),
                 StmtJstf({stmtId: "3", jstfText:"BBB"}),
                 StmtCont({stmtId: "3", cont:"TTTTT"}),
+                StmtStatus({stmtIds: ["1"], proofStatus: Some(NoJstf)}),
                 Descr("descr-new"),
                 Vars("varsText-new"),
                 Disj("disjText-new"),
