@@ -1,4 +1,4 @@
-let setMmExampleMacros = `const moduleName = 'set.mm example macros'
+let setMmExampleMacros = `const moduleName = 'default set.mm macros'
 
 await api.setLogApiCallsToConsole(true)
 

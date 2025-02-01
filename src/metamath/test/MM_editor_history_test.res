@@ -42,7 +42,8 @@ let createEditorState = ():editorState => {
     }
     createInitialEditorState(
         ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(()))),
-        ~stateLocStor=None
+        ~stateLocStor=None,
+        ~nextStmtId=0,
     )
 }
 
@@ -106,4 +107,151 @@ describe("findDiff", _ => {
 
 describe("applyDiff", _ => {
     mm_editor_history__test_applyDiff()
+})
+
+describe("editorStatesHaveSameContent", _ => {
+    it("returns true for editors with different statement ids and proof statuses", _ => {
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = {
+            ...st,
+            stmts: [
+                {...(st.stmts->Array.getUnsafe(0)), id:"1", proofStatus:Some(Ready)},
+                {...(st.stmts->Array.getUnsafe(1)), id:"2", proofStatus:Some(Waiting)},
+                {...(st.stmts->Array.getUnsafe(2)), id:"3", proofStatus:Some(NoJstf)},
+            ]
+        }
+        let st2 = {
+            ...st,
+            stmts: [
+                {...(st.stmts->Array.getUnsafe(0)), id:"4", proofStatus:Some(Waiting)},
+                {...(st.stmts->Array.getUnsafe(1)), id:"5", proofStatus:Some(JstfIsIncorrect)},
+                {...(st.stmts->Array.getUnsafe(2)), id:"6", proofStatus:None},
+            ]
+        }
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), true)
+    })
+
+    it("returns false for editors with different descr", _ => {
+        //given
+        let st1 = {...createEditorState(), descr:"1"}
+        let st2 = {...st1, descr:"2"}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false for editors with different varsText", _ => {
+        //given
+        let st1 = {...createEditorState(), varsText:"1"}
+        let st2 = {...st1, varsText:"2"}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false for editors with different disjText", _ => {
+        //given
+        let st1 = {...createEditorState(), disjText:"1"}
+        let st2 = {...st1, disjText:"2"}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false for editors with different number of statements", _ => {
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = { ...st1, stmts: st1.stmts->Array.slice(~start=0, ~end=2) }
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false when stmts.length is same but one statement differs in label", _ => {
+        //given
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = {...st1, stmts:st1.stmts->Array.mapWithIndex((stmt,idx)=>idx==1?{...stmt, label:"A"}:stmt)}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false when stmts.length is same but one statement differs in typ", _ => {
+        //given
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = {...st1, stmts:st1.stmts->Array.mapWithIndex((stmt,idx)=>idx==1?{...stmt, typ:E}:stmt)}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false when stmts.length is same but one statement differs in isGoal", _ => {
+        //given
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = {...st1, stmts:st1.stmts->Array.mapWithIndex((stmt,idx)=>idx==1?{...stmt, isGoal:true}:stmt)}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false when stmts.length is same but one statement differs in isBkm", _ => {
+        //given
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = {...st1, stmts:st1.stmts->Array.mapWithIndex((stmt,idx)=>idx==1?{...stmt, isBkm:true}:stmt)}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false when stmts.length is same but one statement differs in jstfText", _ => {
+        //given
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = {...st1, stmts:st1.stmts->Array.mapWithIndex((stmt,idx)=>idx==1?{...stmt, jstfText:"A"}:stmt)}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
+
+    it("returns false when stmts.length is same but one statement differs in cont", _ => {
+        //given
+        //given
+        let st = createEditorState()
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let st1 = st
+        let st2 = {...st1, stmts:st1.stmts->Array.mapWithIndex((stmt,idx)=>idx==1?{...stmt, cont:"A"->strToCont}:stmt)}
+
+        //when/then
+        assertEq(editorStatesHaveSameContent(st1,st2), false)
+    })
 })

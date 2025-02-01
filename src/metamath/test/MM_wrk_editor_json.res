@@ -63,6 +63,7 @@ let makeEmptyEditorStateLocStor = (~tabTitle:option<string>=?):editorStateLocSto
 let createInitialEditorState = (
     ~preCtxData:preCtxData, 
     ~stateLocStor:option<editorStateLocStor>,
+    ~nextStmtId:int,
 ) => {
     let stateLocStor = switch stateLocStor {
         | Some(stateLocStor) => stateLocStor
@@ -87,12 +88,12 @@ let createInitialEditorState = (
 
         wrkCtx: None,
 
-        nextStmtId: stateLocStor.stmts->Array.length,
+        nextStmtId: nextStmtId + stateLocStor.stmts->Array.length,
         stmts: 
             stateLocStor.stmts->Array.mapWithIndex((stmtLocStor,i) => {
                 {
                     ...userStmtLocStorToUserStmt(stmtLocStor),
-                    id: i->Belt_Int.toString
+                    id: (nextStmtId + i)->Belt_Int.toString
                 }
             }),
         checkedStmtIds: [],

@@ -11,9 +11,8 @@ Disjoints
 0:  qed P [] |- t = t
 ====================================================================================
 StmtMove({stmtId=2, idx=0})
-StmtStatus({stmtId=2, proofStatus=r})
-StmtStatus({stmtId=1, proofStatus=r})
-StmtStatus({stmtId=0, proofStatus=n})
+StmtStatus({stmtIds=[2, 1], proofStatus=r})
+StmtStatus({stmtIds=[0], proofStatus=n})
 ------------------------------------------------------------------------------------
 Description
 
@@ -27,10 +26,10 @@ Disjoints
 1: ✓ 1 P [: a1] |- ( term2 = t -> ( term2 = t -> t = t ) )
 0: ? qed P [] |- t = t
 ====================================================================================
-StmtStatusUnset({stmtIds=[2, 1, 0]})
-StmtRemove({stmtId=2})
-StmtStatus({stmtId=1, proofStatus=r})
-StmtStatus({stmtId=0, proofStatus=n})
+StmtStatus({stmtIds=[2, 1, 0], proofStatus=None})
+StmtRemove({stmtIds=[2]})
+StmtStatus({stmtIds=[1], proofStatus=r})
+StmtStatus({stmtIds=[0], proofStatus=n})
 Vars(var2 term term2)
 ------------------------------------------------------------------------------------
 Description
@@ -43,7 +42,7 @@ Disjoints
 1: ✓ 1 P [: a1] |- ( term2 = t -> ( term2 = t -> t = t ) )
 0: ? qed P [] |- t = t
 ====================================================================================
-StmtStatusUnset({stmtIds=[1, 0]})
+StmtStatus({stmtIds=[1, 0], proofStatus=None})
 StmtCont({stmtId=1, cont=|- ( term2 = term3 -> ( term2 = term1 -> term3 = term1 ) )})
 Vars(var1 term term1 ; var2 term term2 ; var3 term term3)
 ------------------------------------------------------------------------------------
@@ -59,8 +58,8 @@ Disjoints
 1:  1 P [: a1] |- ( term2 = term3 -> ( term2 = term1 -> term3 = term1 ) )
 0:  qed P [] |- t = t
 ====================================================================================
-StmtRemove({stmtId=1})
-StmtStatus({stmtId=0, proofStatus=n})
+StmtRemove({stmtIds=[1]})
+StmtStatus({stmtIds=[0], proofStatus=n})
 Vars()
 ------------------------------------------------------------------------------------
 Description
@@ -71,8 +70,8 @@ Disjoints
 
 0: ? qed P [] |- t = t
 ====================================================================================
-StmtStatus({stmtId=0, proofStatus=None})
-StmtRemove({stmtId=0})
+StmtStatus({stmtIds=[0], proofStatus=None})
+StmtRemove({stmtIds=[0]})
 ------------------------------------------------------------------------------------
 Description
 

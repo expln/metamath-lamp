@@ -10,8 +10,8 @@ Disjoints
 1:  1 P [: a1] |- ( term2 = term3 -> ( term2 = term1 -> term3 = term1 ) )
 0:  qed P [] |- t = t
 ====================================================================================
-StmtRemove({stmtId=1})
-StmtStatus({stmtId=0, proofStatus=n})
+StmtRemove({stmtIds=[1]})
+StmtStatus({stmtIds=[0], proofStatus=n})
 Vars()
 ------------------------------------------------------------------------------------
 Description
@@ -22,8 +22,8 @@ Disjoints
 
 0: ? qed P [] |- t = t
 ====================================================================================
-StmtStatus({stmtId=0, proofStatus=None})
-StmtRemove({stmtId=0})
+StmtStatus({stmtIds=[0], proofStatus=None})
+StmtRemove({stmtIds=[0]})
 ------------------------------------------------------------------------------------
 Description
 

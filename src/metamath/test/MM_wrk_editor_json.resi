@@ -23,7 +23,8 @@ let userStmtLocStorToUserStmt: userStmtLocStor => userStmt
 
 let createInitialEditorState: (
     ~preCtxData:preCtxData,
-    ~stateLocStor:option<editorStateLocStor>
+    ~stateLocStor:option<editorStateLocStor>,
+    ~nextStmtId:int,
 ) => editorState
 
 let editorStateToEditorStateLocStor: editorState => editorStateLocStor

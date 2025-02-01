@@ -7,6 +7,8 @@ open Expln_React_Modal
 open Expln_utils_promise
 open Common
 
+@val external window: {..} = "window"
+
 type macroModule = {
     nameEdit:string,
     isActive:bool,
@@ -81,9 +83,35 @@ let textToScript = (text:string):string => {
         ->String.replaceAll("[!@#]backslash[!@#]", "\\")
 }
 
+let showIncompleteMacros = switch window["location"]->Nullable.toOption {
+    | None => false
+    | Some(location) => {
+        switch location["href"]->Nullable.toOption {
+            | None => false
+            | Some(href) => {
+                switch href->JSON.Decode.string {
+                    | None => false
+                    | Some(hrefStr) => {
+                        hrefStr->String.startsWith("http://localhost:")
+                        || hrefStr->String.startsWith("https://expln.github.io/lamp/dev/")
+                    }
+                }
+            }
+        }
+    }
+}
+
 let predefinedMacroModuleScripts = Belt_HashMapString.fromArray([
-    ("set.mm example macros", textToScript(MM_macros_set_mm_example.setMmExampleMacros)),
-    ("MMJ2", textToScript(MM_macros_mmj2.mmj2Macros)),
+    ("default set.mm macros", textToScript(MM_macros_set_mm_example.setMmExampleMacros)),
+    ...(
+        if (showIncompleteMacros) {
+            [
+                ("MMJ2", textToScript(MM_macros_mmj2.mmj2Macros)),
+            ]
+        } else {
+            []
+        }
+    )
 ])
 
 let isPredefinedMacroModule = (macroModuleName:string):bool => {

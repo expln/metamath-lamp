@@ -110,7 +110,8 @@ let createEditorState = (
                         )
                     )->Belt.Result.mapWithDefault(None, state => Some(state))
                 }
-            }
+            },
+        ~nextStmtId=0,
     )
     st->verifyEditorState
 }
