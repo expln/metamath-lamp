@@ -82,7 +82,7 @@ let textToScript = (text:string):string => {
 }
 
 let predefinedMacroModuleScripts = Belt_HashMapString.fromArray([
-    ("set.mm example macros", textToScript(MM_macros_set_mm_example.setMmExampleMacros)),
+    ("default set.mm macros", textToScript(MM_macros_set_mm_example.setMmExampleMacros)),
     ("MMJ2", textToScript(MM_macros_mmj2.mmj2Macros)),
 ])
 
