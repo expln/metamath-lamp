@@ -27,7 +27,7 @@ type editorDiff =
     | Disj(string)
     | StmtLabel({stmtId: stmtId, label: string})
     | StmtTyp({stmtId: stmtId, typ: userStmtType, isGoal: bool})
-    | StmtBkm({stmtId: stmtId, isBkm: bool})
+    | StmtBkm({stmtIds: array<stmtId>, isBkm: bool})
     | StmtJstf({stmtId: stmtId, jstfText: string})
     | StmtCont({stmtId: stmtId, cont: string})
     | StmtStatus({stmtIds: array<stmtId>, proofStatus: option<proofStatus>})
@@ -71,6 +71,12 @@ module ProofStatusHash = Belt.Id.MakeHashableU({
         }
     }
     let eq = proofStatusEq
+})
+
+module BoolHash = Belt.Id.MakeHashableU({
+    type t = bool
+    let hash = (b:bool):int => b?1:0
+    let eq = (a,b) => a === b
 })
 
 let isStmtStatusRemove = (diff:editorDiff):bool => {
@@ -208,7 +214,18 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
         | Disj(disjText) => {...sn, disjText}
         | StmtLabel({stmtId, label}) => sn->updateStmt(stmtId, stmt => {...stmt, label})
         | StmtTyp({stmtId, typ, isGoal}) => sn->updateStmt(stmtId, stmt => {...stmt, typ, isGoal})
-        | StmtBkm({stmtId, isBkm}) => sn->updateStmt(stmtId, stmt => {...stmt, isBkm})
+        | StmtBkm({stmtIds, isBkm}) => {
+            {
+                ...sn,
+                stmts: sn.stmts->Array.map(stmt => {
+                    if (stmtIds->Array.includes(stmt.id)) {
+                        {...stmt, isBkm}
+                    } else {
+                        stmt
+                    }
+                })
+            }
+        }
         | StmtJstf({stmtId, jstfText}) => sn->updateStmt(stmtId, stmt => {...stmt, jstfText})
         | StmtCont({stmtId, cont}) => sn->updateStmt(stmtId, stmt => {...stmt, cont})
         | StmtStatus({stmtIds, proofStatus}) => {
@@ -273,6 +290,8 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         }
     }
 
+    let isBkms:Belt_HashMap.t<bool,array<stmtId>,BoolHash.identity>
+        = Belt_HashMap.make(~hintSize=2, ~id=module(BoolHash))
     let proofStatuses:Belt_HashMap.t<option<proofStatus>,array<stmtId>,ProofStatusHash.identity>
         = Belt_HashMap.make(~hintSize=5, ~id=module(ProofStatusHash))
     b.stmts->Array.forEachWithIndex((stmtB,i) => {
@@ -287,7 +306,10 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
             diffs->Array.push(StmtTyp({stmtId:stmtB.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))
         }
         if (stmtA.isBkm != stmtB.isBkm) {
-            diffs->Array.push(StmtBkm({stmtId:stmtB.id, isBkm:stmtB.isBkm}))
+            switch isBkms->Belt_HashMap.get(stmtB.isBkm) {
+                | None => isBkms->Belt_HashMap.set(stmtB.isBkm, [stmtB.id])
+                | Some(stmtIds) => stmtIds->Array.push(stmtB.id)
+            }
         }
         if (stmtA.jstfText != stmtB.jstfText) {
             diffs->Array.push(StmtJstf({stmtId:stmtB.id, jstfText:stmtB.jstfText}))
@@ -301,6 +323,9 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
                 | Some(stmtIds) => stmtIds->Array.push(stmtB.id)
             }
         }
+    })
+    isBkms->Belt_HashMap.forEach((isBkm,stmtIds) => {
+        diffs->Array.push(StmtBkm({stmtIds, isBkm}))
     })
     proofStatuses->Belt_HashMap.forEach((proofStatus,stmtIds) => {
         diffs->Array.push(StmtStatus({stmtIds, proofStatus}))
@@ -454,7 +479,9 @@ let getMaxIntStmtIdFromDiffs = (diffs:array<editorDiff>):option<int> => {
             | Disj(_) => maxId
             | StmtLabel({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtTyp({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
-            | StmtBkm({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtBkm({stmtIds}) => {
+                stmtIds->Array.reduce(maxId, (maxId,stmtId) => selectMaxId(maxId, stmtId->Int.fromString))
+            }
             | StmtJstf({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtCont({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtStatus({stmtIds}) => {
@@ -623,8 +650,8 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
             { t:"SL", d:stmtId, s:label }
         | StmtTyp({stmtId, typ, isGoal}) => 
             { t:"ST", d:stmtId, s:typ->userStmtTypeToStr, b:isGoal }
-        | StmtBkm({stmtId, isBkm}) => 
-            { t:"SB", d:stmtId, b:isBkm }
+        | StmtBkm({stmtIds, isBkm}) => 
+            { t:"SB", a:stmtIds, b:isBkm }
         | StmtJstf({stmtId, jstfText}) => 
             { t:"SJ", d:stmtId, s:jstfText }
         | StmtCont({stmtId, cont}) => 
@@ -661,7 +688,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | "J" => Disj(diff->edlsGetStr)
         | "SL" => StmtLabel({stmtId:diff->edlsGetId, label:diff->edlsGetStr})
         | "ST" => StmtTyp({stmtId:diff->edlsGetId, typ:diff->edlsGetStr->userStmtTypeFromStr, isGoal:diff->edlsGetBool})
-        | "SB" => StmtBkm({stmtId:diff->edlsGetId, isBkm:diff->edlsGetBool})
+        | "SB" => StmtBkm({stmtIds:diff->edlsGetIds, isBkm:diff->edlsGetBool})
         | "SJ" => StmtJstf({stmtId:diff->edlsGetId, jstfText:diff->edlsGetStr})
         | "SC" => StmtCont({stmtId:diff->edlsGetId, cont:diff->edlsGetStr})
         | "SS" => StmtStatus({stmtIds:diff->edlsGetIds, proofStatus:diff.s->Belt.Option.map(proofStatusFromStr)})
@@ -804,8 +831,8 @@ let diffToStringExtendedSingle = (diff:editorDiff):string => {
         | StmtLabel({stmtId, label}) => `StmtLabel({stmtId=${stmtId}, label=${label}})`
         | StmtTyp({stmtId, typ, isGoal}) => 
             `StmtTyp({stmtId=${stmtId}, typ=${typ->userStmtTypeToStr}, isGoal=${isGoal->Expln_utils_common.stringify}})`
-        | StmtBkm({stmtId, isBkm}) => 
-            `StmtBkm({stmtId=${stmtId}, isBkm=${isBkm->Expln_utils_common.stringify}})`
+        | StmtBkm({stmtIds, isBkm}) => 
+            `StmtBkm({stmtIds=[${stmtIds->Array.joinUnsafe(", ")}], isBkm=${isBkm->Expln_utils_common.stringify}})`
         | StmtJstf({stmtId, jstfText}) => `StmtJstf({stmtId=${stmtId}, jstfText=${jstfText}})`
         | StmtCont({stmtId, cont}) => `StmtCont({stmtId=${stmtId}, cont=${cont}})`
         | StmtStatus({stmtIds, proofStatus}) => 
@@ -912,7 +939,7 @@ let mm_editor_history__test_findDiff = ():unit => {
         )
         assertEq( 
             findDiff(a, a->updateStmt("2", stmt => {...stmt, isBkm:true})), 
-            [StmtBkm({stmtId: "2", isBkm: true})]
+            [StmtBkm({stmtIds: ["2"], isBkm: true})]
         )
         assertEq( 
             findDiff(a, a->updateStmt("3", stmt => {...stmt, jstfText: "jstfText-new"})), 
@@ -1046,9 +1073,9 @@ let mm_editor_history__test_findDiff = ():unit => {
                 StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
                 StmtLabel({stmtId: "1", label: "ABC"}),
                 StmtTyp({stmtId: "2", typ:E, isGoal:true}),
-                StmtBkm({stmtId: "3", isBkm:true}),
                 StmtJstf({stmtId: "3", jstfText:"BBB"}),
                 StmtCont({stmtId: "3", cont:"TTTTT"}),
+                StmtBkm({stmtIds: ["3"], isBkm:true}),
                 StmtStatus({stmtIds: ["1"], proofStatus: Some(NoJstf)}),
                 Descr("descr-new"),
                 Vars("varsText-new"),
@@ -1070,10 +1097,10 @@ let mm_editor_history__test_findDiff = ():unit => {
                 StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
                 StmtAdd({idx: 4, stmt: { id: "5", label: "label5", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }}),
                 StmtLabel({stmtId: "1", label: "ABC"}),
-                StmtBkm({stmtId: "1", isBkm: true}),
                 StmtTyp({stmtId: "2", typ:E, isGoal:true}),
                 StmtJstf({stmtId: "3", jstfText:"BBB"}),
                 StmtCont({stmtId: "3", cont:"TTTTT"}),
+                StmtBkm({stmtIds: ["1"], isBkm: true}),
                 StmtStatus({stmtIds: ["1"], proofStatus: Some(NoJstf)}),
                 Descr("descr-new"),
                 Vars("varsText-new"),
