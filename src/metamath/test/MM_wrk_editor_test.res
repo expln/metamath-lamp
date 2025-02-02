@@ -1890,13 +1890,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "4)    B : th",
+                "2)  v B : th",
+                "6)    B : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "4)    B : th",
-                "2)  v B : th",
-                "6)    B : th",
             ],
             "after"
         )
@@ -1941,13 +1941,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "2)  v B : th",
+                "4)    B 2 : th",
+                "6)    B : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "2)  v B : th",
-                "4)    B 2 : th",
-                "6)    B : th",
             ],
             "after"
         )
@@ -1993,13 +1993,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "6)    B : th",
+                "2)  v B : th",
+                "4)  v B 2 : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "6)    B : th",
-                "2)  v B : th",
-                "4)  v B 2 : th",
             ],
             "after"
         )
@@ -2044,13 +2044,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "2)    B : th",
+                "6)  v B : th",
+                "4)    B : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "2)    B : th",
-                "6)  v B : th",
-                "4)    B : th",
             ],
             "after"
         )
@@ -2095,13 +2095,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "2)    B : th",
+                "4)    B : th",
+                "6)  v B 4 : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "2)    B : th",
-                "4)    B : th",
-                "6)  v B 4 : th",
             ],
             "after"
         )
@@ -2147,13 +2147,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "4)  v B : th",
+                "6)  v B 4 : th",
+                "2)    B : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "4)  v B : th",
-                "6)  v B 4 : th",
-                "2)    B : th",
             ],
             "after"
         )
@@ -2198,13 +2198,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "2)    B : th",
+                "4)    B : th",
                 "1)      : th",
+                "6)  v B 1 4 : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "2)    B : th",
-                "4)    B : th",
-                "6)  v B 1 4 : th",
             ],
             "after"
         )
@@ -2250,13 +2250,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "4)  v B : th",
                 "1)      : th",
+                "6)  v B 1 4 : th",
+                "2)    B : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "4)  v B : th",
-                "6)  v B 1 4 : th",
-                "2)    B : th",
             ],
             "after"
         )
@@ -2301,13 +2301,13 @@ describe("moveCheckedBookmarkedStmts", _ => {
         assertEqMsg(
             st.stmts->Array.map(rndStmt(st, _)),
             [
+                "2)    B : th",
+                "6)  v B 4 : th",
+                "4)    B 6 : th",
                 "1)      : th",
                 "3)      : th",
                 "5)      : th",
                 "7)      : th",
-                "2)    B : th",
-                "6)  v B 4 : th",
-                "4)    B 6 : th",
             ],
             "after"
         )
@@ -2354,11 +2354,11 @@ describe("moveCheckedBookmarkedStmts", _ => {
             [
                 "1)      : th",
                 "2)      : th",
+                "7)  v B : th",
+                "6)    B : th",
                 "3)      2 : th",
                 "4)      : th",
                 "5)      : th",
-                "7)  v B : th",
-                "6)    B : th",
             ],
             "after"
         )
@@ -2405,11 +2405,62 @@ describe("moveCheckedBookmarkedStmts", _ => {
             [
                 "2)      : th",
                 "1)  v   : th",
+                "6)    B : th",
+                "7)    B : th",
                 "3)      2 : th",
                 "4)      : th",
                 "5)      : th",
-                "6)    B : th",
-                "7)    B : th",
+            ],
+            "after"
+        )
+    })
+
+    it("unbookmarked steps should not change the order of bookmarked steps", _ => {
+        //given
+        let st = createEditorState(demo0)
+        let (st, id1) = addNewStmt(st)
+        let (st, id2) = addNewStmt(st)
+        let (st, id3) = addNewStmt(st)
+        let (st, id4) = addNewStmt(st)
+        let (st, id5) = addNewStmt(st)
+        let (st, id6) = addNewStmt(st)
+        let (st, id7) = addNewStmt(st)
+        let st = updateStmt(st, id1, stmt => { ...stmt, label:"1", typ:P, isBkm:false, jstfText: ": th" })
+        let st = updateStmt(st, id2, stmt => { ...stmt, label:"2", typ:P, isBkm:false, jstfText: ": th" })
+        let st = updateStmt(st, id3, stmt => { ...stmt, label:"3", typ:P, isBkm:true, jstfText: ": th" })
+        let st = updateStmt(st, id4, stmt => { ...stmt, label:"4", typ:P, isBkm:false, jstfText: "3 : th" })
+        let st = updateStmt(st, id5, stmt => { ...stmt, label:"5", typ:P, isBkm:true, jstfText: ": th" })
+        let st = updateStmt(st, id6, stmt => { ...stmt, label:"6", typ:P, isBkm:false, jstfText: ": th" })
+        let st = updateStmt(st, id7, stmt => { ...stmt, label:"7", typ:P, isBkm:false, jstfText: ": th" })
+        let st = st->toggleStmtChecked(id3)
+        assertEqMsg(
+            st.stmts->Array.map(rndStmt(st, _)),
+            [
+                "1)      : th",
+                "2)      : th",
+                "3)  v B : th",
+                "4)      3 : th",
+                "5)    B : th",
+                "6)      : th",
+                "7)      : th",
+            ],
+            "before"
+        )
+
+        //when
+        let st = moveCheckedBookmarkedStmts(st,false)
+
+        //then
+        assertEqMsg(
+            st.stmts->Array.map(rndStmt(st, _)),
+            [
+                "5)    B : th",
+                "3)  v B : th",
+                "1)      : th",
+                "2)      : th",
+                "4)      3 : th",
+                "6)      : th",
+                "7)      : th",
             ],
             "after"
         )

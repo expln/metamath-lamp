@@ -3178,11 +3178,9 @@ let moveCheckedBookmarkedStmts = (st:editorState, up:bool):editorState => {
     let bookmarkedSteps = st.stmts->Array.filter(stmt => {
         stmt.typ != E && bookmarkedStmtIds->Belt_SetString.has(stmt.id)
     })
-    //put all bookmarked steps at the bottom 
-    //(reorderStepsLazy will restore the correct position at the end of this method)
     let st = {
         ...st,
-        stmts: [...hyps, ...unbookmarkedSteps, ...bookmarkedSteps]
+        stmts: [...hyps, ...bookmarkedSteps, ...unbookmarkedSteps]
     }
     let st = moveCheckedStmts(st,up)
     reorderStepsLazy(st)
