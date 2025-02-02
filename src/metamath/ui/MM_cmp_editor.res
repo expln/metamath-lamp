@@ -478,7 +478,7 @@ let make = (
         })
     }
     let actDuplicateStmt = (top:bool) => setState(st => {
-        let st = duplicateCheckedStmt(st,top)
+        let st = duplicateCheckedStmt(st,top, ~isBkm=?(showBkmOnly?Some(true):None))
         let st = uncheckAllStmts(st)
         st
     })

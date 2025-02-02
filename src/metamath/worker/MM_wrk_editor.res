@@ -637,7 +637,7 @@ let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false):(editorState
 
 let isSingleStmtChecked = st => st.checkedStmtIds->Array.length == 1
 
-let duplicateCheckedStmt = (st:editorState, top:bool) => {
+let duplicateCheckedStmt = (st:editorState, top:bool, ~isBkm:option<bool>=?) => {
     if (!isSingleStmtChecked(st)) {
         st
     } else {
@@ -658,6 +658,7 @@ let duplicateCheckedStmt = (st:editorState, top:bool) => {
                                 isGoal:false, 
                                 jstfText:"",
                                 isDuplicated:true,
+                                isBkm: isBkm->Option.getOr(stmt.isBkm),
                             }
                         ]
                     } else {

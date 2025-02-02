@@ -171,7 +171,7 @@ let getRootStmtsForUnification: editorState => array<userStmt>
 let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?) => (editorState,stmtId)
 let addNewStatements: (editorState, stmtsDto, ~isBkm:bool=?) => editorState
 let isSingleStmtChecked: editorState => bool
-let duplicateCheckedStmt: (editorState,bool) => editorState
+let duplicateCheckedStmt: (editorState,bool, ~isBkm:bool=?) => editorState
 let bookmarkCheckedStmts: (editorState, bool) => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
 let setDescrEditMode: editorState => editorState
