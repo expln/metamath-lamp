@@ -718,7 +718,7 @@ const trExtract = {
         }
         const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col", children:[
-                {cmp:"Text", value: "Extract", fontWeight:"bold"},
+                {cmp:"Text", value: "Copy", fontWeight:"bold"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
                 {cmp:"ApplyButtons", replaceSelection:false, result: getAllTextFromComponent(resultElem)},
