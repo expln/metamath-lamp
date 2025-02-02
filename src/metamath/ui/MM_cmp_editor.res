@@ -2146,9 +2146,11 @@ let make = (
             onOpenSubstitutionDialog=Some(onOpenSubstitutionDialogRef)
 
             addStmtAbove=
-                {text => actAddStmtAbove(~id=stmt.id, ~text, ~isBkm = stmt.isBkm || showBkmOnly && stmt.typ == E)}
+                {text => actAddStmtAbove(~id=stmt.id, ~text, 
+                    ~isBkm = stmt.isBkm || showBkmOnly && (stmt.typ == E || stmt.isGoal))}
             addStmtBelow=
-                {text => actAddStmtBelow(~id=stmt.id, ~text, ~isBkm = stmt.isBkm || showBkmOnly && stmt.typ == E)}
+                {text => actAddStmtBelow(~id=stmt.id, ~text, 
+                    ~isBkm = stmt.isBkm || showBkmOnly && (stmt.typ == E || stmt.isGoal))}
             setShowTabs
             openFrameExplorer
         />
