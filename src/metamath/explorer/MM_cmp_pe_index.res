@@ -139,6 +139,7 @@ let make = React.memoCustomCompareProps(({
         if (refreshIsNeeded) {
             actRefreshOnPreCtxDataChange()
         } else {
+            setApplyFiltersRequested(_ => false)
             let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
                 ~searchStr=patternFilterStr->String.trim,
                 ~ctx=preCtxData.ctxV.val.full
@@ -216,6 +217,7 @@ let make = React.memoCustomCompareProps(({
             | Some(lastNonEmptyPreCtxVer) => {
                 if (lastNonEmptyPreCtxVer != preCtxData.ctxV.ver) {
                     setRefreshIsNeeded(_ => true)
+                    setApplyFiltersRequested(_ => false)
                 } else {
                     actPreCtxDataChanged()
                 }
