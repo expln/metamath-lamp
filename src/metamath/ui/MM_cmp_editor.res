@@ -2010,10 +2010,10 @@ let make = (
                     ~onClick=actToggleShowBkmOnly, ~active=true,
                     ~title="Show bookmarked steps only / show all steps", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
-                ~active= !editIsActive && canMoveCheckedStmts(state,false),
+                    ~active= !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected steps down", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
-                ~active= !editIsActive && canMoveCheckedStmts(state,true),
+                    ~active= !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected steps up", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, )}
