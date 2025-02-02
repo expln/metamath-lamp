@@ -47,10 +47,27 @@ async function assertStepIsProved(stepLabel) {
 }
 
 async function prove() {
-    await api.macro.runMacro({moduleName:'set.mm example macros', macroName:'Prove'})
+    await api.macro.runMacro({moduleName:'default set.mm macros', macroName:'Prove'})
 }
 
-async function test_bottomUpProver_proves_B_is_CC_from_B_is_QQ() {
+async function test_bottomUpProver_proves_B_is_CC_from_B_is_RR() {
+    await resetEditorContent()
+    await addStepsToEditor({
+        steps: [
+            {label:'h1', type:'h', stmt:'|- A e. RR'},
+            {label:'h2', type:'h', stmt:'|- B e. RR'},
+            {label:'h3', type:'h', stmt:'|- C e. RR'},
+            {label:'h4', type:'h', stmt:'|- ( ( sqrt ` ( A - ( ( ( B - B ) ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0'},
+            {label:'1', type:'p', stmt:'|- ( ( sqrt ` ( A - ( ( 0 ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0'},
+        ]
+    })
+    await markStepsCheckedInEditor(['h4', '1'])
+    await prove()
+    await assertStepIsProved('1')
+}
+ALL_TESTS.push(test_bottomUpProver_proves_B_is_CC_from_B_is_RR)
+
+async function test_bottomUpProver_proves_B_is_CC_from_B_is_QQ_deduction() {
     await resetEditorContent()
     await addStepsToEditor({
         steps: [
@@ -65,6 +82,6 @@ async function test_bottomUpProver_proves_B_is_CC_from_B_is_QQ() {
     await prove()
     await assertStepIsProved('1')
 }
-ALL_TESTS.push(test_bottomUpProver_proves_B_is_CC_from_B_is_QQ)
+ALL_TESTS.push(test_bottomUpProver_proves_B_is_CC_from_B_is_QQ_deduction)
 
 await runAllTests()

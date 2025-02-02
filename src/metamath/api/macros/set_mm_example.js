@@ -69,8 +69,11 @@ function updateParams(params, expr, dist, intToSym, symToInt) {
     }
     if (
         expr.length >= 3
-        && expr[expr.length-3] === params.customParams.symbolCodes.elemOf
-        && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
+        && (
+            expr[expr.length-3] === params.customParams.symbolCodes.elemOf
+                && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
+            || expr[expr.length-2] === params.customParams.symbolCodes.elemOf
+        )
     ) {
         params = {
             ...params,
@@ -90,9 +93,10 @@ function updateParams(params, expr, dist, intToSym, symToInt) {
     if (
         expr.length >= 3
         && params.customParams.passedToLessEq
-        && (
-            expr[expr.length-3] !== params.customParams.symbolCodes.elemOf
-            || expr[expr.length-1] !== params.customParams.symbolCodes.closingParen
+        && !(
+            expr[expr.length-3] === params.customParams.symbolCodes.elemOf
+            && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
+            || expr[expr.length-2] === params.customParams.symbolCodes.elemOf
         )
     ) {
         params = undefined
