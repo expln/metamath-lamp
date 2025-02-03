@@ -1,3 +1,4 @@
+- add a filter by file source to the explorer.
 - add a test for disj in MM_asrt_syntax_tree.unify()
 - rename tabs by Alt+click
 
