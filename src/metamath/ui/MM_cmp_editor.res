@@ -1469,7 +1469,9 @@ let make = (
                                                     ~proofTreeDto, ~args, ~frameProofData
                                                 ) {
                                                     | Error(msg) => Error(msg)
-                                                    | Ok(stmtsDto) => Ok(state->addNewStatements(stmtsDto))
+                                                    | Ok(stmtsDto) => {
+                                                        Ok(state->addNewStatements(stmtsDto)->uncheckAllStmts)
+                                                    }
                                                 }
                                             }
                                         }
@@ -1604,7 +1606,7 @@ let make = (
                     ->Belt_SetString.toArray
                     ->Array.toSorted(String.compare)
                 if (theoremLabels->Array.length == 0) {
-                    showInfoMsg(~title=`Cannot inline theorems`, ~text=infoAboutInliningTheorems)
+                    showInfoMsg(~text="There are no theorems in the editor.")
                 } else {
                     openModalPaneWithTitle(
                         ~modalRef, 

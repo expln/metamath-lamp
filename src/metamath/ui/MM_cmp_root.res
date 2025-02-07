@@ -260,8 +260,8 @@ let make = () => {
             | Editor({editorId}) => {
                 openOkCancelDialog(
                     ~modalRef, 
-                    ~title="Confirm closing an editor tab",
-                    ~text=`Close this editor tab? "${tab.label}"`, 
+                    ~title="Close editor tab?",
+                    ~text=tab.label,
                 )->Promise.thenResolve(confirmed => {
                     if (confirmed) {
                         MM_api_editor.deleteEditor(editorId)

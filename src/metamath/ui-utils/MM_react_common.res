@@ -222,7 +222,7 @@ let rndModalPaneWithTitle = (
                     ()
                 )
             >
-                {title->Belt_Option.getWithDefault("")->React.string}
+                {title->Belt_Option.getWithDefault("")->String.padEnd(35, Common.nbsp)->React.string}
             </span>
             content
         </Col>
