@@ -44,9 +44,9 @@ let make = React.memoCustomCompareProps(({
         () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxV.ver)
     )
     let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
+    let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
-    let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
 
@@ -59,7 +59,8 @@ let make = React.memoCustomCompareProps(({
     let (discFilter, setDiscFilter) = React.useState(() => None)
     let (deprFilter, setDeprFilter) = React.useState(() => None)
     let (tranDeprFilter, setTranDeprFilter) = React.useState(() => None)
-    let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
+
+    let (filteredLabels, setFilteredLabels) = React.useState(() => [])
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
@@ -214,19 +215,38 @@ let make = React.memoCustomCompareProps(({
 
     React.useEffect1(() => {
         switch lastNonEmptyPreCtxVer {
-            | Some(lastNonEmptyPreCtxVer) => {
-                if (lastNonEmptyPreCtxVer != preCtxData.ctxV.ver) {
-                    setRefreshIsNeeded(_ => true)
-                    setApplyFiltersRequested(_ => false)
-                } else {
-                    actPreCtxDataChanged()
-                }
-            }
             | None => {
+                /* the page is just loaded with the default empty context, 
+                    and now some non-default context may have been loaded by the user,
+                    or else some other change may have happened, instead of changing the context 
+                    (for example a change in settings) */
                 setLastNonEmptyPreCtxVer(
                     _ => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxV.ver)
                 )
+                /* In the case of a change other than the context update, we can safely restart the search
+                    (because the context is empty and the search will be very fast).
+                    In case of the context update, there is possiblility that there are many opened explorers
+                    with some filters set. So on the one hand we should not start the search, 
+                    because it may take too long time and be confusing. But on the other hand,
+                    if this is the only explorer and the user just loaded the first context,
+                    it will be confusing to show the "Refresh" button instead of the full list of assertions.
+                    The first scenario is less probable, so let's run a search.*/
                 actPreCtxDataChanged()
+            }
+            | Some(lastNonEmptyPreCtxVer) => {
+                /* at least one context has been loaded by the user by this moment, 
+                    so the page is not just loaded with the default empty context. 
+                    In other words, this is not the first context load, so we can show the "Refresh" button.
+                    But there is one exception. If this tab has been opened by the search button, then it
+                    was provided with a non empty context from the very beginning, and we should not show 
+                    the "Refresh" button in that case.*/
+                if (lastNonEmptyPreCtxVer == preCtxData.ctxV.ver) {
+                    /* this is the case when the explorer tab has been opened by the search button */
+                    actPreCtxDataChanged()
+                } else {
+                    setRefreshIsNeeded(_ => true)
+                    setApplyFiltersRequested(_ => false)
+                }
             }
         }
         None
@@ -582,28 +602,32 @@ let make = React.memoCustomCompareProps(({
                         </pre>
                     }
                     | None => {
-                        <MM_cmp_pe_frame_list
-                            key=`${preCtxData.ctxV.ver->Belt_Int.toString}`
-                            modalRef
-                            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-                            settings=preCtxData.settingsV.val
-                            typeColors=preCtxData.typeColors
-                            preCtx=preCtxData.ctxV.val.full
-                            frms=preCtxData.frms
-                            parenCnt=preCtxData.parenCnt
-                            syntaxTypes=preCtxData.syntaxTypes
-                            labels=filteredLabels
-                            openFrameExplorer
-                            openExplorer
-                            asrtsPerPage
-                            typeOrderInDisj=preCtxData.typeOrderInDisj
-                            addAsrtByLabel={label=>{
-                                switch addAsrtByLabel.current {
-                                    | Some(addAsrtByLabel) => addAsrtByLabel(label)
-                                    | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
-                                }
-                            }}
-                        />
+                        if (allFramesInDeclarationOrder->Array.length == 0) {
+                            "The loaded context does not contain any assertions."->React.string
+                        } else {
+                            <MM_cmp_pe_frame_list
+                                key=`${preCtxData.ctxV.ver->Belt_Int.toString}`
+                                modalRef
+                                editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                                settings=preCtxData.settingsV.val
+                                typeColors=preCtxData.typeColors
+                                preCtx=preCtxData.ctxV.val.full
+                                frms=preCtxData.frms
+                                parenCnt=preCtxData.parenCnt
+                                syntaxTypes=preCtxData.syntaxTypes
+                                labels=filteredLabels
+                                openFrameExplorer
+                                openExplorer
+                                asrtsPerPage
+                                typeOrderInDisj=preCtxData.typeOrderInDisj
+                                addAsrtByLabel={label=>{
+                                    switch addAsrtByLabel.current {
+                                        | Some(addAsrtByLabel) => addAsrtByLabel(label)
+                                        | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+                                    }
+                                }}
+                            />
+                        }
                     }
                 }
             }

@@ -1,4 +1,5 @@
-- add a filter by file source to the explorer.
+- add a filter by source file to the explorer.
+- add links to assertions in comments.
 - add a test for disj in MM_asrt_syntax_tree.unify()
 - rename tabs by Alt+click
 

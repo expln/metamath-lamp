@@ -135,7 +135,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndFrames = () => {
         if (labels->Array.length == 0) {
-            "No assertions found."->React.string
+            "No assertions match the search criteria."->React.string
         } else {
             <Col spacing=2.>
                 {rndPagination()}
