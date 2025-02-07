@@ -1469,7 +1469,9 @@ let make = (
                                                     ~proofTreeDto, ~args, ~frameProofData
                                                 ) {
                                                     | Error(msg) => Error(msg)
-                                                    | Ok(stmtsDto) => Ok(state->addNewStatements(stmtsDto))
+                                                    | Ok(stmtsDto) => {
+                                                        Ok(state->addNewStatements(stmtsDto)->uncheckAllStmts)
+                                                    }
                                                 }
                                             }
                                         }
