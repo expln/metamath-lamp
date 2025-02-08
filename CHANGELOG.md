@@ -1,4 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### Version 27
 * Multiple editor tabs. https://github.com/expln/metamath-lamp/issues/153
 * Bug fix: Search by description produces misleading results. https://github.com/expln/metamath-lamp/issues/215
 * Updates in the macros API.
