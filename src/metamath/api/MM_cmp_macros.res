@@ -66,7 +66,9 @@ let runAsyncScript = (~macroModuleName:string, ~script:string):promise<result<un
 let removeStaleDataFromScriptCache = (st:state):unit => {
     let validKeys = []
     st.macroModules->Belt_MapString.forEach((modName,mod) => {
-        validKeys->Array.push(getScriptCacheKey(~macroModuleName=modName, ~script=mod.scriptText))
+        if (mod.isActive) {
+            validKeys->Array.push(getScriptCacheKey(~macroModuleName=modName, ~script=mod.scriptText))
+        }
     })
     let allKeys = scriptCache->Belt_HashMapString.keysToArray
     allKeys->Array.forEach(key => {
