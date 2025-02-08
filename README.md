@@ -19,7 +19,7 @@ You can use this proof assistant *now* by going to the
 For more information, see the [Metamath-lamp Guide](https://lamp-guide.metamath.org) 
 and [metamath-lamp-docs](https://github.com/expln/metamath-lamp-docs).
 
-[Here's a short video demo](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view?usp=sharing) (without sound).
+[Here's a short video demo](https://drive.google.com/file/d/1P09MC_5upPLWWk3DF4tZ46XmDqp6Fh4q/view?usp=drive_link) (without sound).
 
 ## Screenshot
 
