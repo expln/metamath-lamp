@@ -5,10 +5,13 @@
 * Updates in the macros API.
 * Updates in the "set.mm example macros" collection of macros.
 * Improve usability of the assertion search dialog in the editor.
-* Update the "inline proof" feature: instead of inlining the theorem for a single step, it is now possible to inline multiple theorems
-  (and all steps using those theorems) at once.
-* A new feature "Reorder steps". It automatically reorders steps taking into account dependencies between them.
-* Possibility to reorder bookmarked steps when only bookmarked steps are displayed.
+* Update the ["inline proof"](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v27/editor/inline_theorems.md) 
+feature: instead of inlining the theorem for a single step, it is now possible to inline multiple theorems
+(and all steps using those theorems) at once.
+* A new feature ["Reorder steps"](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v27/editor/reorder_steps_automatically.md).
+It automatically reorders steps taking into account dependencies between them.
+* Possibility to reorder [bookmarked steps](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v27/editor/bookmark_steps.md)
+when only bookmarked steps are displayed.
 * Slight changes in the formatting of the completed proof.
 ### Version 26
 * Enable automatic substitution search to minimize presses of the "Find Substitution" button.
@@ -22,24 +25,25 @@
 * Fix a bug in "Find substitution by unification".
 * Add a "Restore default settings" button to the Settings tab.
 ### Version 25
-* Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
-* Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/search_by_pattern.md):
+* Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor.
+https://github.com/expln/metamath-lamp/issues/199
+* Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/search_by_pattern.md):
 match assertions and hypotheses simultaneously; match assertion and hypotheses separately;
   adjacent symbols (https://github.com/expln/metamath-lamp/issues/57); exact match.
-* Allow [opening a new Explorer tab](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/multiple_explorer_tabs.md)
+* Allow [opening a new Explorer tab](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/multiple_explorer_tabs.md)
 with empty search filters.
-* Add possibility to [bookmark steps in the Editor](https://github.com/expln/metamath-lamp-docs/blob/master/editor/bookmark_steps.md). 
+* Add possibility to [bookmark steps in the Editor](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/bookmark_steps.md). 
 This allows to show only bookmarked steps.
 * Add pagination in the Editor to simplify work with long proofs. Number of steps per page is configurable in the "View options" menu.
-* Add a new [transform "Extract: X ⇒ ( ph -> X )"](https://github.com/expln/metamath-lamp-docs/blob/master/editor/transform_extract_for_deduction.md) 
+* Add a new [transform "Extract: X ⇒ ( ph -> X )"](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/transform_extract_for_deduction.md) 
 which extracts a part of a step in a deduction proof.
-* Add possibility to "[Delete unrelated steps and hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/editor/delete_unrelated_steps.md)" in the Editor.
-* Allow [specifying steps for the "Allowed statements: first level"](https://github.com/expln/metamath-lamp-docs/blob/master/editor/steps_in_bottom_up_prover.md)
+* Add possibility to "[Delete unrelated steps and hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/delete_unrelated_steps.md)" in the Editor.
+* Allow [specifying steps for the "Allowed statements: first level"](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/steps_in_bottom_up_prover.md)
 option of the bottom-up prover by selecting steps in the editor before invoking the bottom-up prover dialog.
-* Implement the "[Inline proof](https://github.com/expln/metamath-lamp-docs/blob/master/editor/inline_proof.md)" in the editor.
-* Make it possible to [move all selected steps](https://github.com/expln/metamath-lamp-docs/blob/master/editor/move_multiple_steps.md)
+* Implement the "[Inline proof](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/inline_proof.md)" in the editor.
+* Make it possible to [move all selected steps](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/move_multiple_steps.md)
 to the top or bottom in the Editor.
-* Make it possible to [add assertions from the Explorer tab to the Editor](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/add_assertions_to_editor_from_explorer.md). 
+* Make it possible to [add assertions from the Explorer tab to the Editor](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/add_assertions_to_editor_from_explorer.md). 
 This is an equivalent of using the Search button in the Editor, but more handy in some cases.
 * Add filtering by description in the Explorer. https://github.com/expln/metamath-lamp/issues/178
 * Bug fix: An assertion tab crashes if the assertion proof contains errors. https://github.com/expln/metamath-lamp/issues/184
@@ -54,13 +58,13 @@ This is an equivalent of using the Search button in the Editor, but more handy i
 ### Version 24
 * Add a new validation in the Editor: "Any statement must begin with a constant".
 ### Version 23
-* Add more info to the [Merge dialog](https://github.com/expln/metamath-lamp-docs/blob/master/editor/merge_similar_steps.md) to understand easier what statement to use https://github.com/expln/metamath-lamp/issues/188
+* Add more info to the [Merge dialog](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/merge_similar_steps.md) to understand easier what statement to use https://github.com/expln/metamath-lamp/issues/188
 * Implement the feature of Macros in the experimental mode (this allows to automate certain actions in Metamath-lamp using custom JavaScript code). 
   In this version it is not possible to run a macro from the UI.
 ### Version 22
-* Support variables in the [pattern search](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/search_by_pattern.md) (https://github.com/expln/metamath-lamp/issues/13)
-* Implement the "[Delete unrelated steps](https://github.com/expln/metamath-lamp-docs/blob/master/editor/delete_unrelated_steps.md)" feature in the Editor.
-* Implement the "[Rename hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/editor/labels_for_hypotheses.md)" 
+* Support variables in the [pattern search](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/search_by_pattern.md) (https://github.com/expln/metamath-lamp/issues/13)
+* Implement the "[Delete unrelated steps](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/delete_unrelated_steps.md)" feature in the Editor.
+* Implement the "[Rename hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/labels_for_hypotheses.md)" 
 feature in the Editor.
 * Implement the "Auto unify all" feature in the Editor.
 * Usability improvement: Add empty space at the bottom of the editor for longer proofs.
@@ -70,7 +74,7 @@ feature in the Editor.
 * Bug fix: Unify hangs for certain statements/theorems https://github.com/expln/metamath-lamp/issues/175
 ### Version 20
 * Always sort variables in disjoints according to the specified order https://github.com/expln/metamath-lamp/issues/172
-* Allow opening [multiple Explorer tabs](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/multiple_explorer_tabs.md) 
+* Allow opening [multiple Explorer tabs](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/multiple_explorer_tabs.md) 
 by clicking the "search" button on a selected fragment.
 ### Version 19
 * Change the order in which assertions are selected by the prover https://github.com/expln/metamath-lamp/issues/163
@@ -87,14 +91,14 @@ by clicking the "search" button on a selected fragment.
 * Preload existing proofs into the editor https://github.com/expln/metamath-lamp/issues/8
 * For goal labels, apply same strict label validation rules as for hypotheses https://github.com/expln/metamath-lamp/issues/81
 * Make it more obvious how to get a completed proof https://github.com/expln/metamath-lamp/issues/11
-* Allow [merging multiple statements](https://github.com/expln/metamath-lamp-docs/blob/master/editor/merge_similar_steps.md) 
+* Allow [merging multiple statements](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/merge_similar_steps.md) 
 with one merge button click https://github.com/expln/metamath-lamp/issues/149
-* Automatic [merge of duplicated statements](https://github.com/expln/metamath-lamp-docs/blob/master/editor/merge_similar_steps.md) (https://github.com/expln/metamath-lamp/issues/47)
+* Automatic [merge of duplicated statements](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/merge_similar_steps.md) (https://github.com/expln/metamath-lamp/issues/47)
 * Usability improvement: Replacement fields should use selections consistently in the Substitution dialog https://github.com/expln/metamath-lamp/issues/82
 * Full unification in the Substitution dialog https://github.com/expln/metamath-lamp/pull/147
 * Add a "Reset editor content" menu item in the Editor https://github.com/expln/metamath-lamp/issues/21
 ### Version 15
-* Automate creating of [labels for hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/editor/labels_for_hypotheses.md) (https://github.com/expln/metamath-lamp/issues/32)
+* Automate creating of [labels for hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/labels_for_hypotheses.md) (https://github.com/expln/metamath-lamp/issues/32)
 * Make it possible to switch on/off parentheses autocomplete https://github.com/expln/metamath-lamp/issues/64
 * Usability improvement: Open proof explorer by clicking refs in justifications https://github.com/expln/metamath-lamp/issues/99
 * Usability improvement: Add delete (trash can) when editing Description, Variables, and Disjoints https://github.com/expln/metamath-lamp/issues/123 
