@@ -12,7 +12,18 @@ let space3 = "\r"->String.codePointAt(0)
 let space4 = "\n"->String.codePointAt(0)
 let space5 = "\f"->String.codePointAt(0)
 
+let replaceDoubleBackticks = (str:string):string => {
+    str->String.replaceAll("``", "`")
+}
+
+let replaceDoubleTildes = (str:string):string => {
+    str->String.replaceAll("~~", "~")
+}
+
 let splitCommentIntoParts = (text:string):array<commentPart> => {
+    let charAt = (idx:int):option<int> => {
+        text->String.codePointAt(idx)
+    }
     let charAtRef = (idx:ref<int>):option<int> => {
         text->String.codePointAt(idx.contents)
     }
@@ -22,6 +33,9 @@ let splitCommentIntoParts = (text:string):array<commentPart> => {
     let isWhitespace = (ch:option<int>):bool => {
         /* Metamath.pdf, page 213: Whitespace: (' ' | '\t' | '\r' | '\n' | '\f') */
         ch == space1 || ch == space2 || ch == space3 || ch == space4 || ch == space5
+    }
+    let isWhitespaceAt = (idx:int):bool => {
+        charAt(idx)->isWhitespace
     }
     let isWhitespaceAtRef = (idx:ref<int>):bool => {
         charAtRef(idx)->isWhitespace
@@ -34,8 +48,8 @@ let splitCommentIntoParts = (text:string):array<commentPart> => {
     }
 
     let res = []
-    let prevIdx = ref(0)
-    let idx = ref(0)
+    let prevIdx = ref(0) //number of processed chars
+    let idx = ref(0) //number of viewed chars
     let maxIdx = text->String.length-1
     let mathMode = ref(false)
     let labelMode = ref(false)
@@ -54,9 +68,12 @@ let splitCommentIntoParts = (text:string):array<commentPart> => {
                 These tildes, tokens, math symbols and backticks should be surrounded by spaces.
             */
             if (mathMode.contents) {
-                if (curChar == mathModeBegin && (isWhitespaceAtRef(idx) || maxIdx < idx.contents)) {
-                    incRef(idx)
-                    res->Array.push( MathMode(textBetweenRef(prevIdx, idx)) )
+                if (//end of math mode
+                    curChar == mathModeBegin 
+                    && (isWhitespaceAtRef(idx) || maxIdx < idx.contents) // a space on the right
+                    && isWhitespaceAt(idx.contents-2) // a space on the left
+                ) {
+                    res->Array.push( MathMode(textBetween(prevIdx.contents+1, idx.contents-1)) )
                     mathMode := false
                     prevIdx := idx.contents
                 }
@@ -69,18 +86,30 @@ let splitCommentIntoParts = (text:string):array<commentPart> => {
                     incRef(idx)
                 } else {
                     if (labelMode.contents) {
-                        if (isWhitespace(curChar)) {
-                            res->Array.push( LabelMode(textBetweenRef(prevIdx, idx)) )
+                        if (/* end of label mode */isWhitespace(curChar)) {
+                            res->Array.push( LabelMode(textBetween(prevIdx.contents+1, idx.contents)) )
                             labelMode := false
-                            prevIdx := idx.contents
+                            prevIdx := idx.contents-1
                         }
-                    } else if (curChar == mathModeBegin && isWhitespaceAtRef(idx)) {
-                        res->Array.push( Text(textBetween(prevIdx.contents, idx.contents-1)) )
+                    } else if (//beginning of math mode
+                        curChar == mathModeBegin 
+                        && isWhitespaceAtRef(idx) // a space on the right
+                        && (isWhitespaceAt(idx.contents-2) || idx.contents == 1) // a space on the left
+                    ) {
+                        if (idx.contents - prevIdx.contents > 1) {
+                            res->Array.push( Text(textBetween(prevIdx.contents, idx.contents-1)) )
+                        }
                         mathMode := true
                         prevIdx := idx.contents - 1
                         incRef(idx)
-                    } else if (curChar == labelModeBegin && isWhitespaceAtRef(idx)) {
-                        res->Array.push( Text(textBetween(prevIdx.contents, idx.contents-1)) )
+                    } else if (//beginning of label mode
+                        curChar == labelModeBegin 
+                        && isWhitespaceAtRef(idx) // a space on the right
+                        && (isWhitespaceAt(idx.contents-2) || idx.contents == 1) // a space on the left
+                    ) {
+                        if (idx.contents - prevIdx.contents > 1) {
+                            res->Array.push( Text(textBetween(prevIdx.contents, idx.contents-1)) )
+                        }
                         labelMode := true
                         prevIdx := idx.contents - 1
                         incRef(idx)
@@ -89,16 +118,28 @@ let splitCommentIntoParts = (text:string):array<commentPart> => {
             }
         }
     }
+    let postProcessIsNeeded = ref(true)
     if (prevIdx.contents <= maxIdx) {
         if (mathMode.contents) {
-            res->Array.push( MathMode(textBetweenRef(prevIdx, idx)) )
+            res->Array.push( MathMode(textBetween(prevIdx.contents+1, idx.contents)) )
         } else if (labelMode.contents) {
-            res->Array.push( LabelMode(textBetweenRef(prevIdx, idx)) )
+            res->Array.push( LabelMode(textBetween(prevIdx.contents+1, idx.contents)) )
         } else if (prevIdx.contents > 0) {
             res->Array.push( Text(textBetweenRef(prevIdx, idx)) )
         } else {
-            res->Array.push( Text(text) )
+            res->Array.push( Text(text->replaceDoubleBackticks->replaceDoubleTildes) )
+            postProcessIsNeeded := false
         }
     }
-    res
+    if (!postProcessIsNeeded.contents) {
+        res
+    } else {
+        res->Array.map(part => {
+            switch part {
+                | Text(str) => Text(str->replaceDoubleBackticks->replaceDoubleTildes)
+                | MathMode(str) => MathMode(str->replaceDoubleBackticks->String.trim)
+                | LabelMode(str) => LabelMode(str->replaceDoubleBackticks->replaceDoubleTildes->String.trim)
+            }
+        })
+    }
 }
