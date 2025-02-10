@@ -205,9 +205,12 @@ let make = React.memoCustomCompareProps( ({
             <>
                 <Divider/>
                 <div style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
-                    {
-                        frame.descr->Belt.Option.getWithDefault("This assertion doesn't have any description.")->React.string
-                    }
+                    <MM_cmp_pe_frame_descr
+                        settings
+                        preCtx
+                        openFrameExplorer
+                        text={frame.descr->Belt.Option.getWithDefault("This assertion doesn't have a description.")}
+                    />
                 </div>
             </>
         } else {
