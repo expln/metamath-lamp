@@ -315,6 +315,7 @@ let make = (
                     modalRef
                     settings=preCtxData.settingsV.val
                     preCtx=preCtxData.ctxV.val.min
+                    symColors=preCtxData.symColors
                     syntaxTypes=preCtxData.syntaxTypes
                     frms=preCtxData.frms
                     parenCnt=preCtxData.parenCnt

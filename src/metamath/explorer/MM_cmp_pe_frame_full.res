@@ -1080,11 +1080,17 @@ let make = React.memoCustomCompareProps(({
 
     let rndDescr = state => {
         <span>
-            {
-                state.frame.descr->Belt.Option.getWithDefault(
-                    `This ${if (state.frame.isAxiom) {"axiom"} else {"theorem"}} doesn't have any description.`
-                )->React.string
-            }
+            <MM_cmp_pe_frame_descr
+                settings=preCtxData.settingsV.val
+                ctx=preCtxData.ctxV.val.full
+                symColors=state.symColors
+                openFrameExplorer
+                text={
+                    state.frame.descr->Belt.Option.getWithDefault(
+                        `This ${state.frame.isAxiom?"axiom":"theorem"} doesn't have a description.`
+                    )
+                }
+            />
         </span>
     }
 

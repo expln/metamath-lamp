@@ -822,7 +822,10 @@ let getLocalDisj = (ctx:mmContext):disjMutable => {
 
 let createContext = (~parent:option<mmContext>=?, ~debug:bool=false):mmContext => {
     let pCtxContentsOpt = switch parent {
-        | Some(pCtx) => Some(pCtx.contents)
+        | Some(pCtx) => {
+            pCtx.contents.lastComment = None
+            Some(pCtx.contents)
+        }
         | None => None
     }
     let ctx = ref(
@@ -870,6 +873,7 @@ let closeChildContext = (ctx:mmContext):unit => {
     ctx.contents = switch childCtx.parent {
         | None => raise(MmException({msg:`Cannot close the root context.`}))
         | Some(parent) => {
+            parent.lastComment = None
             parent.totalNumOfFrames = parent.totalNumOfFrames + childCtx.frames->Belt_HashMapString.size
             childCtx.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
             childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(parent.deprOrTranDeprFrms->Belt_HashSetString.add)
@@ -881,7 +885,10 @@ let closeChildContext = (ctx:mmContext):unit => {
 let resetToParentContext = (ctx:mmContext):unit => {
     ctx.contents = switch ctx.contents.parent {
         | None => raise(MmException({msg:`Cannot reset the root context.`}))
-        | Some(parent) => parent
+        | Some(parent) => {
+            parent.lastComment = None
+            parent
+        }
     }
 }
 
@@ -1209,8 +1216,12 @@ let applySingleStmt = (
     ~descrRegexToDepr:option<RegExp.t>=?,
     ~labelRegexToDepr:option<RegExp.t>=?
 ):unit => {
+    let isComment = ref(false)
     switch stmt {
-        | Comment({text}) => addComment(ctx, text)
+        | Comment({text}) => {
+            addComment(ctx, text)
+            isComment := true
+        }
         | Const({symbols}) => symbols->Array.forEach(addConst(ctx, _))
         | Block(_) => raise(MmException({msg:`Block statements are not accepted by applySingleStmt().`}))
         | Var({symbols}) => symbols->Array.forEach(addVar(ctx, _))
@@ -1229,6 +1240,9 @@ let applySingleStmt = (
                 ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?
             )
         }
+    }
+    if (!isComment.contents) {
+        ctx.contents.lastComment = None
     }
 }
 

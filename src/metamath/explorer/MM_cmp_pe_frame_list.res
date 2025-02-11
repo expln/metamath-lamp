@@ -18,6 +18,7 @@ type props = {
 
     settings:settings,
     preCtx:mmContext,
+    symColors: Belt_HashMapString.t<string>,
     frms: frms,
     parenCnt: parenCnt,
     syntaxTypes:array<int>,
@@ -35,6 +36,7 @@ let propsAreSame = (a:props, b:props):bool => {
     && a.editStmtsByLeftClick === b.editStmtsByLeftClick
     && a.settings === b.settings
     && a.preCtx === b.preCtx
+    && a.symColors === b.symColors
     && a.labels === b.labels
     && a.asrtsPerPage === b.asrtsPerPage
 }
@@ -45,6 +47,7 @@ let make = React.memoCustomCompareProps(({
     editStmtsByLeftClick,
     settings,
     preCtx,
+    symColors,
     syntaxTypes,
     typeOrderInDisj,
     frms,
@@ -117,6 +120,7 @@ let make = React.memoCustomCompareProps(({
                     modalRef
                     settings
                     preCtx
+                    symColors
                     syntaxTypes
                     frms
                     parenCnt
