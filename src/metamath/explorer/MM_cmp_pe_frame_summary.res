@@ -213,7 +213,11 @@ let make = React.memoCustomCompareProps( ({
                         ctx=preCtx
                         symColors
                         openFrameExplorer={label=>openFrameExplorer->Option.forEach(func => func(label))}
-                        text={frame.descr->Belt.Option.getWithDefault("This assertion doesn't have a description.")}
+                        text={
+                            frame.descr->Belt.Option.getWithDefault(
+                                `This ${frame.isAxiom?"axiom":"theorem"} doesn't have a description.`
+                            )
+                        }
                     />
                 </div>
             </>

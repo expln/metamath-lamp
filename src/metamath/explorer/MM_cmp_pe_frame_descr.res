@@ -16,6 +16,7 @@ let propsAreSame = (a:props,b:props):bool => {
     a.settings === b.settings
         && a.ctx === b.ctx
         && a.symColors === b.symColors
+        && a.text == b.text
 }
 
 let make = React.memoCustomCompareProps( ({

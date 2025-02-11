@@ -1087,7 +1087,7 @@ let make = React.memoCustomCompareProps(({
                 openFrameExplorer
                 text={
                     state.frame.descr->Belt.Option.getWithDefault(
-                        `This ${if (state.frame.isAxiom) {"axiom"} else {"theorem"}} doesn't have a description.`
+                        `This ${state.frame.isAxiom?"axiom":"theorem"} doesn't have a description.`
                     )
                 }
             />
