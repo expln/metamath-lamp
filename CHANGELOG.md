@@ -1,5 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
-* Support label mode in comments (labels and URLs in comments are clickable).
+* Support label mode in comments (labels and URLs are clickable in comments).
 * Partially support math mode in comments 
 (an additional styling is applied to symbols in math mode in comments, 
 but typesetting is not supported).
