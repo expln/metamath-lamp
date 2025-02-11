@@ -8,7 +8,7 @@ type props = {
     settings:settings,
     ctx:mmContext,
     symColors: Belt_HashMapString.t<string>,
-    openFrameExplorer:option<string=>unit>,
+    openFrameExplorer:string=>unit,
     text:string,
 }
 
@@ -52,9 +52,7 @@ let make = React.memoCustomCompareProps( ({
                         ~textDecoration="underline",
                         ()
                     )
-                    onClick=clickHnd(
-                        ~act=()=>openFrameExplorer->Option.forEach(openFrameExplorer => openFrameExplorer(label))
-                    )
+                    onClick=clickHnd( ~act=()=>openFrameExplorer(label) )
                 >
                     {label->React.string}
                 </span>
