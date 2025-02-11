@@ -1,4 +1,8 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+* Support label mode in comments (labels and URLs in comments are clickable).
+* Partially support math mode in comments 
+(an additional styling is applied to symbols in math mode in comments, 
+but typesetting is not supported).
 ### Version 27
 * Multiple editor tabs. https://github.com/expln/metamath-lamp/issues/153
 * Bug fix: Search by description produces misleading results. https://github.com/expln/metamath-lamp/issues/215
