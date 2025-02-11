@@ -612,6 +612,7 @@ let make = React.memoCustomCompareProps(({
                                 settings=preCtxData.settingsV.val
                                 typeColors=preCtxData.typeColors
                                 preCtx=preCtxData.ctxV.val.full
+                                symColors=preCtxData.symColors
                                 frms=preCtxData.frms
                                 parenCnt=preCtxData.parenCnt
                                 syntaxTypes=preCtxData.syntaxTypes

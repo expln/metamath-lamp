@@ -21,6 +21,7 @@ type props = {
 
     settings:settings,
     preCtx:mmContext,
+    symColors: Belt_HashMapString.t<string>,
     syntaxTypes:array<int>,
     frms: frms,
     parenCnt: parenCnt,
@@ -38,6 +39,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.typeOrderInDisj === b.typeOrderInDisj
     && a.settings === b.settings
     && a.preCtx === b.preCtx
+    && a.symColors === b.symColors
     && a.frame === b.frame
     && a.order === b.order
 }
@@ -49,6 +51,7 @@ let make = React.memoCustomCompareProps( ({
     editStmtsByLeftClick,
     settings,
     preCtx,
+    symColors,
     syntaxTypes,
     frms,
     parenCnt,
@@ -207,7 +210,8 @@ let make = React.memoCustomCompareProps( ({
                 <div style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
                     <MM_cmp_pe_frame_descr
                         settings
-                        preCtx
+                        ctx=preCtx
+                        symColors
                         openFrameExplorer
                         text={frame.descr->Belt.Option.getWithDefault("This assertion doesn't have a description.")}
                     />

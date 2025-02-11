@@ -105,7 +105,7 @@ let splitByRegex = (str,regex) => {
 let newLineRegex = %re("/[\n\r]/")
 let multilineTextToNonEmptyLines = splitByRegex(_, newLineRegex)
 
-let whitespaceDelimRegex = %re("/[\s\n\r]/")
+let whitespaceDelimRegex = %re("/[\s\n\r\f]/")
 let getSpaceSeparatedValuesAsArray = splitByRegex(_, whitespaceDelimRegex)
 
 @val external strToBase64: string => string = "btoa"
