@@ -27,8 +27,30 @@ type reClickEvt = {
     right:bool,
 }
 
-let evt2str = strConsumer => evt => strConsumer(ReactEvent.Form.target(evt)["value"])
-let evt2bool = boolConsumer => evt => boolConsumer(ReactEvent.Form.target(evt)["checked"])
+let evt2str = (strConsumer:string=>unit) => {
+    evt => {
+        let target = ReactEvent.Form.target(evt)
+        switch target["value"]->Nullable.toOption {
+            | None => {
+                Console.error2("target", target)
+                Exn.raiseError(`evt2str: cannot get 'value' property on the event target.`)
+            }
+            | Some(str) => strConsumer(str)
+        }
+    }
+}
+let evt2bool = (boolConsumer:bool=>unit) => {
+    evt => {
+        let target = ReactEvent.Form.target(evt)
+        switch target["checked"]->Nullable.toOption {
+            | None => {
+                Console.error2("target", target)
+                Exn.raiseError(`evt2bool: cannot get 'checked' property on the event target.`)
+            }
+            | Some(bool) => boolConsumer(bool)
+        }
+    }
+}
 let evt2click = (clickConsumer:reClickEvt=>unit):reMouseHnd => evt => {
     clickConsumer({
         ctrl: evt->ReactEvent.Mouse.ctrlKey,

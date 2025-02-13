@@ -126,6 +126,8 @@ let make = React.memoCustomCompareProps(({
         let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
+        //make sure the selected type is still present in the context
+        setStmtTypeFilter(typ => typ->Option.flatMap(ctxSymToInt(preCtx, _))->Option.flatMap(ctxIntToSym(preCtx, _)))
 
         setApplyFiltersRequested(_ => true)
     }
@@ -154,7 +156,12 @@ let make = React.memoCustomCompareProps(({
                             MM_wrk_search_asrt.doSearchAssertions(
                                 ~allFramesInDeclarationOrder,
                                 ~isAxiom=isAxiomFilter,
-                                ~typ=stmtTypeFilter, 
+                                ~typ=stmtTypeFilter->Option.map(typ => {
+                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
+                                        ~message=`Cannot convert symbol '${typ}' to int ` 
+                                            ++ `in MM_cmp_pe_index.actApplyFilters[1].`
+                                    )
+                                }), 
                                 ~label=labelFilter, 
                                 ~searchPattern=[],
                                 ~isDisc=discFilter,
@@ -177,7 +184,12 @@ let make = React.memoCustomCompareProps(({
                                 ~preCtxVer=preCtxData.ctxV.ver,
                                 ~preCtx=preCtxData.ctxV.val.min,
                                 ~isAxiom=isAxiomFilter,
-                                ~typ=stmtTypeFilter,
+                                ~typ=stmtTypeFilter->Option.map(typ => {
+                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
+                                        ~message=`Cannot convert symbol '${typ}' to int ` 
+                                            ++ `in MM_cmp_pe_index.actApplyFilters[2].`
+                                    )
+                                }),
                                 ~label=labelFilter,
                                 ~searchPattern,
                                 ~isDisc=discFilter,
@@ -268,18 +280,10 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let stmtTypeFilterToStr = typeFilter => {
+    let stmtTypeFilterToStr = (typeFilter:option<string>) => {
         switch typeFilter {
             | None => allStmtTypesConcat
-            | Some(n) => preCtxData.ctxV.val.full->ctxIntToSymExn(n)
-        }
-    }
-
-    let stmtTypeFilterFromStr = str => {
-        if (str == allStmtTypesConcat) {
-            None
-        } else {
-            preCtxData.ctxV.val.full->ctxSymToInt(str)
+            | Some(str) => str
         }
     }
 
@@ -287,8 +291,9 @@ let make = React.memoCustomCompareProps(({
         setIsAxiomFilter(_ => isAxiomStr->isAxiomFilterFromStr)
     }
 
-    let actStmtTypeFilterUpdated = stmtTypeStr => {
-        setStmtTypeFilter(_ => stmtTypeStr->stmtTypeFilterFromStr)
+    let actStmtTypeFilterUpdated = (stmtTypeStr:string) => {
+        let ctx = preCtxData.ctxV.val.full
+        setStmtTypeFilter(_ => ctx->ctxSymToInt(stmtTypeStr)->Option.flatMap(ctxIntToSym(ctx, _)))
     }
 
     let actLabelFilterUpdated = newLabelFilter => {
