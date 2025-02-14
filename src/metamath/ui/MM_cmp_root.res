@@ -228,7 +228,7 @@ let getNewExplorerTabTitle = (
     ~initPatternFilterStr:string=""
 ):string => {
     if (initPatternFilterStr->String.length > 0) {
-        "EXPLORER " ++ initPatternFilterStr->String.substring(~start=0, ~end=40)
+        initPatternFilterStr->String.substring(~start=0, ~end=40)
     } else {
         makeNewTabTitle(~existingTabs, ~prefix="EXPLORER")
     }
