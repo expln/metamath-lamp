@@ -9,7 +9,7 @@ open MM_react_common
 
 let pencilSymbol = <img className="pencil-img"></img>
 let magnifyingGlassSymbol = <img className="magnifying-glass-img"></img>
-let turnstileSymbol = <span>{String.fromCodePoint(8866)->React.string}</span>
+let turnstileSymbol = <img className="turnstile-img"></img>
 
 type editorTabDataLocStor = {
     editorId:int, 

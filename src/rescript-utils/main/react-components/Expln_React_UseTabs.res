@@ -245,7 +245,7 @@ let useTabs = (
                                     | Some(icon) => {
                                         <span>
                                             icon
-                                            {React.string(tab.label)}
+                                            {React.string(" " ++ tab.label)}
                                         </span>
                                     }
                                 }

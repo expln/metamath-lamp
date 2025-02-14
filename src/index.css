@@ -31,6 +31,14 @@ code {
   text-decoration: underline;
 }
 
+.MuiTab-root:hover {
+  background-color: rgba(211, 211, 211, 0.68);
+}
+
+.MuiTab-root .MuiButtonBase-root:hover {
+  background-color: rgba(220, 22, 22, 0.6);
+}
+
 .table-single-border {
   border-collapse: collapse;
   border: 1px solid black
@@ -50,4 +58,9 @@ code {
   content: url("./img/magnifying_glass.svg");
   width: 0.9em;
   transform: scale(-1, 1);
+}
+
+.turnstile-img {
+  content: url("./img/turnstile.svg");
+  width: 0.7em;
 }
