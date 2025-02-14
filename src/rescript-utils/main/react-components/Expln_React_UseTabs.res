@@ -8,7 +8,7 @@ type tabId = string
 
 type tab<'a> = {
     id:tabId,
-    icon: string,
+    icon: option<React.element>,
     label: string,
     closable: bool,
     color:option<string>,
@@ -54,7 +54,7 @@ let getNextId = st => {
 let getTabs = (st:state<'a>) => st.tabs
 
 let addTab = (
-    st, ~icon:string="", ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+    st, ~icon:option<React.element>=?, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
 ) => {
     let (st, newId) = st->getNextId
     let newTabs = st.tabs->Array.concat([{id:newId, icon, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
@@ -240,13 +240,19 @@ let useTabs = (
                             key=tab.id 
                             value=tab.id 
                             label={
-                                let labelWithIcon = tab.icon->String.length == 0 
-                                    ? tab.label 
-                                    : tab.icon ++ tab.label
+                                let labelWithIcon = switch tab.icon {
+                                    | None => React.string(tab.label)
+                                    | Some(icon) => {
+                                        <span>
+                                            icon
+                                            {React.string(tab.label)}
+                                        </span>
+                                    }
+                                }
                                 if (tab.closable) {
                                     <span style=ReactDOM.Style.make(~textTransform="none", ())>
                                         <span style=ReactDOM.Style.make(~marginRight="5px", ())>
-                                            {React.string(labelWithIcon)}
+                                            labelWithIcon
                                         </span>
                                         <IconButton 
                                             component="div" 
@@ -263,7 +269,7 @@ let useTabs = (
                                         </IconButton>
                                     </span>
                                 } else {
-                                    React.string(labelWithIcon)
+                                    labelWithIcon
                                 }
                             }
                             style=ReactDOM.Style.make(

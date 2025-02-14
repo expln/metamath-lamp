@@ -7,9 +7,9 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_react_common
 
-let pencilSymbol = String.fromCodePoint(0x1F589)
-let magnifyingGlassSymbol = String.fromCodePoint(0x02315)
-let turnstileSymbol = String.fromCodePoint(8866)
+let pencilSymbol = <img className="pencil-img"></img>
+let magnifyingGlassSymbol = <img className="magnifying-glass-img"></img>
+let turnstileSymbol = <span>{String.fromCodePoint(8866)->React.string}</span>
 
 type editorTabDataLocStor = {
     editorId:int, 
