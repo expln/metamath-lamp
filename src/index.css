@@ -31,11 +31,20 @@ code {
   text-decoration: underline;
 }
 
-.MuiTab-root:hover {
+button.MuiTab-root {
+  border: 1px solid rgba(211, 211, 211, 0.68);
+  border-radius: 5px 5px 0 0;
+}
+
+button.MuiTab-root:hover {
   background-color: rgba(211, 211, 211, 0.68);
 }
 
-.MuiTab-root .MuiButtonBase-root:hover {
+button.MuiTab-root.Mui-selected {
+  border-color: #1976d2;
+}
+
+button.MuiTab-root .MuiButtonBase-root:hover {
   background-color: rgba(220, 22, 22, 0.6);
 }
 
