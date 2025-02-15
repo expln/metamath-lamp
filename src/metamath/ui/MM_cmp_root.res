@@ -7,6 +7,7 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_react_common
 
+let settingsSymbol = <img className="settings-img"></img>
 let pencilSymbol = <img className="pencil-img"></img>
 let magnifyingGlassSymbol = <img className="magnifying-glass-img"></img>
 let turnstileSymbol = <img className="turnstile-img"></img>
@@ -502,7 +503,9 @@ let make = () => {
     React.useEffect0(()=>{
         updateTabs(st => {
             let st = if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
-                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
+                let (st, _) = st->Expln_React_UseTabs.addTab(
+                    ~label="", ~closable=false, ~data=Settings, ~icon=settingsSymbol,
+                )
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId},idx) => {
                     switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {

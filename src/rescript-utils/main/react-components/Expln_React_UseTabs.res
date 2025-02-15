@@ -229,10 +229,6 @@ let useTabs = (
                 value=activeTabId 
                 variant=#scrollable 
                 onChange={(_,id)=>openTab(id)} 
-                style=ReactDOM.Style.make(
-                    ~minHeight="25px", 
-                    ()
-                )
             >
                 {React.array(
                     tabs->Array.map(tab => {
@@ -273,8 +269,6 @@ let useTabs = (
                                 }
                             }
                             style=ReactDOM.Style.make(
-                                ~minHeight="25px",
-                                ~padding="3px",
                                 ~backgroundColor=?(tab.color),
                                 ()
                             )

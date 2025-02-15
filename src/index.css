@@ -31,9 +31,16 @@ code {
   text-decoration: underline;
 }
 
+div.MuiTabs-root {
+  min-height: 0;
+}
+
 button.MuiTab-root {
   border: 1px solid rgba(211, 211, 211, 0.68);
   border-radius: 5px 5px 0 0;
+  min-height: 0;
+  min-width: 0px;
+  padding: 1px 2px 0 2px;
 }
 
 button.MuiTab-root:hover {
@@ -63,6 +70,12 @@ div.MuiAccordionSummary-content {
 
 .rotateM90 {
   transform: rotate(-90deg);
+}
+
+.settings-img {
+  content: url("./img/settings.svg");
+  width: 1.3em;
+  padding: 0 3px 0 3px;
 }
 
 .pencil-img {
