@@ -48,6 +48,14 @@ button.MuiTab-root .MuiButtonBase-root:hover {
   background-color: rgba(220, 22, 22, 0.6);
 }
 
+div.MuiAccordionSummary-root {
+  min-height: 0;
+}
+
+div.MuiAccordionSummary-content {
+  margin: 3px 0;
+}
+
 .table-single-border {
   border-collapse: collapse;
   border: 1px solid black
