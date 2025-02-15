@@ -4,7 +4,7 @@ open MM_react_common
 
 type tabProps = {
     id: Expln_React_UseTabs.tabId,
-    icon:string,
+    icon:option<React.element>,
     label: string,
 }
 
@@ -59,7 +59,17 @@ let make = (
         <Row key=tab.id>
             {rndTabButtons(tab)}
             <Paper style=ReactDOM.Style.make(~padding="5px", ())>
-                {(tab.icon ++ " " ++ tab.label)->React.string}
+                {
+                    switch tab.icon {
+                        | None => React.string(tab.label)
+                        | Some(icon) => {
+                            <span>
+                                icon
+                                {React.string(" " ++ tab.label)}
+                            </span>
+                        }
+                    }
+                }
             </Paper>
         </Row>
     }

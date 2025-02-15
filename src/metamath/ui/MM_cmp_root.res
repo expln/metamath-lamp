@@ -7,9 +7,10 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_react_common
 
-let pencilSymbol = String.fromCodePoint(0x1F589)
-let magnifyingGlassSymbol = String.fromCodePoint(0x02315)
-let turnstileSymbol = String.fromCodePoint(8866)
+let settingsSymbol = <img className="settings-img"></img>
+let pencilSymbol = <img className="pencil-img"></img>
+let magnifyingGlassSymbol = <img className="magnifying-glass-img"></img>
+let turnstileSymbol = <img className="turnstile-img"></img>
 
 type editorTabDataLocStor = {
     editorId:int, 
@@ -228,7 +229,11 @@ let getNewExplorerTabTitle = (
     ~initPatternFilterStr:string=""
 ):string => {
     if (initPatternFilterStr->String.length > 0) {
-        "EXPLORER " ++ initPatternFilterStr->String.substring(~start=0, ~end=40)
+        let substrInc = initPatternFilterStr->String.startsWith("$+ ") ? 3 : 0
+        initPatternFilterStr->String.substring(
+            ~start=substrInc, 
+            ~end=40+substrInc
+        )
     } else {
         makeNewTabTitle(~existingTabs, ~prefix="EXPLORER")
     }
@@ -502,7 +507,9 @@ let make = () => {
     React.useEffect0(()=>{
         updateTabs(st => {
             let st = if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
-                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
+                let (st, _) = st->Expln_React_UseTabs.addTab(
+                    ~label="", ~closable=false, ~data=Settings, ~icon=settingsSymbol,
+                )
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId},idx) => {
                     switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {
