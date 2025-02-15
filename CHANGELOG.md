@@ -3,6 +3,7 @@
 * Partially support math mode in comments 
 (an additional styling is applied to symbols in math mode in comments, 
 but typesetting is not supported).
+* Usability improvement: add some styling to tabs to make it easier to switch between tabs.
 ### Version 27
 * Multiple editor tabs. https://github.com/expln/metamath-lamp/issues/153
 * Bug fix: Search by description produces misleading results. https://github.com/expln/metamath-lamp/issues/215
