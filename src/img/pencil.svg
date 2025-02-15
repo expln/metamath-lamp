@@ -1,1 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M37.6,14.6l-23,23l-7-7C6,28.9,5,26.6,5,24.2c0-2.4,1-4.9,2.6-6.6l10-10C19.3,6,21.8,5,24.2,5c2.5,0,4.7,1,6.4,2.6  L37.6,14.6z M95,95l-8.6-30.7c-0.2-0.8-0.7-1.5-1.2-2C43,20.1,43,20.1,40.8,17.9l-6.4,6.3l47.9,48l2.8-2.8L88.6,82L82,88.6  l-12.7-3.4l9.3-9.4L30.7,27.8L17.9,40.9l44.4,44.3c0.5,0.5,1.1,1,2,1.2L95,95z"></path></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   x="0px"
+   y="0px"
+   viewBox="0 0 90 90"
+   enable-background="new 0 0 100 100"
+   xml:space="preserve"
+   id="svg3424"
+   sodipodi:docname="pencil-2.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   width="90"
+   height="90"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+     id="defs3428" /><sodipodi:namedview
+     id="namedview3426"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="10.27"
+     inkscape:cx="44.985394"
+     inkscape:cy="45.03408"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg3424" /><path
+     d="m 32.6,9.6 -23,23 -7,-7 C 1,23.9 0,21.6 0,19.2 0,16.8 1,14.3 2.6,12.6 l 10,-10 C 14.3,1 16.8,0 19.2,0 c 2.5,0 4.7,1 6.4,2.6 z M 90,90 81.4,59.3 C 81.2,58.5 80.7,57.8 80.2,57.3 38,15.1 38,15.1 35.8,12.9 l -6.4,6.3 47.9,48 2.8,-2.8 L 83.6,77 77,83.6 64.3,80.2 73.6,70.8 25.7,22.8 12.9,35.9 57.3,80.2 c 0.5,0.5 1.1,1 2,1.2 z"
+     id="path3422" /></svg>
