@@ -1,7 +1,8 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### Version 28
 * Support label mode in comments (labels and URLs are clickable in comments).
 * Partially support math mode in comments 
-(an additional styling is applied to symbols in math mode in comments, 
+(additional styling is applied to symbols in math mode in comments, 
 but typesetting is not supported).
 * Usability improvement: add some styling to tabs to make it easier to switch between tabs.
 ### Version 27
