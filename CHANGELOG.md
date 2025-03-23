@@ -1,4 +1,6 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+* Add "Depends on" filter to the Explorer tab. 
+This filter allows to quickly find all assertions which depend (directly and transitively) on the given assertion.
 ### Version 28
 * Support label mode in comments (labels and URLs are clickable in comments).
 * Partially support math mode in comments 
