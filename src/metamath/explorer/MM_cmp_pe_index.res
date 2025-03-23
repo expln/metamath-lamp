@@ -47,7 +47,6 @@ let make = React.memoCustomCompareProps(({
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
-    let (frameDependencies, setFrameDependencies) = React.useState(() => Belt_HashMapString.make(~hintSize=0))
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
 
@@ -143,7 +142,6 @@ let make = React.memoCustomCompareProps(({
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
             ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
-        setFrameDependencies(_ => makeFrameDependencies(allFramesInDeclarationOrder))
         setFilteredLabels(_ => allFramesInDeclarationOrder->mapToLabel)
 
         let allStmtIntTypes = []
@@ -186,7 +184,6 @@ let make = React.memoCustomCompareProps(({
                         setFilteredLabels(_ => {
                             MM_wrk_search_asrt.doSearchAssertions(
                                 ~allFramesInDeclarationOrder,
-                                ~frameDependencies,
                                 ~isAxiom=isAxiomFilter,
                                 ~typ=stmtTypeFilter->Option.map(typ => {
                                     preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
@@ -199,8 +196,6 @@ let make = React.memoCustomCompareProps(({
                                 ~isDisc=discFilter,
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
-                                ~dependsOn=[],
-                                ~dependsOnTran=false,
                             )
                             ->filterByDescr
                             ->filterByDependsOn
@@ -230,8 +225,6 @@ let make = React.memoCustomCompareProps(({
                                 ~isDisc=discFilter,
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
-                                ~dependsOn=[],
-                                ~dependsOnTran=false,
                                 ~onProgress = pct => updateModal(
                                     modalRef, modalId, () => rndProgress(
                                         ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)

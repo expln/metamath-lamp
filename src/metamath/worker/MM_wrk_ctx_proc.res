@@ -48,7 +48,6 @@ type wrkPrecalcData = {
     wrkParenCnt: parenCnt,
     wrkCtx: mmContext,
     allFramesInDeclarationOrder: array<frame>,
-    frameDependencies:Belt_HashMapString.t<Belt_HashSetString.t>,
     syntaxTypes: array<int>,
 }
 
@@ -89,13 +88,6 @@ let getAllFramesInDeclarationOrderExn = () => {
     }
 }
 
-let getFrameDependenciesExn = () => {
-    switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`wrkFrms is not created in the worker thread.`}))
-        | Some({frameDependencies}) => frameDependencies
-    }
-}
-
 let getSyntaxTypesExn = ():array<int> => {
     switch wrkPrecalcData.contents {
         | None => raise(MmException({msg:`syntaxTypes are not created in the worker thread.`}))
@@ -132,11 +124,6 @@ let allFramesInDeclarationOrderCache = cacheMake(
     ~depVerEq = (ctxV1,ctxV2) => ctxV1 == ctxV2
 )
 
-let frameDependenciesCache = cacheMake(
-    ~recalc = makeFrameDependencies,
-    ~depVerEq = (ctxV1,ctxV2) => ctxV1 == ctxV2
-)
-
 let syntaxTypesCache = cacheMake(
     ~recalc = ctx => {
         let (_,syntaxTypes) = findTypes(ctx)
@@ -161,18 +148,13 @@ let makeWrkPrecalcData = (
                         | Error(_) => raise(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
                         | Ok(wrkCtx) => {
                             let wrkFrms = frmsCache->cacheGet(preCtxVer, preCtx)
-                            let allFramesInDeclarationOrder = allFramesInDeclarationOrderCache->cacheGet(
-                                preCtxVer, wrkFrms
-                            )
                             Ok({
                                 settings,
                                 wrkFrms,
                                 wrkParenCnt: parenCntCache->cacheGet((settingsVer, preCtxVer), (settings, preCtx)),
                                 wrkCtx,
-                                allFramesInDeclarationOrder,
-                                frameDependencies: frameDependenciesCache->cacheGet(
-                                    preCtxVer, allFramesInDeclarationOrder
-                                ),
+                                allFramesInDeclarationOrder:
+                                    allFramesInDeclarationOrderCache->cacheGet(preCtxVer, wrkFrms),
                                 syntaxTypes: syntaxTypesCache->cacheGet(preCtxVer, preCtx),
                             })
                         }

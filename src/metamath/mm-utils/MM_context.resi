@@ -204,5 +204,3 @@ module ExprHash: {
 }
 
 let normalizeDescr: string => string
-
-let makeFrameDependencies: array<frame> => Belt_HashMapString.t<Belt_HashSetString.t>

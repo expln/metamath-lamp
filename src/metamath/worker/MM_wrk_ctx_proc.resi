@@ -25,7 +25,6 @@ let getWrkCtxExn: () => mmContext
 let getWrkParenCntExn: () => parenCnt
 let getWrkFrmsExn: () => frms
 let getAllFramesInDeclarationOrderExn: () => array<frame>
-let getFrameDependenciesExn: () => Belt_HashMapString.t<Belt_HashSetString.t>
 let getSyntaxTypesExn: () => array<int>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit

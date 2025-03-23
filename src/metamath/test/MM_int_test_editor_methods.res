@@ -235,12 +235,10 @@ let addStmtsBySearch = (
                 | Some(stmtId) => st->toggleStmtChecked(stmtId)
             }
             let preCtx = st.preCtxData.ctxV.val.min
-            let allFramesInDeclarationOrder=st.preCtxData.frms->frmsSelect
-                ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
-                ->Array.map(frm => frm.frame)
             let searchResults = doSearchAssertions(
-                ~allFramesInDeclarationOrder,
-                ~frameDependencies=makeFrameDependencies(allFramesInDeclarationOrder),
+                ~allFramesInDeclarationOrder=st.preCtxData.frms->frmsSelect
+                    ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
+                    ->Array.map(frm => frm.frame),
                 ~isAxiom=None,
                 ~typ=Some(preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-"))),
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
@@ -251,8 +249,6 @@ let addStmtsBySearch = (
                 ~isDisc=None,
                 ~isDepr=None,
                 ~isTranDepr=None,
-                ~dependsOn=[],
-                ~dependsOnTran=false,
             )->Array.map(frame => frameToStmtsDto(~wrkCtx, ~frame))
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
