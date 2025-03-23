@@ -53,6 +53,8 @@ let make = React.memoCustomCompareProps(({
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
+    let (dependsOnFilter, setDependsOnFilter) = React.useState(() => "")
+    let (dependsOnTranFilter, setDependsOnTranFilter) = React.useState(() => false)
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (descrFilterStr, setDescrFilterStr) = React.useState(() => "")
@@ -73,6 +75,8 @@ let make = React.memoCustomCompareProps(({
         setIsAxiomFilter(_ => None)
         setStmtTypeFilter(_ => None)
         setLabelFilter(_ => "")
+        setDependsOnFilter(_ => "")
+        setDependsOnTranFilter(_ => false)
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
         setDescrFilterStr(_ => "")
@@ -94,6 +98,31 @@ let make = React.memoCustomCompareProps(({
             })
         } else {
             frames
+        }
+    }
+
+    let filterByDependsOn = (frames:array<frame>):array<frame> => {
+        let dependsOn:Belt_HashSetString.t = dependsOnFilter
+            ->Common.getSpaceSeparatedValuesAsArray
+            ->Belt_HashSetString.fromArray
+        if (dependsOn->Belt_HashSetString.isEmpty) {
+            frames
+        } else {
+            let res:array<frame> = []
+            frames->Array.forEach(frame => {
+                switch frame.proof {
+                    | None => ()
+                    | Some(Uncompressed({labels:parentLabels})) | Some(Compressed({labels:parentLabels})) => {
+                        if (parentLabels->Array.some(Belt_HashSetString.has(dependsOn, _))) {
+                            res->Array.push(frame)
+                            if (dependsOnTranFilter) {
+                                dependsOn->Belt_HashSetString.add(frame.label)
+                            }
+                        }
+                    }
+                }
+            })
+            res
         }
     }
 
@@ -169,6 +198,7 @@ let make = React.memoCustomCompareProps(({
                                 ~isTranDepr=tranDeprFilter,
                             )
                             ->filterByDescr
+                            ->filterByDependsOn
                             ->mapToLabel
                         })
                     } else {
@@ -206,6 +236,7 @@ let make = React.memoCustomCompareProps(({
                                     allFramesInDeclarationOrder
                                         ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
                                         ->filterByDescr
+                                        ->filterByDependsOn
                                         ->mapToLabel
                                 })
                                 closeModal(modalRef, modalId)
@@ -300,6 +331,14 @@ let make = React.memoCustomCompareProps(({
         setLabelFilter(_ => newLabelFilter)
     }
 
+    let actDependsOnFilterUpdated = newDependsOnFilter => {
+        setDependsOnFilter(_ => newDependsOnFilter)
+    }
+
+    let actToggleDependsOnTranFilter = () => {
+        setDependsOnTranFilter(prev => !prev)
+    }
+
     let actPatternFilterStrUpdated = newPatternFilterStr => {
         setPatternFilterStr(_ => newPatternFilterStr)
     }
@@ -321,13 +360,13 @@ let make = React.memoCustomCompareProps(({
     }
 
     let (isFirstRender, setIsFirstRender) = React.useState(() => true)
-    React.useEffect5(() => {
+    React.useEffect6(() => {
         setIsFirstRender(_ => false)
         if (!isFirstRender) {
             actApplyFilters()
         }
         None
-    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter))
+    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter, dependsOnTranFilter))
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -423,6 +462,30 @@ let make = React.memoCustomCompareProps(({
             onChange=evt2str(actLabelFilterUpdated)
             onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
         />
+    }
+
+    let rndDependsOnFilter = () => {
+            <Row style=ReactDOM.Style.make(~border="1px solid lightgray", ~borderRadius="5px", ())>
+                <TextField 
+                    label="Depends on"
+                    size=#small
+                    style=ReactDOM.Style.make(~width="200px", ())
+                    value=dependsOnFilter
+                    onChange=evt2str(actDependsOnFilterUpdated)
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
+                />
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked=dependsOnTranFilter
+                            onChange={_ => {
+                                actToggleDependsOnTranFilter()
+                            }}
+                        />
+                    }
+                    label="transitively"
+                />
+            </Row>
     }
 
     let rndPatternFilter = () => {
@@ -536,6 +599,7 @@ let make = React.memoCustomCompareProps(({
                 {rndDiscFilter()}
                 {rndDeprFilter()}
                 {rndTranDeprFilter()}
+                {rndDependsOnFilter()}
             </Row>
         </Col>
     }
