@@ -465,8 +465,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndDependsOnFilter = () => {
-        <Paper>
-            <Row>
+            <Row style=ReactDOM.Style.make(~border="1px solid lightgray", ~borderRadius="5px", ())>
                 <TextField 
                     label="Depends on"
                     size=#small
@@ -487,7 +486,6 @@ let make = React.memoCustomCompareProps(({
                     label="transitively"
                 />
             </Row>
-        </Paper>
     }
 
     let rndPatternFilter = () => {
