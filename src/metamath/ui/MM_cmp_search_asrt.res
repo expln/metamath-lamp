@@ -171,6 +171,8 @@ let make = (
                         ~isDisc=None,
                         ~isDepr=None,
                         ~isTranDepr=None,
+                        ~dependsOn=[],
+                        ~dependsOnTran=false,
                         ~onProgress = pct => updateModal(
                             modalRef, modalId, () => rndProgress(
                                 ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)

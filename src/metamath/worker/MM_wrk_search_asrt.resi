@@ -20,6 +20,7 @@ let threeStateBoolMatchesTwoStateBool: (option<bool>, bool) => bool
 
 let doSearchAssertions: (
     ~allFramesInDeclarationOrder:array<frame>,
+    ~frameDependencies:Belt_HashMapString.t<Belt_HashSetString.t>,
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
@@ -27,6 +28,8 @@ let doSearchAssertions: (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
+    ~dependsOn:array<string>,
+    ~dependsOnTran:bool,
     ~onProgress:float=>unit=?
 ) => array<frame>
 
@@ -42,6 +45,8 @@ let searchAssertions: (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
+    ~dependsOn:array<string>,
+    ~dependsOnTran:bool,
     ~onProgress:float=>unit,
 ) => promise<array<string>>
 

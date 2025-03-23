@@ -1583,3 +1583,13 @@ let ctxOptimizeForProver = (
     resCtx->moveConstsToBegin(resCtx->ctxSymsToIntsExn(allConsts))
     resCtx
 }
+
+let makeFrameDependencies = (allFrames:array<frame>):Belt_HashMapString.t<Belt_HashSetString.t> => {
+    allFrames->Array.map(frame => {
+        let parentLabels:Belt_HashSetString.t = switch frame.proof {
+            | None => Belt_HashSetString.make(~hintSize=0)
+            | Some(Uncompressed({labels})) | Some(Compressed({labels})) => Belt_HashSetString.fromArray(labels)
+        }
+        (frame.label, parentLabels)
+    })->Belt_HashMapString.fromArray
+}

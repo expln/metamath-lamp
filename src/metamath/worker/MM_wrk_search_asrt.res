@@ -24,6 +24,8 @@ type request =
         isDisc:option<bool>,
         isDepr:option<bool>,
         isTranDepr:option<bool>,
+        dependsOn:array<string>,
+        dependsOnTran:bool,
     })
 
 type response =
@@ -479,6 +481,8 @@ let searchAssertions = (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
+    ~dependsOn:array<string>,
+    ~dependsOnTran:bool,
     ~onProgress:float=>unit,
 ): promise<array<string>> => {
     promise(resolve => {
@@ -490,7 +494,9 @@ let searchAssertions = (
             ~varsText="",
             ~disjText="",
             ~procName,
-            ~initialRequest = FindAssertions({ isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, }),
+            ~initialRequest = FindAssertions({ 
+                isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, dependsOn, dependsOnTran
+            }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -563,6 +569,7 @@ let threeStateBoolMatchesTwoStateBool = (threeStateBool:option<bool>, twoStateBo
 
 let doSearchAssertions = (
     ~allFramesInDeclarationOrder:array<frame>,
+    ~frameDependencies:Belt_HashMapString.t<Belt_HashSetString.t>,
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
@@ -570,6 +577,8 @@ let doSearchAssertions = (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
+    ~dependsOn:array<string>,
+    ~dependsOnTran:bool,
     ~onProgress:option<float=>unit>=?
 ):array<frame> => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
@@ -600,9 +609,12 @@ let doSearchAssertions = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr}) => {
+        | FindAssertions({
+            isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, dependsOn, dependsOnTran
+        }) => {
             let filteredFrames = doSearchAssertions(
                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
+                ~frameDependencies=getFrameDependenciesExn(),
                 ~isAxiom,
                 ~typ,
                 ~label,
@@ -610,6 +622,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~isDisc,
                 ~isDepr,
                 ~isTranDepr,
+                ~dependsOn,
+                ~dependsOnTran,
                 ~onProgress = pct => sendToClient(OnProgress(pct))
             )
             sendToClient(SearchResult(filteredFrames->Array.map(frame => frame.label)))
