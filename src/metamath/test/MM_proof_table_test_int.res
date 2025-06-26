@@ -151,3 +151,65 @@ describe("createProof", _ => {
         })->ignore
     })
 })
+
+describe("tool: sort assertions by usage count", _ => {
+
+    it_skip("tool: sort assertions by usage count", _ => {
+        let baseDir = ""
+        let mmFileText = Expln_utils_files.readStringFromFile(`${baseDir}/set.mm`)
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let numOfFrames = countFrames(ast)
+        let progressTracker = testProgressTrackerMake(
+            ~step=0.05, 
+            ~maxCnt = numOfFrames,
+        )
+
+        let dirDeps: Belt_HashMapString.t<int> = Belt_HashMapString.make(~hintSize=numOfFrames)
+
+        let ctx = loadContext(ast, ~onPreProcess = (_,node) => {
+            switch node {
+                | Provable({proof:Some(expectedProof)}) => {
+                    switch expectedProof {
+                        | Uncompressed({labels}) | Compressed({labels}) => {
+                            labels->Array.forEach(label => {
+                                switch dirDeps->Belt_HashMapString.get(label) {
+                                    | None => dirDeps->Belt_HashMapString.set(label,1)
+                                    | Some(cnt) => dirDeps->Belt_HashMapString.set(label,cnt+1)
+                                }
+                            })
+                        }
+                    }
+
+                    progressTracker->testProgressTrackerIncCnt
+                }
+                | Axiom(_) => progressTracker->testProgressTrackerIncCnt
+                | _ => ()
+            }
+        })
+
+        dirDeps
+            ->Belt_HashMapString.toArray
+            ->Array.filter(((label,_)) => {
+                switch ctx->getFrame(label) {
+                    | None => false
+                    | Some(frame) => {
+                        let asrtTyp:int = frame.asrt->Array.getUnsafe(0)
+                        if (ctx->ctxIntToSymExn(asrtTyp) == "|-") {
+                            Array.concatMany(frame.asrt, frame.hyps->Array.map(({expr}) => expr))
+                                ->Array.filter(frmInt => frmInt >= 0)
+                                ->Belt_HashSetInt.fromArray
+                                ->Belt_HashSetInt.toArray
+                                ->Array.map(frmVarInt => frame.varTypes->Array.getUnsafe(frmVarInt)->frmIntToSymExn(ctx,frame,_))
+                                ->Array.some(sym => sym != "wff")
+                        } else {
+                            false
+                        }
+                    }
+                }
+            })
+            ->Array.toSorted(((_,cnt1), (_,cnt2)) => -. ((cnt1 - cnt2)->Float.fromInt))
+            ->Array.map(((label,cnt)) => `${label} ${cnt->Int.toString}`)
+            ->Array.join("\n")
+            ->Expln_utils_files.writeStringToFile(`${baseDir}/asrt_usage_counts.txt`)
+    })
+})

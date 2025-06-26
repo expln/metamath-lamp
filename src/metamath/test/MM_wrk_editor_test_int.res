@@ -884,14 +884,14 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
     // })
 })
 
-// describe("prepare set.mm without proofs", _ => {
-//     it("prepare set.mm without proofs", _ => {
-//         generateReducedMmFile(
-//             ~pathToFullMmFile="/books/metamath/set.mm",
-//             ~pathToSaveTo="./src/metamath/test/resources/set-no-proofs._mm",
-//             ~skipComments=true,
-//             ~skipProofs=true,
-//             ()
-//         )
-//     })
-// })
+describe("tool: prepare set.mm without proofs", _ => {
+    
+    it_skip("tool: prepare set.mm without proofs", _ => {
+        generateReducedMmFile(
+            ~pathToFullMmFile="/books/metamath/set.mm",
+            ~pathToSaveTo="./src/metamath/test/resources/set-no-proofs._mm",
+            ~skipComments=true,
+            ~skipProofs=true,
+        )
+    })
+})
