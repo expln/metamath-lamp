@@ -488,6 +488,28 @@ let make = React.memoCustomCompareProps(({
             </Row>
     }
 
+    let actOpenSortDialog = () => {
+        openModalPaneWithTitle(
+            ~modalRef,
+            ~title="Sort by",
+            ~content = (~close) => {
+                <MM_cmp_sort_asrts_selector 
+                    init=[]
+                    onOk={newSortBy => {
+                        close()
+                    }}
+                    onCancel=close
+                />
+            }
+        )
+    }
+
+    let rndSortBtn = () => {
+        <Button onClick=(_=>actOpenSortDialog()) variant=#outlined > 
+            { React.string("Sort") }
+        </Button>
+    }
+
     let rndPatternFilter = () => {
         <TextField 
             label="Pattern"
@@ -600,6 +622,7 @@ let make = React.memoCustomCompareProps(({
                 {rndDeprFilter()}
                 {rndTranDeprFilter()}
                 {rndDependsOnFilter()}
+                {rndSortBtn()}
             </Row>
         </Col>
     }

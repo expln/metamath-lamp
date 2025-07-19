@@ -13,6 +13,10 @@ type exnData = {
     stack:string,
 }
 
+let panic = (msg:string):'a => {
+    raise(MmException({msg:msg}))
+}
+
 let jsErrorToExnData = (exn:exn):exnData => {
     let jsExn = Error.fromException(exn)
     {
