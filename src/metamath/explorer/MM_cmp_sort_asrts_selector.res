@@ -125,7 +125,7 @@ let make = (
             >
                 {
                     [
-                        <MenuItem value="">{React.string("")}</MenuItem>,
+                        <MenuItem key="" value="">{React.string("")}</MenuItem>,
                         ...allSortByOptions->Array.map(((_,code,descr)) => {
                             <MenuItem key=code value=code>{React.string(descr)}</MenuItem>
                         })
@@ -135,7 +135,7 @@ let make = (
         </FormControl>
         <Row alignItems=#center>
             <Button onClick=(_=>actOk()) variant=#contained > 
-                { React.string("Sort") }
+                { React.string("Ok") }
             </Button>
             <Button onClick={_=>actCancel()} > {React.string("Cancel")} </Button>
         </Row>

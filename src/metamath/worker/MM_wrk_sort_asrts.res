@@ -28,10 +28,17 @@ let sortByFromStr = str => {
     }
 }
 
+let sortByGetTitle = sortBy => {
+    switch allSortByOptions->Array.find(((v,_,_)) => v == sortBy) {
+        | Some((_,_,title)) => title
+        | None => panic(`Cannot find the title for the sortBy '${sortBy->sortByToStr}'.`)
+    }
+}
+
 let sortDirToStr = sortDir => {
     switch sortDir {
-        | Asc => "Asc"
-        | Dsc => "Dsc"
+        | Asc => "ASC"
+        | Dsc => "DESC"
     }
 }
 

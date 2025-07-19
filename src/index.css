@@ -27,6 +27,14 @@ code {
   background: rgba(211, 211, 211, 0.2);
 }
 
+.dark-grey-bkg-on-hover:hover {
+  background: rgb(220, 220, 220);
+}
+
+.red-on-hover:hover {
+  color: rgba(220, 22, 22, 0.6);
+}
+
 .underline-on-hover:hover {
   text-decoration: underline;
 }
