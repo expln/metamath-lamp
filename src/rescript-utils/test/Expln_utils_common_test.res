@@ -52,22 +52,34 @@ describe("hashArrIntFromTo", _ => {
     })
 })
 
-describe("comparatorBy", _ => {
+describe("comparatorByInt", _ => {
     it("produces correct comparators", _ => {
         //given
-        let cmp1 = comparatorBy(a => a->Array.getUnsafe(1))
+        let cmp1 = comparatorByInt(a => a->Array.getUnsafe(1))
 
         //when/then
-        assertEq(-1.0, cmp1([1,30], [2,40]))
-        assertEq(0.0, cmp1([1,40], [2,40]))
-        assertEq(1.0, cmp1([1,50], [2,40]))
+        assertEq(Ordering.less, cmp1([1,30], [2,40]))
+        assertEq(Ordering.equal, cmp1([1,40], [2,40]))
+        assertEq(Ordering.greater, cmp1([1,50], [2,40]))
+    })
+})
+
+describe("comparatorByStr", _ => {
+    it("produces correct comparators", _ => {
+        //given
+        let cmp1 = comparatorByStr(a => a->Array.getUnsafe(1))
+
+        //when/then
+        assertEq(Ordering.less, cmp1(["1","30"], ["2","40"]))
+        assertEq(Ordering.equal, cmp1(["1","40"], ["2","40"]))
+        assertEq(Ordering.greater, cmp1(["1","50"], ["2","40"]))
     })
 })
 
 describe("comparatorInverse", _ => {
     it("creates inverted comparator", _ => {
         //given
-        let cmp1 = comparatorBy(a => a->Array.getUnsafe(1))->comparatorInverse
+        let cmp1 = comparatorByInt(a => a->Array.getUnsafe(1))->cmpRev
 
         //when/then
         assertEq(1.0, cmp1([1,30], [2,40]))

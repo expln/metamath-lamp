@@ -106,7 +106,7 @@ let doBuildSyntaxTreesForAllAssertions = (
         None
     })->ignore
     let exprsToSyntaxProve = asrtExprsWithCtxVars->Belt_HashMapString.valuesToArray
-        ->Expln_utils_common.sortInPlaceWith(comparatorBy(Array.length(_))->comparatorInverse)
+        ->Expln_utils_common.sortInPlaceWith(comparatorByInt(Array.length(_))->cmpRev)
         ->Array.map(expr => expr->Array.sliceToEnd(~start=1))
 
     // let asrtExprStr = asrtExprsWithCtxVars->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")

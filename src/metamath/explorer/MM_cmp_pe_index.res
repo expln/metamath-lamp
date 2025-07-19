@@ -22,6 +22,11 @@ type props = {
     onTabTitleChange:string=>unit,
 }
 
+type sorting = {
+    sortBy:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>,
+    comparator: Expln_utils_common.comparator<frame>
+}
+
 let propsAreSame = (a:props, b:props):bool => {
     a.preCtxData === b.preCtxData
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
@@ -61,6 +66,8 @@ let make = React.memoCustomCompareProps(({
     let (discFilter, setDiscFilter) = React.useState(() => None)
     let (deprFilter, setDeprFilter) = React.useState(() => None)
     let (tranDeprFilter, setTranDeprFilter) = React.useState(() => None)
+
+    let (sorting, setSorting) = React.useState(() => {sortBy:[], comparator:(_,_)=>Ordering.equal})
 
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
 
@@ -142,7 +149,7 @@ let make = React.memoCustomCompareProps(({
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
             ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
-        setFilteredLabels(_ => allFramesInDeclarationOrder->mapToLabel)
+        setFilteredLabels(_ => allFramesInDeclarationOrder->Array.toSorted(sorting.comparator)->mapToLabel)
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
@@ -199,6 +206,7 @@ let make = React.memoCustomCompareProps(({
                             )
                             ->filterByDescr
                             ->filterByDependsOn
+                            ->Array.toSorted(sorting.comparator)
                             ->mapToLabel
                         })
                     } else {
@@ -237,6 +245,7 @@ let make = React.memoCustomCompareProps(({
                                         ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
                                         ->filterByDescr
                                         ->filterByDependsOn
+                                        ->Array.toSorted(sorting.comparator)
                                         ->mapToLabel
                                 })
                                 closeModal(modalRef, modalId)
@@ -360,13 +369,13 @@ let make = React.memoCustomCompareProps(({
     }
 
     let (isFirstRender, setIsFirstRender) = React.useState(() => true)
-    React.useEffect6(() => {
+    React.useEffect7(() => {
         setIsFirstRender(_ => false)
         if (!isFirstRender) {
             actApplyFilters()
         }
         None
-    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter, dependsOnTranFilter))
+    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter, dependsOnTranFilter, sorting))
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -488,15 +497,28 @@ let make = React.memoCustomCompareProps(({
             </Row>
     }
 
+    let actSetSorting = (sortBy:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>) => {
+        setSorting(_ => {
+            sortBy,
+            comparator: sortBy
+                ->Array.map(((sortBy,sortDir)) => MM_wrk_sort_asrts.makeComparator(sortBy,sortDir))
+                ->Array.reduce(
+                    (_,_)=>Ordering.equal,
+                    Expln_utils_common.comparatorAndThen
+                )
+        })
+    }
+
     let actOpenSortDialog = () => {
         openModalPaneWithTitle(
             ~modalRef,
             ~title="Sort by",
             ~content = (~close) => {
                 <MM_cmp_sort_asrts_selector 
-                    init=[]
+                    init={sorting.sortBy}
                     onOk={newSortBy => {
                         close()
+                        actSetSorting(newSortBy)
                     }}
                     onCancel=close
                 />

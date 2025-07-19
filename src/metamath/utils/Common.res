@@ -216,7 +216,7 @@ let createVarTypeComparator = (
             | Some(aTypOrder) => {
                 switch varOrderByType->Belt_HashMapInt.get(b) {
                     | None => -1.0
-                    | Some(bTypOrder) => Expln_utils_common.intCmp(aTypOrder,bTypOrder)
+                    | Some(bTypOrder) => Int.compare(aTypOrder,bTypOrder)
                 }
             }
         }

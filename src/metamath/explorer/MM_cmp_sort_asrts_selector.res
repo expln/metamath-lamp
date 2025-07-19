@@ -1,56 +1,9 @@
 open Expln_React_common
 open Expln_React_Mui
-open MM_react_common
-
-type sortBy = UsageCnt | AsrtLen | AsrtLabel | NumOfHyps
-type sortDir = Asc | Dsc
+open MM_wrk_sort_asrts
 
 type state = {
     sortBy:array<(sortBy,sortDir)>
-}
-
-let panic = (msg:string):'a => Common.panic(`MM_cmp_sort_asrts_selector: ${msg}`)
-
-let sortByToStr = sortBy => {
-    switch sortBy {
-        | UsageCnt => "UsageCnt"
-        | AsrtLen => "AsrtLen"
-        | AsrtLabel => "AsrtLabel"
-        | NumOfHyps => "NumOfHyps"
-    }
-}
-
-let allSortByOptions = [
-    (UsageCnt, sortByToStr(UsageCnt), "Usage count"),
-    (AsrtLen, sortByToStr(AsrtLen), "Length of the assertion"),
-    (AsrtLabel, sortByToStr(AsrtLabel), "Label"),
-    (NumOfHyps, sortByToStr(NumOfHyps), "Number of hypotheses"),
-]
-
-let sortByFromStr = str => {
-    switch allSortByOptions->Array.find(((_,c,_)) => c == str) {
-        | Some((v,_,_)) => v
-        | None => panic(`Cannot convert the value of '${str}' to a sortBy.`)
-    }
-}
-
-let sortDirToStr = sortDir => {
-    switch sortDir {
-        | Asc => "Asc"
-        | Dsc => "Dsc"
-    }
-}
-
-let allSortDirOptions = [
-    (Asc, sortDirToStr(Asc), "Ascending"),
-    (Dsc, sortDirToStr(Dsc), "Descending"),
-]
-
-let sortDirFromStr = str => {
-    switch allSortDirOptions->Array.find(((_,c,d)) => c == str) {
-        | Some((v,_,_)) => v
-        | None => panic(`Cannot convert the value of '${str}' to a sortDir.`)
-    }
 }
 
 @react.component
@@ -70,7 +23,7 @@ let make = (
     }
 
     let actDeleteSortBy = (idx:int) => {
-        setState(st => {sortBy:st.sortBy->Array.filterWithIndex((e,i) => i != idx)})
+        setState(st => {sortBy:st.sortBy->Array.filterWithIndex((_,i) => i != idx)})
     }
 
     let actMoveUpSortBy = (idx:int) => {
@@ -130,7 +83,7 @@ let make = (
     }
 
     let rndSortControls = ((sortBy,sortDir),idx) => {
-        <Row key={idx->Int.toString}>
+        <Row key={idx->Int.toString} alignItems={#center}>
             {rndSortByButtons(idx)}
             <FormControl size=#small>
                 <Select

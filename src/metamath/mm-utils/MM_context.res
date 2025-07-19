@@ -21,15 +21,15 @@ let exprEq: (expr,expr) => bool = (a,b) => {
     }
 }
 
-let exprCmp = (e1:expr, e2:expr):float => {
+let exprCmp = (e1:expr, e2:expr):Ordering.t => {
     let len1 = e1->Array.length
     let len2 = e2->Array.length
-    switch Expln_utils_common.intCmp(len1, len2) {
+    switch Int.compare(len1, len2) {
         | 0.0 => {
             let res = ref(0.0)
             let i = ref(0)
             while (i.contents < len1 && res.contents == 0.0) {
-                res.contents = Expln_utils_common.intCmp(e1->Array.getUnsafe(i.contents), e2->Array.getUnsafe(i.contents))
+                res.contents = Int.compare(e1->Array.getUnsafe(i.contents), e2->Array.getUnsafe(i.contents))
                 i.contents = i.contents + 1
             }
             res.contents
@@ -319,13 +319,13 @@ let disjToArr = (
 
     let sortBy = if (sortByTypeAndName) {
         switch varIntToVarType {
-            | None => Expln_utils_common.intCmp
+            | None => Int.compare
             | Some(varIntToVarType) => {
                 switch typeOrder {
-                    | None => Expln_utils_common.intCmp
+                    | None => Int.compare
                     | Some(typeOrder) => {
                         switch varIntToVarName {
-                            | None => Expln_utils_common.intCmp
+                            | None => Int.compare
                             | Some(varIntToVarName) => {
                                 let allDisjVars = disj->disjGetAllVars
                                 let allDisjVarTypes = Belt_HashMapInt.make(~hintSize=allDisjVars->Belt_HashSetInt.size)
@@ -353,7 +353,7 @@ let disjToArr = (
             }
         }
     } else {
-        Expln_utils_common.intCmp
+        Int.compare
     }
     res->Array.forEach(d =>
         d->Expln_utils_common.sortInPlaceWith(sortBy)->ignore

@@ -45,17 +45,14 @@ let copySubArray = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx
     }
 }
 
-type comparator<'a> = ('a, 'a) => float
+type comparator<'a> = ('a, 'a) => Ordering.t
 
 let toIntCmp: 'a. comparator<'a> => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
     ->Math.sign
     ->Math.Int.floor
 
-let intCmp: comparator<int> = (a:int, b:int) => if a < b {-1.0} else if a == b {0.0} else {1.0}
-let floatCmp: comparator<float> = (a:float ,b:float) => if a < b {-1.0} else if a == b {0.0} else {1.0}
-let strCmp: comparator<string> = String.localeCompare
-let strCmpI: comparator<string> = (s1,s2) => strCmp(s1->String.toLocaleUpperCase ,s2->String.toLocaleUpperCase)
-let cmpRev: 'a. comparator<'a> => comparator<'a> = cmp => (a,b) => -.cmp(a,b)
+let strCmpI: comparator<string> = (s1,s2) => String.compare(s1->String.toLocaleUpperCase, s2->String.toLocaleUpperCase)
+let cmpRev: 'a. comparator<'a> => comparator<'a> = cmp => (a,b) => cmp(a,b)->Ordering.invert
 
 let stringify = (a:'a):string => switch JSON.stringifyAny(a) {
     | Some(str) => str
@@ -68,30 +65,20 @@ type explnUtilsException = {
 exception ExplnUtilsException(explnUtilsException)
 
 
-let comparatorBy = (prop:'a=>int):comparator<'a> => {
-    (a,b) => {
-        let propA = prop(a)
-        let propB = prop(b)
-        if (propA < propB) {
-            -1.0
-        } else if (propA == propB) {
-            0.0
-        } else {
-            1.0
-        }
-    }
-}
+let comparatorByInt = (prop:'a=>int):comparator<'a> => (a,b) => Int.compare(prop(a),prop(b))
+let comparatorByStr = (prop:'a=>string):comparator<'a> => (a,b) => String.compare(prop(a),prop(b))
+
 
 let comparatorAndThen = (cmp1:comparator<'a>, cmp2:comparator<'a>):comparator<'a> => {
     (x,y) => {
-        switch cmp1(x,y) {
-            | 0.0 => cmp2(x,y)
-            | f => f
+        let res1 = cmp1(x,y)
+        if (Ordering.isEqual(res1)) {
+            cmp2(x,y)
+        } else {
+            res1
         }
     }
 }
-
-let comparatorInverse = (cmp:comparator<'a>):comparator<'a> => (x,y) => -.cmp(x,y)
 
 //https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
 //https://stackoverflow.com/questions/194846/is-there-hash-code-function-accepting-any-object-type
