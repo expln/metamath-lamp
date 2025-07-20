@@ -84,6 +84,7 @@ type frame = {
     isDepr:bool, /* is deprecated */
     isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
+    usageCnt: int, //the number of theorems which directly depend on this assertion
 }
 
 type disjMutable = Belt_HashMapInt.t<Belt_HashSetInt.t>
@@ -1171,7 +1172,8 @@ let createFrame = (
                             })
                         } else {
                             None
-                        }
+                        },
+                    usageCnt: -1,
                 }
                 frame
             }
@@ -1444,32 +1446,39 @@ let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
     })->ignore
 }
 
-let frameRemoveRedundantText = (
+let frameUpdate = (
     frame:frame,
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
+    ~frmUsageCounts:Belt_HashMapString.t<ref<int>>,
 ):frame => {
+    let usageCnt = switch frmUsageCounts->Belt_HashMapString.get(frame.label) {
+        | None => frame.usageCnt
+        | Some(cnt) => cnt.contents
+    }
     {
         ...frame,
         descr: if (removeAsrtDescr) {None} else {frame.descr},
         descrNorm: if (removeAsrtDescr) {None} else {frame.descrNorm},
         proof: if (removeProofs) {None} else {frame.proof},
+        usageCnt, 
     }
 }
 
-let rec ctxRemoveRedundantText = (
+let rec ctxUpdate = (
     ctx:mmContextContents,
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
+    ~frmUsageCounts:Belt_HashMapString.t<ref<int>>,
 ):(mmContextContents, mmContextContents) => {
-    let removeRedundantData = ctx => {
+    let update = ctx => {
         {
             ...ctx,
             lastComment: if (removeAsrtDescr) {None} else {ctx.lastComment},
             frames: ctx.frames->Belt_HashMapString.toArray->Array.map(((label,frame)) => {
                 (
                     label,
-                    frame->frameRemoveRedundantText(~removeAsrtDescr, ~removeProofs)
+                    frame->frameUpdate(~removeAsrtDescr, ~removeProofs, ~frmUsageCounts)
                 )
             })->Belt_HashMapString.fromArray,
             totalNumOfFrames: switch ctx.parent {
@@ -1482,14 +1491,14 @@ let rec ctxRemoveRedundantText = (
 
     switch ctx.parent {
         | None => {
-            let res = removeRedundantData(ctx)
+            let res = update(ctx)
             res.root = Some(res)
             (res, res)
         }
         | Some(parent) => {
-            let (newRoot, newParent) = ctxRemoveRedundantText(parent, ~removeAsrtDescr, ~removeProofs)
+            let (newRoot, newParent) = ctxUpdate(parent, ~removeAsrtDescr, ~removeProofs, ~frmUsageCounts)
             let res = {
-                ...removeRedundantData(ctx),
+                ...update(ctx),
                 root: Some(newRoot),
                 parent: Some(newParent),
             }
@@ -1574,10 +1583,33 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
 let ctxOptimizeForProver = ( 
     ctx:mmContext,
     ~parens:string,
-    ~removeAsrtDescr:bool=true,
-    ~removeProofs:bool=true
+    ~removeAsrtDescr:bool,
+    ~removeProofs:bool,
+    ~updateUsageCntForFrames:bool,
 ):mmContext => {
-    let (_,ctx) = ctx.contents->ctxRemoveRedundantText( ~removeAsrtDescr, ~removeProofs, )
+    let frmUsageCounts:Belt_HashMapString.t<ref<int>> = if !updateUsageCntForFrames {
+        Belt_HashMapString.make(~hintSize=0)
+    } else {
+        let allFrms = ctx->getAllFramesArr
+        let cnts:Belt_HashMapString.t<ref<int>> = Belt_HashMapString.fromArray(
+            allFrms->Array.map(frm => (frm.label, ref(0)))
+        )
+        allFrms->Array.forEach(frm => {
+            switch frm.proof {
+                | Some(Compressed({labels})) | Some(Uncompressed({labels})) => {
+                    labels->Array.forEach(label => {
+                        switch cnts->Belt_HashMapString.get(label) {
+                            | Some(cnt) => cnt := cnt.contents + 1
+                            | None => ()
+                        }
+                    })
+                }
+                | None => ()
+            }
+        })
+        cnts
+    }
+    let (_,ctx) = ctx.contents->ctxUpdate( ~removeAsrtDescr, ~removeProofs, ~frmUsageCounts, )
     let resCtx = ref(ctx)
     let {allConsts} = resCtx->ctxGetOptimizedConstsOrder(~parens)
     resCtx->moveConstsToBegin(resCtx->ctxSymsToIntsExn(allConsts))

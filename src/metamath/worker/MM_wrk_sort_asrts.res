@@ -54,16 +54,32 @@ let sortDirFromStr = str => {
     }
 }
 
-let makeComparator = (sortBy:sortBy, sortDir:sortDir):Expln_utils_common.comparator<frame> => {
+let makeComparatorSingle = (sortBy:sortBy, sortDir:sortDir):Expln_utils_common.comparator<frame> => {
     open Expln_utils_common
     let cmp = switch sortBy {
-        | UsageCnt => panic("UsageCnt is not supported.")
+        | UsageCnt => Expln_utils_common.comparatorByInt(frm => frm.usageCnt)
         | AsrtLen => Expln_utils_common.comparatorByInt(frm => frm.asrt->Array.length)
         | AsrtLabel => Expln_utils_common.comparatorByStr(frm => frm.label)
-        | NumOfHyps => panic("NumOfHyps is not supported.")
+        | NumOfHyps => Expln_utils_common.comparatorByInt(frm => frm.hyps->Array.length - frm.varHyps->Array.length)
     }
     switch sortDir {
         | Asc => cmp
         | Dsc => cmp->cmpRev
+    }
+}
+
+let makeComparator = (sortBy:array<(sortBy, sortDir)>):Expln_utils_common.comparator<frame> => {
+    if sortBy->Array.length == 0 {
+        (_,_)=>Ordering.equal
+    } else {
+        let cmps = sortBy->Array.map(((sortBy,sortDir)) => makeComparatorSingle(sortBy,sortDir))
+        if cmps->Array.length == 1 {
+            cmps->Array.getUnsafe(0)
+        } else {
+            cmps->Array.reduceWithIndex(
+                cmps->Array.getUnsafe(0),
+                (acc,cmp,idx) => if idx == 0 {acc} else {Expln_utils_common.comparatorAndThen(acc,cmp)}
+            )
+        }
     }
 }

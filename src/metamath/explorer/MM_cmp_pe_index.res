@@ -147,7 +147,7 @@ let make = React.memoCustomCompareProps(({
     let actPreCtxDataChanged = () => {
         let preCtx = preCtxData.ctxV.val.full
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
-            ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
+            ->Expln_utils_common.sortInPlaceWith(Expln_utils_common.comparatorByInt(frm => frm.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
         setFilteredLabels(_ => allFramesInDeclarationOrder->Array.toSorted(sorting.comparator)->mapToLabel)
 
@@ -500,12 +500,7 @@ let make = React.memoCustomCompareProps(({
     let actSetSorting = (sortBy:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>) => {
         setSorting(_ => {
             sortBy,
-            comparator: sortBy
-                ->Array.map(((sortBy,sortDir)) => MM_wrk_sort_asrts.makeComparator(sortBy,sortDir))
-                ->Array.reduce(
-                    (_,_)=>Ordering.equal,
-                    Expln_utils_common.comparatorAndThen
-                )
+            comparator: MM_wrk_sort_asrts.makeComparator(sortBy)
         })
     }
 

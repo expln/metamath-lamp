@@ -118,11 +118,11 @@ let preCtxDataUpdate = (
     )
 
     let ctxFull = ctxV.val.full->ctxOptimizeForProver(
-        ~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false
+        ~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false, ~updateUsageCntForFrames=true
     )
 
     let ctxMin = ctxFull->ctxOptimizeForProver(
-        ~parens=settingsV.val.parens, ~removeAsrtDescr=true, ~removeProofs=true
+        ~parens=settingsV.val.parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
     )
 
     let ctxV = ctxV->versionSet({full:ctxFull, min:ctxMin})

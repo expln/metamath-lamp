@@ -41,7 +41,9 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
             // ~debug=true
         )
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
-        let ctx = ctx->ctxOptimizeForProver(~parens)
+        let ctx = ctx->ctxOptimizeForProver(
+            ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        )
         let frms = prepareFrmSubsData(~ctx)
         let parenCnt = makeParenCnt(~ctx, ~parens)
         let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)

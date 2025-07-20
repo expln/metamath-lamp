@@ -181,7 +181,9 @@ let createInitialState = (
     ~frmCtx:mmContext, 
     ~frame:frame
 ):state => {
-    let frmCtx = frmCtx->ctxOptimizeForProver(~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false)
+    let frmCtx = frmCtx->ctxOptimizeForProver(
+        ~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false, ~updateUsageCntForFrames=true
+    )
     let frms = prepareFrmSubsData( ~ctx=frmCtx )
     let parenCnt = MM_provers.makeParenCnt(~ctx=frmCtx, ~parens=settings.parens)
     let (_, syntaxTypes) = findTypes(frmCtx)

@@ -42,6 +42,7 @@ type frame = {
     isDepr:bool, /* is deprecated */
     isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
+    usageCnt: int, //the number of theorems which directly depend on this assertion
 }
 
 type optimizedConstsOrder = {
@@ -83,8 +84,9 @@ let loadContext: (
 let ctxOptimizeForProver: ( 
     mmContext,
     ~parens:string,
-    ~removeAsrtDescr:bool=?,
-    ~removeProofs:bool=?
+    ~removeAsrtDescr:bool,
+    ~removeProofs:bool,
+    ~updateUsageCntForFrames:bool,
 ) => mmContext
 
 let ctxGetOptimizedConstsOrder: (mmContext, ~parens:string) => optimizedConstsOrder

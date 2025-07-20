@@ -99,7 +99,9 @@ describe("moveConstsToBegin", _ => {
         assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens=constsToMove)
+        let ctx = ctx->ctxOptimizeForProver(
+            ~parens=constsToMove, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        )
 
         //then
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
@@ -114,7 +116,9 @@ describe("moveConstsToBegin", _ => {
         assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ t ] { } abc yyy")
+        let ctx = ctx->ctxOptimizeForProver(
+            ~parens="( ) [ t ] { } abc yyy", ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        )
 
         //then
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
@@ -137,7 +141,9 @@ describe("moveConstsToBegin", _ => {
         assertEq(ctx->getTypeOfVarExn(q)->ctxIntToSymExn(ctx, _), "wff")
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ ] { }")
+        let ctx = ctx->ctxOptimizeForProver(
+            ~parens="( ) [ ] { }", ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        )
 
         //then
         assertEq(ctx->getTypeOfVarExn(t)->ctxIntToSymExn(ctx, _), "term")
@@ -158,7 +164,9 @@ describe("moveConstsToBegin", _ => {
         )
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ ] { }")
+        let ctx = ctx->ctxOptimizeForProver(
+            ~parens="( ) [ ] { }", ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        )
 
         //then
         assertEq(
