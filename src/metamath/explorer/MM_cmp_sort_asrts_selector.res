@@ -1,9 +1,40 @@
 open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_sort_asrts
+open Common
+
+type sorting = array<(sortBy, sortDir)>
 
 type state = {
-    sortBy:array<(sortBy,sortDir)>
+    sortBy:sorting
+}
+
+let renderSortBy = (
+    ~sortBy:sorting,
+    ~onClick:unit=>unit,
+    ~onCancel:unit=>unit,
+) => {
+    let sortByStr = sortBy->Array.map(((sortBy,sortDir)) => {
+        sortByGetTitle(sortBy) ++ " " ++ sortDirToStr(sortDir)
+    })
+    ->Array.join(", ")
+    <span>
+        <span 
+            style=ReactDOM.Style.make(~cursor="pointer", ~borderRadius="4px", ())
+            className="dark-grey-bkg-on-hover"
+            onClick={_=>onClick()}
+        >
+            {React.string("Sorting: " ++ sortByStr)}
+        </span>
+        <span> {React.string(nbsp)} </span>
+        <span 
+            style=ReactDOM.Style.make(~cursor="pointer", ())
+            className="red-on-hover" 
+            onClick={_=>onCancel()}
+        >
+            {React.string("\u2715")}
+        </span>
+    </span>
 }
 
 @react.component

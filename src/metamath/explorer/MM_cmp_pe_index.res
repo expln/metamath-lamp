@@ -523,31 +523,6 @@ let make = React.memoCustomCompareProps(({
         )
     }
 
-    let rndSortBy = () => {
-        open MM_wrk_sort_asrts
-        let sortByStr = sorting.sortBy->Array.map(((sortBy,sortDir)) => {
-            sortByGetTitle(sortBy) ++ " " ++ sortDirToStr(sortDir)
-        })
-        ->Array.join(", ")
-        <span>
-            <span 
-                style=ReactDOM.Style.make(~cursor="pointer", ~borderRadius="4px", ())
-                className="dark-grey-bkg-on-hover"
-                onClick={_=>actOpenSortDialog()}
-            >
-                {React.string("Sorting: " ++ sortByStr)}
-            </span>
-            <span> {React.string(nbsp)} </span>
-            <span 
-                style=ReactDOM.Style.make(~cursor="pointer", ())
-                className="red-on-hover" 
-                onClick={_=>actSetSorting([])}
-            >
-                {React.string("\u2715")}
-            </span>
-        </span>
-    }
-
     let rndPatternFilter = () => {
         <TextField 
             label="Pattern"
@@ -672,7 +647,11 @@ let make = React.memoCustomCompareProps(({
             </Row>
             {
                 if (sorting.sortBy->Array.length > 0) {
-                    rndSortBy()
+                    MM_cmp_sort_asrts_selector.renderSortBy(
+                        ~sortBy=sorting.sortBy,
+                        ~onClick=actOpenSortDialog,
+                        ~onCancel=() => actSetSorting([])
+                    )
                 } else {
                     React.null
                 }
