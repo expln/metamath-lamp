@@ -236,7 +236,7 @@ let make = React.memoCustomCompareProps( ({
                         onClick={_=>openExplorer->Option.forEach(fn=>fn(~initDependsOnFilter=frame.label))} 
                         style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
                     >
-                        {React.string(frame.usageCnt->Belt_Int.toString)}
+                        {React.string(frame.usageCnt->Int.toString)}
                     </a>
                 </span>
             </>

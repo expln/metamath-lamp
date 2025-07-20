@@ -1103,7 +1103,7 @@ let make = React.memoCustomCompareProps(({
                 onClick={_=>openExplorer(~initDependsOnFilter=state.frame.label)} 
                 style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
             >
-                {React.string(state.frame.usageCnt->Belt_Int.toString)}
+                {React.string(state.frame.usageCnt->Int.toString)}
             </a>
         </span>
     }

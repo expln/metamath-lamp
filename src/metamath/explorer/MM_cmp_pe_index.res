@@ -495,7 +495,7 @@ let make = React.memoCustomCompareProps(({
             </Row>
     }
 
-    let actSetSorting = (sortBys:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>) => {
+    let actSetSorting = (sortBys:sortBys) => {
         setSorting(_ => {
             sortBys,
             comparator: MM_wrk_sort_asrts.makeComparator(sortBys)
@@ -509,9 +509,9 @@ let make = React.memoCustomCompareProps(({
             ~content = (~close) => {
                 <MM_cmp_sort_asrts_selector 
                     init={sorting.sortBys}
-                    onOk={newSortBy => {
+                    onOk={newSortBys => {
                         close()
-                        actSetSorting(newSortBy)
+                        actSetSorting(newSortBys)
                     }}
                     onCancel=close
                 />
