@@ -1597,7 +1597,7 @@ let ctxOptimizeForProver = (
         allFrms->Array.forEach(frm => {
             switch frm.proof {
                 | Some(Compressed({labels})) | Some(Uncompressed({labels})) => {
-                    labels->Array.forEach(label => {
+                    labels->Belt_HashSetString.fromArray->Belt_HashSetString.forEach(label => {
                         switch cnts->Belt_HashMapString.get(label) {
                             | Some(cnt) => cnt := cnt.contents + 1
                             | None => ()
