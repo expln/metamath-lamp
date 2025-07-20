@@ -523,12 +523,6 @@ let make = React.memoCustomCompareProps(({
         )
     }
 
-    let rndSortBtn = () => {
-        <Button onClick=(_=>actOpenSortDialog()) variant=#outlined > 
-            { React.string("Sort") }
-        </Button>
-    }
-
     let rndSortBy = () => {
         open MM_wrk_sort_asrts
         let sortByStr = sorting.sortBy->Array.map(((sortBy,sortDir)) => {
@@ -641,6 +635,14 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndSortBtn = () => {
+        <span title="Sort results">
+            <IconButton onClick={_ => actOpenSortDialog()} color="primary"> 
+                <MM_Icons.SwapVert/>
+            </IconButton>
+        </span>
+    }
+
     let rndMainMenuBtn = () => {
         <span title="Additional actions" ref=ReactDOM.Ref.domRef(mainMenuButtonRef)>
             <IconButton onClick={_ => actOpenMainMenu()} color="primary"> 
@@ -658,6 +660,7 @@ let make = React.memoCustomCompareProps(({
                 {rndDescrFilter()}
                 {rndApplyFiltersBtn()}
                 {rndClearFiltersBtn()}
+                {rndSortBtn()}
                 {rndMainMenuBtn()}
             </Row>
             <Row>
@@ -666,7 +669,6 @@ let make = React.memoCustomCompareProps(({
                 {rndDeprFilter()}
                 {rndTranDeprFilter()}
                 {rndDependsOnFilter()}
-                {rndSortBtn()}
             </Row>
             {
                 if (sorting.sortBy->Array.length > 0) {
