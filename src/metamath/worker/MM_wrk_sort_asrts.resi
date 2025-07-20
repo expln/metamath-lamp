@@ -1,5 +1,13 @@
 type sortBy = UsageCnt | AsrtLen | AsrtLabel | NumOfHyps
 type sortDir = Asc | Dsc
+
+type sortBys = array<(sortBy, sortDir)>
+
+type sorting = {
+    sortBys:sortBys,
+    comparator: Expln_utils_common.comparator<MM_context.frame>
+}
+
 let sortByToStr: sortBy => string
 let sortByFromStr: string => sortBy
 let sortByGetTitle: sortBy => string

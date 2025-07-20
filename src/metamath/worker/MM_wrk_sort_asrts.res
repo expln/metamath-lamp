@@ -3,6 +3,13 @@ open MM_context
 type sortBy = UsageCnt | AsrtLen | AsrtLabel | NumOfHyps
 type sortDir = Asc | Dsc
 
+type sortBys = array<(sortBy, sortDir)>
+
+type sorting = {
+    sortBys:sortBys,
+    comparator: Expln_utils_common.comparator<MM_context.frame>
+}
+
 let panic = (msg:string):'a => Common.panic(`MM_wrk_sort_asrts: ${msg}`)
 
 let sortByToStr = sortBy => {
@@ -68,11 +75,11 @@ let makeComparatorSingle = (sortBy:sortBy, sortDir:sortDir):Expln_utils_common.c
     }
 }
 
-let makeComparator = (sortBy:array<(sortBy, sortDir)>):Expln_utils_common.comparator<frame> => {
-    if sortBy->Array.length == 0 {
+let makeComparator = (sortBys:array<(sortBy, sortDir)>):Expln_utils_common.comparator<frame> => {
+    if sortBys->Array.length == 0 {
         (_,_)=>Ordering.equal
     } else {
-        let cmps = sortBy->Array.map(((sortBy,sortDir)) => makeComparatorSingle(sortBy,sortDir))
+        let cmps = sortBys->Array.map(((sortBy,sortDir)) => makeComparatorSingle(sortBy,sortDir))
         if cmps->Array.length == 1 {
             cmps->Array.getUnsafe(0)
         } else {

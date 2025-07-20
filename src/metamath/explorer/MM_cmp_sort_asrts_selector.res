@@ -3,18 +3,16 @@ open Expln_React_Mui
 open MM_wrk_sort_asrts
 open Common
 
-type sorting = array<(sortBy, sortDir)>
-
 type state = {
-    sortBy:sorting
+    sortBys:sortBys
 }
 
-let renderSortBy = (
-    ~sortBy:sorting,
+let renderSortBys = (
+    ~sortBys:sortBys,
     ~onClick:unit=>unit,
     ~onCancel:unit=>unit,
 ) => {
-    let sortByStr = sortBy->Array.map(((sortBy,sortDir)) => {
+    let sortByStr = sortBys->Array.map(((sortBy,sortDir)) => {
         sortByGetTitle(sortBy) ++ " " ++ sortDirToStr(sortDir)
     })
     ->Array.join(", ")
@@ -39,14 +37,14 @@ let renderSortBy = (
 
 @react.component
 let make = (
-    ~init:array<(sortBy,sortDir)>,
-    ~onOk:array<(sortBy,sortDir)>=>unit, 
+    ~init:sortBys,
+    ~onOk:sortBys=>unit, 
     ~onCancel:unit=>unit,
 ) => {
-    let (state, setState) = React.useState(() => {sortBy:init})
+    let (state, setState) = React.useState(() => {sortBys:init})
 
     let actOk = () => {
-        onOk(state.sortBy)
+        onOk(state.sortBys)
     }
 
     let actCancel = () => {
@@ -54,35 +52,35 @@ let make = (
     }
 
     let actDeleteSortBy = (idx:int) => {
-        setState(st => {sortBy:st.sortBy->Array.filterWithIndex((_,i) => i != idx)})
+        setState(st => {sortBys:st.sortBys->Array.filterWithIndex((_,i) => i != idx)})
     }
 
     let actMoveUpSortBy = (idx:int) => {
         if (idx > 0) {
             setState(st => {
-                let copy = st.sortBy->Array.copy
+                let copy = st.sortBys->Array.copy
                 let tmp = copy->Array.getUnsafe(idx-1)
                 copy->Array.set(idx-1, copy->Array.getUnsafe(idx))
                 copy->Array.set(idx, tmp)
-                {sortBy:copy}
+                {sortBys:copy}
             })
         }
     }
 
     let actMoveDownSortBy = (idx:int) => {
-        if (idx < state.sortBy->Array.length-1) {
+        if (idx < state.sortBys->Array.length-1) {
             setState(st => {
-                let copy = st.sortBy->Array.copy
+                let copy = st.sortBys->Array.copy
                 let tmp = copy->Array.getUnsafe(idx+1)
                 copy->Array.set(idx+1, copy->Array.getUnsafe(idx))
                 copy->Array.set(idx, tmp)
-                {sortBy:copy}
+                {sortBys:copy}
             })
         }
     }
 
-    let actAddSortBy = (sortBy,sortDir) => {
-        setState(st => {sortBy:[...st.sortBy, (sortBy,sortDir)]})
+    let actAddSortBy = (sortBys,sortDir) => {
+        setState(st => {sortBys:[...st.sortBys, (sortBys,sortDir)]})
     }
 
     let rndSortByButtons = (idx:int) => {
@@ -94,7 +92,7 @@ let make = (
     }
 
     let actUpdateSortBy = (idx, newSortBy) => {
-        setState(st => {sortBy:st.sortBy->Array.mapWithIndex(((sortBy,sortDir),i) => {
+        setState(st => {sortBys:st.sortBys->Array.mapWithIndex(((sortBy,sortDir),i) => {
             if (i == idx) {
                 (newSortBy,sortDir)
             } else {
@@ -104,7 +102,7 @@ let make = (
     }
 
     let actUpdateSortDir = (idx, newSortDir) => {
-        setState(st => {sortBy:st.sortBy->Array.mapWithIndex(((sortBy,sortDir),i) => {
+        setState(st => {sortBys:st.sortBys->Array.mapWithIndex(((sortBy,sortDir),i) => {
             if (i == idx) {
                 (sortBy,newSortDir)
             } else {
@@ -144,7 +142,7 @@ let make = (
     }
 
     <Col spacing=1.>
-        {state.sortBy->Array.mapWithIndex(rndSortControls)->React.array}
+        {state.sortBys->Array.mapWithIndex(rndSortControls)->React.array}
         <FormControl size=#small>
             <InputLabel id="sortBy-add-new-item">"Select property to sort by"</InputLabel>
             <Select

@@ -1,14 +1,14 @@
-type sorting = array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>
+open MM_wrk_sort_asrts
 
-let renderSortBy: (
-  ~sortBy: sorting,
+let renderSortBys: (
+  ~sortBys: sortBys,
   ~onClick: unit => unit,
   ~onCancel: unit => unit,
 ) => React.element
 
 @react.component
 let make: (
-  ~init: sorting,
-  ~onOk: sorting => unit,
+  ~init: sortBys,
+  ~onOk: sortBys => unit,
   ~onCancel: unit => unit,
 ) => React.element

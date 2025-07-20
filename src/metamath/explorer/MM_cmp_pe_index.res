@@ -8,6 +8,7 @@ open MM_wrk_pre_ctx_data
 open Common
 open Local_storage_utils
 open Expln_utils_promise
+open MM_wrk_sort_asrts
 
 type props = {
     modalRef:modalRef,
@@ -21,11 +22,6 @@ type props = {
     initDependsOnFilter:string,
     addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
     onTabTitleChange:string=>unit,
-}
-
-type sorting = {
-    sortBy:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>,
-    comparator: Expln_utils_common.comparator<frame>
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -69,7 +65,7 @@ let make = React.memoCustomCompareProps(({
     let (deprFilter, setDeprFilter) = React.useState(() => None)
     let (tranDeprFilter, setTranDeprFilter) = React.useState(() => None)
 
-    let (sorting, setSorting) = React.useState(() => {sortBy:[], comparator:(_,_)=>Ordering.equal})
+    let (sorting, setSorting) = React.useState(() => {sortBys:[], comparator:(_,_)=>Ordering.equal})
 
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
 
@@ -499,10 +495,10 @@ let make = React.memoCustomCompareProps(({
             </Row>
     }
 
-    let actSetSorting = (sortBy:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>) => {
+    let actSetSorting = (sortBys:array<(MM_wrk_sort_asrts.sortBy, MM_wrk_sort_asrts.sortDir)>) => {
         setSorting(_ => {
-            sortBy,
-            comparator: MM_wrk_sort_asrts.makeComparator(sortBy)
+            sortBys,
+            comparator: MM_wrk_sort_asrts.makeComparator(sortBys)
         })
     }
 
@@ -512,7 +508,7 @@ let make = React.memoCustomCompareProps(({
             ~title="Sort by",
             ~content = (~close) => {
                 <MM_cmp_sort_asrts_selector 
-                    init={sorting.sortBy}
+                    init={sorting.sortBys}
                     onOk={newSortBy => {
                         close()
                         actSetSorting(newSortBy)
@@ -646,9 +642,9 @@ let make = React.memoCustomCompareProps(({
                 {rndDependsOnFilter()}
             </Row>
             {
-                if (sorting.sortBy->Array.length > 0) {
-                    MM_cmp_sort_asrts_selector.renderSortBy(
-                        ~sortBy=sorting.sortBy,
+                if (sorting.sortBys->Array.length > 0) {
+                    MM_cmp_sort_asrts_selector.renderSortBys(
+                        ~sortBys=sorting.sortBys,
                         ~onClick=actOpenSortDialog,
                         ~onCancel=() => actSetSorting([])
                     )
