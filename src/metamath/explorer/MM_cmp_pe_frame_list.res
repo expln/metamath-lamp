@@ -26,7 +26,7 @@ type props = {
 
     labels:array<string>,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     asrtsPerPage:int,
     addAsrtByLabel:string=>promise<result<unit,string>>,
 }

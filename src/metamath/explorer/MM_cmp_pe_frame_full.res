@@ -361,7 +361,7 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     openEditor: editorStateLocStor => unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
@@ -1096,6 +1096,18 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndUsageCnt = state => {
+        <span>
+            { React.string("Referenced by: ") }
+            <a 
+                onClick={_=>openExplorer(~initDependsOnFilter=state.frame.label)} 
+                style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+            >
+                {React.string(state.frame.usageCnt->Belt_Int.toString)}
+            </a>
+        </span>
+    }
+
     let rndDisj = state => {
         switch state.disjStr {
             | None => <div style=ReactDOM.Style.make(~display="none", ()) />
@@ -1474,6 +1486,7 @@ let make = React.memoCustomCompareProps(({
                     {rndMainMenu(state)}
                     {rndLabel(state)}
                     {rndDescr(state)}
+                    {rndUsageCnt(state)}
                     {rndDisj(state)}
                     {rndDummyVarDisj(state)}
                     {rndSummary(state)}

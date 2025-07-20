@@ -68,7 +68,7 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     openEditor: editorStateLocStor => unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,

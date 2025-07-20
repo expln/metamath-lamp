@@ -38,7 +38,7 @@ type props = {
     symColors:Belt_HashMapString.t<string>,
     symRename:option<Belt_HashMapString.t<string>>,
     editStmtsByLeftClick:bool,
-    openExplorer:option<(~initPatternFilterStr:string=?)=>unit>,
+    openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {

@@ -14,10 +14,11 @@ type props = {
     preCtxData:preCtxData,
     tabTitle:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
+    initDependsOnFilter:string,
     addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
     onTabTitleChange:string=>unit,
 }
@@ -42,6 +43,7 @@ let make = React.memoCustomCompareProps(({
     toggleCtxSelector,
     ctxSelectorIsExpanded,
     initPatternFilterStr,
+    initDependsOnFilter,
     addAsrtByLabel,
     onTabTitleChange,
 }:props) => {
@@ -58,7 +60,7 @@ let make = React.memoCustomCompareProps(({
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
-    let (dependsOnFilter, setDependsOnFilter) = React.useState(() => "")
+    let (dependsOnFilter, setDependsOnFilter) = React.useState(() => initDependsOnFilter)
     let (dependsOnTranFilter, setDependsOnTranFilter) = React.useState(() => false)
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
@@ -547,7 +549,7 @@ let make = React.memoCustomCompareProps(({
                 className="red-on-hover" 
                 onClick={_=>actSetSorting([])}
             >
-                {React.string("\u2716")}
+                {React.string("\u2715")}
             </span>
         </span>
     }
