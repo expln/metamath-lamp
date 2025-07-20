@@ -116,9 +116,9 @@ let disjToSortedArr = disj => {
     {
         open Expln_utils_common
         res->sortInPlaceWith(
-        comparatorBy(((l,_)) => l)
+        comparatorByInt(((l,_)) => l)
             ->comparatorAndThen(
-                comparatorBy(((_,r)) => r)
+                comparatorByInt(((_,r)) => r)
             )
         )
     }

@@ -471,12 +471,12 @@ let stmtsDtoToResultRendered = (
     }
 }
 
-let compareByIsProved = Expln_utils_common.comparatorBy((res:resultRendered) => if (res.isProved) {0} else {1})
-let compareByNumberOfStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
+let compareByIsProved = Expln_utils_common.comparatorByInt((res:resultRendered) => if (res.isProved) {0} else {1})
+let compareByNumberOfStmts = Expln_utils_common.comparatorByInt(res => res.numOfStmts)
 
-let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfUnprovedStmts)
-let compareByNumOfNewStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
-let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
+let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorByInt(res => res.numOfUnprovedStmts)
+let compareByNumOfNewStmts = Expln_utils_common.comparatorByInt(res => res.numOfStmts)
+let compareByNumOfNewVars = Expln_utils_common.comparatorByInt(res => res.numOfNewVars)
 let compareByAsrtLabel = (a:resultRendered,b:resultRendered) => {
     a.asrtLabel->String.localeCompare(b.asrtLabel)
 }

@@ -30,6 +30,7 @@ let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string)
             isDepr:false,
             isTranDepr:false,
             dbg: None,
+            usageCnt: -1,
         },
     })
 }

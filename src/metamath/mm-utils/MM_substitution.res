@@ -571,8 +571,8 @@ let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
 let prepareFrmSubsData = (
     ~ctx:mmContext
 ):frms => {
-    let frmCmp = comparatorBy(frm => frm.hypsE->Array.length)
-        ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
+    let frmCmp = comparatorByInt(frm => frm.hypsE->Array.length)
+        ->comparatorAndThen(comparatorByInt(frm => frm.frame.ord))
     let all = ctx->getAllFramesArr->Array.map(prepareFrmSubsDataForFrame)->Expln_utils_common.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)

@@ -11,7 +11,9 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
     let ctx = loadContext(ast)
     ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->String.split(" ")}))
     let parens = "( ) { } [ ]"
-    let ctx = ctx->ctxOptimizeForProver(~parens)
+    let ctx = ctx->ctxOptimizeForProver(
+        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+    )
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
@@ -35,7 +37,9 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
     let ctx = loadContext(ast)
     ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}))
     let parens = "( ) { } [ ]"
-    let ctx = ctx->ctxOptimizeForProver(~parens)
+    let ctx = ctx->ctxOptimizeForProver(
+        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+    )
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm

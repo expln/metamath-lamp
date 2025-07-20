@@ -27,7 +27,7 @@ type tabData =
     | Settings
     | TabsManager
     | Editor(editorTabData)
-    | ExplorerIndex({initPatternFilterStr:string})
+    | ExplorerIndex({initPatternFilterStr:string, initDependsOnFilter:string})
     | ExplorerFrame({label:string})
 
 type state = {
@@ -226,13 +226,19 @@ let makeNewTabTitle = (
 
 let getNewExplorerTabTitle = (
     ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
-    ~initPatternFilterStr:string=""
+    ~initPatternFilterStr:string="",
+    ~initDependsOnFilter:string=""
 ):string => {
     if (initPatternFilterStr->String.length > 0) {
         let substrInc = initPatternFilterStr->String.startsWith("$+ ") ? 3 : 0
         initPatternFilterStr->String.substring(
             ~start=substrInc, 
             ~end=40+substrInc
+        )
+    } else if (initDependsOnFilter->String.length > 0) {
+        ("Dependents of " ++ initDependsOnFilter)->String.substring(
+            ~start=0, 
+            ~end=40
         )
     } else {
         makeNewTabTitle(~existingTabs, ~prefix="EXPLORER")
@@ -430,17 +436,18 @@ let make = () => {
         })
     }
 
-    let actOpenExplorer = (~initPatternFilterStr:string=""):unit => {
+    let actOpenExplorer = (~initPatternFilterStr:string="", ~initDependsOnFilter:string=""):unit => {
         updateTabs(tabsSt => {
             let newTabTitle = getNewExplorerTabTitle(
                 ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
-                ~initPatternFilterStr=initPatternFilterStr->String.trim
+                ~initPatternFilterStr=initPatternFilterStr->String.trim,
+                ~initDependsOnFilter=initDependsOnFilter->String.trim,
             )
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label=newTabTitle,
                 ~icon=magnifyingGlassSymbol,
                 ~closable=true, 
-                ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
+                ~data=ExplorerIndex({initPatternFilterStr, initDependsOnFilter}), 
                 ~doOpen=true
             )
             tabsSt
@@ -540,7 +547,7 @@ let make = () => {
                 })
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="EXPLORER", ~icon=magnifyingGlassSymbol, 
-                    ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""}),
+                    ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:"", initDependsOnFilter:""}),
                     ~doOpen=!(st->Expln_React_UseTabs.getTabs->Array.some(t => isEditorTab(t.data)->Option.isSome))
                 )
                 st
@@ -617,7 +624,7 @@ let make = () => {
                             openFrameExplorer
                             onTabTitleChange=actTabTitleUpdatedFromEditor(tab.id, _)
                         />
-                    | ExplorerIndex({initPatternFilterStr}) => 
+                    | ExplorerIndex({initPatternFilterStr, initDependsOnFilter}) => 
                         <MM_cmp_pe_index
                             modalRef
                             preCtxData=state.preCtxData
@@ -627,6 +634,7 @@ let make = () => {
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             initPatternFilterStr
+                            initDependsOnFilter
                             addAsrtByLabel
                             onTabTitleChange={newTitle=>actRenameTab(tab.id, newTitle)}
                         />

@@ -9,6 +9,7 @@ metamath.exe "read my-new-theorems.mm" "verify proof my_task*" exit
 *** deploy-worker ------------------------------------------------------------------------------------------------------
 
 npx webpack --config webworker.webpack.config.js && copy /B /Y ".\dist\webworker-main.js" ".\public"
+npx webpack --config webworker.webpack.config.js && cp dist/webworker-main.js public
 
 https://ss64.com/nt/copy.html
 /B   Binary file copy - will copy extended characters.

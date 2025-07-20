@@ -29,7 +29,7 @@ type props = {
     frame:frame,
     order:option<int>,
     openFrameExplorer:option<string=>unit>,
-    openExplorer:option<(~initPatternFilterStr:string=?)=>unit>,
+    openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
 }
 
@@ -226,6 +226,25 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    let rndUsageCnt = () => {
+        if (state.descrIsExpanded) {
+            <>
+                <Divider/>
+                <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                    { React.string("Referenced by: ") }
+                    <a 
+                        onClick={_=>openExplorer->Option.forEach(fn=>fn(~initDependsOnFilter=frame.label))} 
+                        style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+                    >
+                        {React.string(frame.usageCnt->Int.toString)}
+                    </a>
+                </span>
+            </>
+        } else {
+            <></>
+        }
+    }
+
     let rndDisj = () => {
         switch state.disj {
             | None => <span style=ReactDOM.Style.make(~display="none", ()) />
@@ -304,6 +323,7 @@ let make = React.memoCustomCompareProps( ({
                     <Paper elevation=3 style=ReactDOM.Style.make(~backgroundColor="rgb(255,255,235)", ())>
                         {rndLabel()}
                         {rndDescr()}
+                        {rndUsageCnt()}
                         {rndDisj()}
                         {rndHyps()}
                         <Divider/>

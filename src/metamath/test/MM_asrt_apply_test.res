@@ -30,6 +30,7 @@ let createEmptyFrame = (label:string):frame => {
         isDepr:false,
         isTranDepr:false,
         dbg: None,
+        usageCnt: -1,
     }
 }
 
@@ -260,7 +261,9 @@ let testApplyAssertions = (
     additionalStatements->Array.forEach(stmt => preCtx->applySingleStmt(stmt))
     let parens = "( ) { } [ ]"
     let workCtx = createContext(~parent=preCtx)
-    let workCtx = workCtx->ctxOptimizeForProver(~parens)
+    let workCtx = workCtx->ctxOptimizeForProver(
+        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+    )
     let frms = prepareFrmSubsData(~ctx=workCtx)
     let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 

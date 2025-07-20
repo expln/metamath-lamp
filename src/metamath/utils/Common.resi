@@ -13,6 +13,8 @@ type exnData = {
     stack:string,
 }
 
+let panic:string=>'a
+
 let jsErrorToExnData: exn => exnData
 let catchExn:(unit=>'a) => result<'a,exnData>
 

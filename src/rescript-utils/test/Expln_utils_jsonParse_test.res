@@ -88,8 +88,10 @@ describe("Expln_utils_json.parseObj", _ => {
 
         //then
         switch p {
-            | Error(msg) =>
-                assertEq(msg, "Parse error: Unexpected non-whitespace character after JSON at position 4")
+            | Error(msg) => assertEq(
+                msg,
+                "Parse error: Unexpected non-whitespace character after JSON at position 4 (line 1 column 5)"
+            )
             | _ => fail()
         }
     })

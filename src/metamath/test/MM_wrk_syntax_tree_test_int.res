@@ -11,7 +11,7 @@ let mmFilePath = "./src/metamath/test/resources/set._mm"
 let getCurrMillis = () => Date.make()->Date.getTime
 let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Float.toInt
 let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
-let compareExprBySize:comparator<expr> = comparatorBy(Array.length(_))
+let compareExprBySize:comparator<expr> = comparatorByInt(Array.length(_))
 
 let log = msg => Console.log(`${currTimeStr()} ${msg}`)
 
@@ -41,7 +41,9 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
             // ~debug=true
         )
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
-        let ctx = ctx->ctxOptimizeForProver(~parens)
+        let ctx = ctx->ctxOptimizeForProver(
+            ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        )
         let frms = prepareFrmSubsData(~ctx)
         let parenCnt = makeParenCnt(~ctx, ~parens)
         let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)

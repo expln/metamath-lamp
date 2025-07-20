@@ -26,6 +26,7 @@ let createFrame = (~asrt:expr, ~varTypes:array<int>, ~hyps:array<array<int>> = [
         isDepr:false,
         isTranDepr:false,
         dbg: None,
+        usageCnt: -1,
     }
 }
 
