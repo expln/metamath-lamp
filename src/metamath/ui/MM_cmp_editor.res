@@ -781,21 +781,31 @@ let make = (
     let actAddAsrtByLabel = (asrtLabel:string):promise<result<unit,string>> => {
         Promise.make((resolve, _) => {
             setState(st => {
-                switch st.wrkCtx {
-                    | None => {
-                        resolve(Error("MM context is not loaded."))
-                        st
-                    }
-                    | Some(wrkCtx) => {
-                        switch wrkCtx->getFrame(asrtLabel) {
-                            | None => {
-                                resolve(Error(`Cannot find a frame by name '${asrtLabel}'`))
-                                st
-                            }
-                            | Some(frame) => {
-                                let st = addNewStatementsPriv(st,MM_wrk_search_asrt.frameToStmtsDto(~wrkCtx,~frame))
-                                resolve(Ok(()))
-                                st
+                if (editorStateHasCriticalErrors(st)) {
+                    resolve(Error("The target editor has errors. Please fix them before adding new steps."))
+                    st
+                } else if (isEditMode(st)) {
+                    resolve(Error(
+                        "The target editor is in the edit mode. Please complete editing before adding new steps."
+                    ))
+                    st
+                } else {
+                    switch st.wrkCtx {
+                        | None => {
+                            resolve(Error("MM context is not loaded."))
+                            st
+                        }
+                        | Some(wrkCtx) => {
+                            switch wrkCtx->getFrame(asrtLabel) {
+                                | None => {
+                                    resolve(Error(`Cannot find a frame by name '${asrtLabel}'`))
+                                    st
+                                }
+                                | Some(frame) => {
+                                    let st = addNewStatementsPriv(st,MM_wrk_search_asrt.frameToStmtsDto(~wrkCtx,~frame))
+                                    resolve(Ok(()))
+                                    st
+                                }
                             }
                         }
                     }
