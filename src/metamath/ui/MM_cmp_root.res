@@ -332,7 +332,10 @@ let make = () => {
                         addAsrtByLabel.current = addAsrtByLabelRef.contents->Option.map(addAsrtByLabelOrig => {
                             str => {
                                 addAsrtByLabelOrig(str)->Promise.thenResolve(res => {
-                                    openTab(activeTabId)
+                                    switch res {
+                                        | Error(_) => ()
+                                        | Ok(_) => openTab(activeTabId)
+                                    }
                                     res
                                 })
                             }
