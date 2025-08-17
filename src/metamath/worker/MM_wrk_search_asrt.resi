@@ -1,21 +1,13 @@
 open MM_context
 open MM_statements_dto
 open MM_wrk_settings
+open MM_wrk_pattern_search
 
 let procName: string
 
 type request
 type response
 
-type patternModifier = Hyp | Asrt | Exact | Adj
-type stmtPattern = {
-    flags: array<patternModifier>,
-    varPat: array<int>,
-    constPat: array<int>,
-}
-
-let parseSearchStr: string => result<array<(array<patternModifier>, array<string>)>,string>
-let makeSearchPattern: (~searchStr:string, ~ctx:mmContext) => result<array<stmtPattern>, string>
 let threeStateBoolMatchesTwoStateBool: (option<bool>, bool) => bool
 
 let doSearchAssertions: (
@@ -51,12 +43,6 @@ let frameToStmtsDto: (
 ) => stmtsDto
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
-
-let frameMatchesPattern: (
-    ~frame:frame, 
-    ~searchPattern:array<stmtPattern>, 
-    ~mapping:Belt_HashMapInt.t<int>
-) => bool
 
 let reqToStr: request => string
 let respToStr: response => string

@@ -15,6 +15,7 @@ open MM_int_test_utils
 open MM_substitution
 open Common
 open MM_bottom_up_prover_params
+open MM_wrk_pattern_search
 
 type rootStmtsToUse =
     | AllStmts

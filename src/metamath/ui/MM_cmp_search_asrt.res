@@ -9,6 +9,7 @@ open Expln_React_Modal
 open MM_wrk_settings
 open Common
 open MM_wrk_pre_ctx_data
+open MM_wrk_pattern_search
 
 type state = {
     label:string,
