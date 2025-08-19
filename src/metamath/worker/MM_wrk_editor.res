@@ -1639,7 +1639,9 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ->Array.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Array.joinUnsafe(" "))
                 ->Array.joinUnsafe("\n")
             let st = if (st.disjText != newDisjText) {
-                completeDisjEditMode(st, newDisjText)
+                let disjEditMode = st.disjEditMode
+                let st = completeDisjEditMode(st, newDisjText)
+                if disjEditMode { st->setDisjEditMode } else { st }
             } else {
                 st
             }
