@@ -237,6 +237,16 @@ let disjForEach = (disjMutable, consumer) => {
     })
 }
 
+let disjForEachOrdered = (disjMutable, consumer) => {
+    let ns = disjMutable->Belt_HashMapInt.keysToArray
+    ns->Array.sort(Int.compare)
+    ns->Array.forEach(n => {
+        let ms = disjMutable->Belt_HashMapInt.get(n)->Option.getExn->Belt_HashSetInt.toArray
+        ms->Array.sort(Int.compare)
+        ms->Array.forEach(m => consumer(n,m))
+    })
+}
+
 let disjImmForEach = (disj:Belt_MapInt.t<Belt_SetInt.t>, consumer) => {
     disj->Belt_MapInt.forEach((n,ms) => {
         ms->Belt_SetInt.forEach(m => {
@@ -264,7 +274,7 @@ let disjToArr = (
     ~typeOrder:option<Belt_HashMapInt.t<int>>=?
 ):array<array<int>> => {
     let res = []
-    disj->disjForEach((n,m) => res->Array.push([n,m]))
+    disj->disjForEachOrdered((n,m) => res->Array.push([n,m]))
 
     let canMerge = (d1:array<int>,d2:array<int>):bool => {
         let canMerge = ref(true)
@@ -536,6 +546,19 @@ let ctxIntsToSymsExn = (ctx,expr) => expr->Array.map(ctxIntToSymExn(ctx, _))
 
 let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
     expr->Array.map(ctxIntToSymExn(ctx, _))->Array.joinUnsafe(" ")
+}
+
+let disjToStrDbg = (disj:disjMutable, ctx:mmContext):string => {
+    let res = []
+    disj->Belt_HashMapInt.keysToArray->Array.toSorted(Int.compare)->Array.forEach(n=>{
+        let ms = disj->Belt_HashMapInt.get(n)->Option.getExn
+        res->Array.push(
+            ctx->ctxIntToSymExn(n) 
+            ++ " -> " 
+            ++ ctx->ctxIntsToStrExn(ms->Belt_HashSetInt.toArray->Array.toSorted(Int.compare))
+        )
+    })
+    res->Array.join("\n")
 }
 
 let frmIntToSym = (ctx:mmContext, frame:frame, i:int):option<string> => {

@@ -2,8 +2,8 @@ Variables:
 
 
 Disjoints:
-F x
-F r y
+F y
+F r x
 A r u v x
 A r u v y
 
