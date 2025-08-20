@@ -1,6 +1,7 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
 * Sort assertions on the Explorer tab. https://github.com/expln/metamath-lamp/issues/235
 * Bug fix: Crash when adding statements with "use". https://github.com/expln/metamath-lamp/issues/239
+* Bug fix: DV conditions can oscillate and prevent editing. https://github.com/expln/metamath-lamp/issues/241
 ### Version 29
 * Add "Depends on" filter to the Explorer tab. 
 This filter allows to quickly find all assertions which depend (directly and transitively) on the given assertion.

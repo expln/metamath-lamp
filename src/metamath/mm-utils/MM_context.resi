@@ -189,6 +189,7 @@ let disjImmForEach: (Belt_MapInt.t<Belt_SetInt.t>, (int,int) => unit) => unit
 let disjIsEmpty: disjMutable => bool
 let disjMutToDisjImm: disjMutable => Belt_MapInt.t<Belt_SetInt.t>
 let disjGetAllVars: disjMutable => Belt_HashSetInt.t
+let disjToStrDbg: (disjMutable, mmContext) => string
 
 let exprEq: (expr,expr) => bool
 
