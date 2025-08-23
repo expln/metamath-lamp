@@ -5,7 +5,7 @@ open MM_statements_dto
 open MM_progress_tracker
 open MM_wrk_settings
 open Expln_utils_common
-open MM_wrk_pattern_search
+open MM_wrk_pattern_search_v1
 
 let procName = "MM_wrk_search_asrt"
 

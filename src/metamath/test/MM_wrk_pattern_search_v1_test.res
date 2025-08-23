@@ -1,6 +1,6 @@
 open Expln_test
 open MM_context
-open MM_wrk_pattern_search
+open MM_wrk_pattern_search_v1
 
 let createFrame = (~asrt:expr, ~varTypes:array<int>, ~hyps:array<array<int>> = []):frame => {
     {

@@ -1,7 +1,7 @@
 open MM_context
 open MM_statements_dto
 open MM_wrk_settings
-open MM_wrk_pattern_search
+open MM_wrk_pattern_search_v1
 
 let procName: string
 
