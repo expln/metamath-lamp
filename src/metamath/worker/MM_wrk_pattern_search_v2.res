@@ -1,11 +1,15 @@
 type patTarget = Frm | Hyps | Asrt
 
+type variable = {
+    mutable capVar: int, //captured variable
+    mutable capVarIdx: int, //index of the first occurrence of the captured variable
+}
+
 type sym = {
     isConst: bool,
-    const: int, // if isConst then const == symbol else const == type(variable)
-    var: int,
-    mutable capVar: int, //captured variable
-    mutable capVarIdx: int, //index of the first occurance of the captured variable
+    constOrType: int, // if isConst then constOrType == symbol else constOrType == type(variable)
+    var:variable,
+    mutable matchedIdx: int, //index of the matched symbol
 }
 
 type either<'a,'b> = 
@@ -33,12 +37,13 @@ let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>,
         let exprI = ref(begin.contents)
         let seqI = ref(0)
         while (seqI.contents <= maxSeqI && matched.contents) {
-            let expectedConst = (seq->Array.getUnsafe(seqI.contents)).const
+            let seqSym = seq->Array.getUnsafe(seqI.contents)
             let exprSym = expr->Array.getUnsafe(exprI.contents)
-            if (exprSym < 0) {
-                matched := expectedConst == exprSym
+            if (seqSym.isConst) {
+                matched := seqSym.constOrType == exprSym
             } else {
-                matched := expectedConst == varTypes->Array.getUnsafe(exprSym)
+                matched := exprSym >= 0 
+                    && varTypes[exprSym]->Option.mapOr(false, exprVarType => seqSym.constOrType == exprVarType)
             }
             exprI := exprI.contents + 1
             seqI := seqI.contents + 1
@@ -111,4 +116,54 @@ and let exprIncludesConstUnorderedSeq = (
         i := i.contents + 1
     }
     res.contents
+}
+
+let exprIncludesVarAdjSeq = (
+    ~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>,
+    ~next:int=>unit
+):unit => {
+    let begin = ref(startIdx)
+    let maxBegin = expr->Array.length - seq->Array.length
+    let matched = ref(false)
+    let maxSeqI = seq->Array.length - 1
+    while (begin.contents <= maxBegin && !matched.contents) {
+        matched := true
+        let exprI = ref(begin.contents)
+        let seqI = ref(0)
+        while (seqI.contents <= maxSeqI && matched.contents) {
+            let seqSym = seq->Array.getUnsafe(seqI.contents)
+            let exprSym = expr->Array.getUnsafe(exprI.contents)
+            if (seqSym.isConst) {
+                matched := seqSym.constOrType == exprSym
+            } else if (seqSym.var.capVar >= 0) {
+                matched := seqSym.var.capVar == exprSym
+            } else if (
+                exprSym >= 0
+                && varTypes[exprSym]->Option.mapOr(false, exprVarType => seqSym.constOrType == exprVarType)
+            ) {
+                seqSym.var.capVar = exprSym
+                seqSym.var.capVarIdx = exprI.contents
+            } else {
+                matched := false
+            }
+            if (matched.contents) {
+                seqSym.matchedIdx = exprI.contents
+            }
+            exprI := exprI.contents + 1
+            seqI := seqI.contents + 1
+        }
+        if (matched.contents) {
+            next(begin.contents + maxSeqI)
+        }
+        seqI := Math.Int.min(seqI.contents, maxSeqI)
+        while (seqI.contents >= 0) {
+            let seqSym = seq->Array.getUnsafe(seqI.contents)
+            let exprIdx = begin.contents + seqI.contents
+            if (exprIdx == seqSym.var.capVarIdx) {
+                seqSym.var.capVar = -1
+            }
+            seqI := seqI.contents - 1
+        }
+        begin := begin.contents + 1
+    }
 }
