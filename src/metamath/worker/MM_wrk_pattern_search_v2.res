@@ -167,3 +167,39 @@ let exprIncludesVarAdjSeq = (
         begin := begin.contents + 1
     }
 }
+
+let rec exprIncludesVarSeq = (
+    ~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~varTypes:array<int>,
+    ~next:int=>unit
+):unit => {
+    if (startIdx < expr->Array.length) {
+        switch seq.elems {
+            | Left(adjSyms) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~seq=adjSyms, ~varTypes, ~next)
+            | Right(childElems) => {
+                if seq.ordered {
+                    exprIncludesVarOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~childElemIdx=0)
+                } else {
+                    ()
+                    // exprIncludesVarUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
+                }
+            }
+        }
+    }
+}
+
+and let exprIncludesVarOrderedSeq = (
+    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
+    ~next:int=>unit, ~childElemIdx:int
+):unit => {
+    if (childElems->Array.length <= childElemIdx) {
+        next(startIdx-1)
+    } else {
+        exprIncludesVarSeq(
+            ~expr, ~startIdx, ~seq=childElems->Array.getUnsafe(childElemIdx), ~varTypes,
+            ~next = lastMatchedIdx => exprIncludesVarOrderedSeq(
+                ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes,
+                ~next, ~childElemIdx=childElemIdx+1
+            )
+        )
+    }
+}
