@@ -102,7 +102,7 @@ and let exprIncludesConstUnorderedSeq = (
     while (res.contents < 0 && i.contents <= maxI) {
         if !(passedSeqIdxs->Array.includes(i.contents)) {
             let curSeq = childElems->Array.getUnsafe(i.contents)
-            if startIdx < curSeq.minConstMismatchIdx {
+            if (startIdx < curSeq.minConstMismatchIdx) {
                 let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~seq=curSeq, ~varTypes)
                 if (lastMatchedIdx >= 0) {
                     passedSeqIdxs->Array.push(i.contents)
@@ -179,8 +179,7 @@ let rec exprIncludesVarSeq = (
                 if seq.ordered {
                     exprIncludesVarOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~childElemIdx=0)
                 } else {
-                    ()
-                    // exprIncludesVarUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
+                    exprIncludesVarUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next)
                 }
             }
         }
@@ -202,4 +201,43 @@ and let exprIncludesVarOrderedSeq = (
             )
         )
     }
+}
+
+and let exprIncludesVarUnorderedSeq = (
+    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>,
+    ~next:int=>unit
+):unit => {
+    if (passedSeqIdxs->Array.length == childElems->Array.length) {
+        next(startIdx-1)
+    } else {
+        let res = ref(-1)
+        let i = ref(0)
+        let maxI = childElems->Array.length - 1
+        while (res.contents < 0 && i.contents <= maxI) {
+            if (!(passedSeqIdxs->Array.includes(i.contents))) {
+                let curSeq = childElems->Array.getUnsafe(i.contents)
+                exprIncludesVarSeq(
+                    ~expr, ~startIdx, ~seq=curSeq, ~varTypes,
+                    ~next = lastMatchedIdx => {
+                        passedSeqIdxs->Array.push(i.contents)
+                        exprIncludesVarUnorderedSeq(
+                            ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs, ~next
+                        )
+                        passedSeqIdxs->Array.pop->ignore
+                    }
+                )
+            }
+            i := i.contents + 1
+        }
+    }
+}
+
+let exprIncludesSeq = (
+    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>
+):bool => {
+    let res = ref(false)
+    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~seq, ~varTypes) >= 0) {
+        exprIncludesVarSeq(~expr, ~startIdx=0, ~seq, ~varTypes, ~next = lastMatchedIdx => res := lastMatchedIdx >= 0)
+    }
+    res.contents
 }
