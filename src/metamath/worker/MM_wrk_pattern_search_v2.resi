@@ -1,13 +1,14 @@
 type variable = {
-    mutable capVar: int, 
-    mutable capVarIdx: int
+    typ: int,
+    mutable capVar: int, //captured variable
+    mutable capVarIdx: int, //index of the first occurrence of the captured variable
 }
-type sym = {
-    isConst: bool, 
-    constOrType: int, 
-    var: variable, 
-    mutable matchedIdx: int
+
+type rec sym = {
+    constOrVar: constOrVar,
+    mutable matchedIdx: int, //index of the matched symbol
 }
+and constOrVar = Const(int) | Var(variable)
 
 type rec symSeq = {
     elems: seqGrp,
