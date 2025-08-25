@@ -12,15 +12,14 @@ type sym = {
     mutable matchedIdx: int, //index of the matched symbol
 }
 
-type either<'a,'b> = 
-    | Left('a)
-    | Right('b)
-
 type rec symSeq = {
-    ordered: bool,
-    elems: either<array<sym>,array<symSeq>>,
+    elems: seqGrp,
     mutable minConstMismatchIdx:int,
 }
+and seqGrp = 
+    | Adjacent(array<sym>)
+    | Ordered(array<symSeq>)
+    | Unordered(array<symSeq>)
 
 type stmtPat = {
     target: patTarget,
@@ -62,13 +61,10 @@ let rec exprIncludesConstSeq = (~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~v
         -1
     } else {
         let res = switch seq.elems {
-            | Left(adjSyms) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~seq=adjSyms, ~varTypes)
-            | Right(childElems) => {
-                if seq.ordered {
-                    exprIncludesConstOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes)
-                } else {
-                    exprIncludesConstUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
-                }
+            | Adjacent(seq) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~seq, ~varTypes)
+            | Ordered(childElems) => exprIncludesConstOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes)
+            | Unordered(childElems) => {
+                exprIncludesConstUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
             }
         }
         if (res < 0) {
@@ -174,13 +170,12 @@ let rec exprIncludesVarSeq = (
 ):unit => {
     if (startIdx < expr->Array.length) {
         switch seq.elems {
-            | Left(adjSyms) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~seq=adjSyms, ~varTypes, ~next)
-            | Right(childElems) => {
-                if seq.ordered {
-                    exprIncludesVarOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~childElemIdx=0)
-                } else {
-                    exprIncludesVarUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next)
-                }
+            | Adjacent(seq) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~seq, ~varTypes, ~next)
+            | Ordered(childElems) => {
+                exprIncludesVarOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~childElemIdx=0)
+            }
+            | Unordered(childElems) => {
+                exprIncludesVarUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next)
             }
         }
     }

@@ -9,14 +9,13 @@ type sym = {
     mutable matchedIdx: int
 }
 
-type either<'a, 'b> = 
-    | Left('a) 
-    | Right('b)
-
 type rec symSeq = {
-    ordered: bool,
-    elems: either<array<sym>, array<symSeq>>,
-    mutable minConstMismatchIdx: int,
+    elems: seqGrp,
+    mutable minConstMismatchIdx:int,
 }
+and seqGrp = 
+    | Adjacent(array<sym>)
+    | Ordered(array<symSeq>)
+    | Unordered(array<symSeq>)
 
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => bool
