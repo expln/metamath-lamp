@@ -32,15 +32,22 @@ let rec makeSymSeq = (seq:testSeqGrp, varTypes:array<int>, minConstMismatchIdx:i
     { elems, minConstMismatchIdx, }
 }
 
+let assertMatches = (
+    ~title:string, ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
+):unit => {
+    let seq = makeSymSeq(seq, varTypes, expr->Array.length)
+    assertEqMsg(exprIncludesSeq( ~expr, ~seq, ~varTypes ), true, `the pattern didn't match in '${title}'`)
+    assertEqMsg(getMatchedIndices(seq), expectedIndices, `indices didn't match in '${title}'`)
+}
+
 describe("exprIncludesSeq", _ => {
     it("correctly records matched indices", _ => {
-        assertEq(
-            exprIncludesSeq(
-                ~expr=[-1], 
-                ~seq=makeSymSeq(Adj([-1]), [], 1000), 
-                ~varTypes=[]
-            ), 
-            true
+        assertMatches(
+            ~title="single constant; single constant",
+            ~expr=[-1],
+            ~seq=Adj([-1]),
+            ~varTypes=[],
+            ~expectedIndices=[0]
         )
     })
 })

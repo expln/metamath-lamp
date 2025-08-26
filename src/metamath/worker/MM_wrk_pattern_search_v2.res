@@ -245,3 +245,16 @@ let exprIncludesSeq = (
     }
     res.contents
 }
+
+let getMatchedIndices = (seq:symSeq):array<int> => {
+    let indices = []
+    let rec go = (seq:symSeq):unit => {
+        switch seq.elems {
+            | Adjacent(syms) => syms->Array.forEach(sym => indices->Array.push(sym.matchedIdx))
+            | Ordered(childElems) | Unordered(childElems) => childElems->Array.forEach(go)
+        }
+    }
+    go(seq)
+    indices->Array.sort(Int.compare)
+    indices
+}

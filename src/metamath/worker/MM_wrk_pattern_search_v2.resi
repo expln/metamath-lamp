@@ -20,3 +20,5 @@ and seqGrp =
     | Unordered(array<symSeq>)
 
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => bool
+
+let getMatchedIndices: symSeq => array<int>
