@@ -79,15 +79,21 @@ and let exprIncludesConstOrderedSeq = (
     ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>
 ):int => {
     let lastMatchedIdx = ref(startIdx-1)
+    let matched = ref(true)
     let i = ref(0)
     let maxI = childElems->Array.length - 1
-    while (i.contents <= maxI && lastMatchedIdx.contents >= 0) {
+    while (i.contents <= maxI && matched.contents) {
         lastMatchedIdx := exprIncludesConstSeq(
             ~expr, ~startIdx=lastMatchedIdx.contents+1, ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes
         )
+        matched := lastMatchedIdx.contents >= 0
         i := i.contents + 1
     }
-    lastMatchedIdx.contents
+    if (matched.contents) {
+        lastMatchedIdx.contents
+    } else {
+        -1
+    }
 }
 
 and let exprIncludesConstUnorderedSeq = (
