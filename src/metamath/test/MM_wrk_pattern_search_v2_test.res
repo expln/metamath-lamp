@@ -42,119 +42,149 @@ let rec makeSymSeq = (seq:testSeqGrp, varTypes:array<int>, minConstMismatchIdx:i
 }
 
 let assertMatches = (
-    ~title:string, ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
+    ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
 ):unit => {
     let seq = makeSymSeq(seq, varTypes, expr->Array.length)
-    assertEqMsg(exprIncludesSeq( ~expr, ~seq, ~varTypes ), true, `the pattern didn't match in '${title}'`)
-    assertEqMsg(getMatchedIndices(seq), expectedIndices, `indices didn't match in '${title}'`)
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), true)
+    assertEq(getMatchedIndices(seq), expectedIndices)
 }
 
 let assertDoesntMatch = (
-    ~title:string, ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
+    ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
 ):unit => {
     let seq = makeSymSeq(seq, varTypes, expr->Array.length)
-    assertEqMsg(exprIncludesSeq( ~expr, ~seq, ~varTypes ), false, `the pattern matched in '${title}'`)
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), false)
 }
 
 describe("exprIncludesSeq", _ => {
-    it("correctly records matched indices", _ => {
+    it("single constant; matching single constant", _ => {
         assertMatches(
-            ~title="single constant; matching single constant",
             ~expr=[-1],
             ~seq=Adj([-1]),
             ~varTypes=[],
             ~expectedIndices=[0]
         )
-
+    })
+    it("single constant; non-matching single constant", _ => {
         assertDoesntMatch(
-            ~title="single constant; non-matching single constant",
             ~expr=[-1],
             ~seq=Adj([-2]),
             ~varTypes=[],
         )
-
+    })
+    it("two constants; matching single constant on the left", _ => {
         assertMatches(
-            ~title="two constants; matching single constant on the left",
             ~expr=[-1, -2],
             ~seq=Adj([-1]),
             ~varTypes=[],
             ~expectedIndices=[0]
         )
-
+    })
+    it("two constants; matching single constant on the right", _ => {
         assertMatches(
-            ~title="two constants; matching single constant on the right",
             ~expr=[-1, -2],
             ~seq=Adj([-2]),
             ~varTypes=[],
             ~expectedIndices=[1]
         )
-
+    })
+    it("two constants; non-matching single constant", _ => {
         assertDoesntMatch(
-            ~title="two constants; non-matching single constant",
             ~expr=[-1, -2],
             ~seq=Adj([-3]),
             ~varTypes=[],
         )
-
+    })
+    it("multiple constants; matching adjacent constants on the left", _ => {
         assertMatches(
-            ~title="multiple constants; matching adjacent constants on the left",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=Adj([-1, -2, -3]),
             ~varTypes=[],
             ~expectedIndices=[0, 1, 2]
         )
-
+    })
+    it("multiple constants; matching adjacent constants in the middle", _ => {
         assertMatches(
-            ~title="multiple constants; matching adjacent constants in the middle",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=Adj([-3, -4, -5]),
             ~varTypes=[],
             ~expectedIndices=[2, 3, 4]
         )
-
+    })
+    it("multiple constants; matching adjacent constants on the right", _ => {
         assertMatches(
-            ~title="multiple constants; matching adjacent constants on the right",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=Adj([-5, -6, -7]),
             ~varTypes=[],
             ~expectedIndices=[4, 5, 6]
         )
-
+    })
+    it("multiple constants; non-matching adjacent constants", _ => {
         assertDoesntMatch(
-            ~title="multiple constants; non-matching adjacent constants",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=Adj([-6, -5, -7]),
             ~varTypes=[],
         )
-
+    })
+    it("multiple constants; matching non-adjacent constants on the left", _ => {
         assertMatches(
-            ~title="multiple constants; matching non-adjacent constants on the left",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=NonAdj([-1, -3, -6]),
             ~varTypes=[],
             ~expectedIndices=[0, 2, 5]
         )
-
+    })
+    it("multiple constants; matching non-adjacent constants in the middle", _ => {
         assertMatches(
-            ~title="multiple constants; matching non-adjacent constants in the middle",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=NonAdj([-2, -4, -6]),
             ~varTypes=[],
             ~expectedIndices=[1, 3, 5]
         )
-
+    })
+    it("multiple constants; matching non-adjacent constants on the right", _ => {
         assertMatches(
-            ~title="multiple constants; matching non-adjacent constants on the right",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=NonAdj([-2, -5, -7]),
             ~varTypes=[],
             ~expectedIndices=[1, 4, 6]
         )
-
+    })
+    it("multiple constants; non-matching non-adjacent constants", _ => {
         assertDoesntMatch(
-            ~title="multiple constants; non-matching non-adjacent constants",
             ~expr=[-1, -2, -3, -4 , -5, -6, -7],
             ~seq=NonAdj([-2, -6, -4]),
+            ~varTypes=[],
+        )
+    })
+    it("multiple constants; matching unordered single constants on the left", _ => {
+        assertMatches(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-5]), Adj([-3]), Adj([-1])]),
+            ~varTypes=[],
+            ~expectedIndices=[0, 2, 4]
+        )
+    })
+    it("multiple constants; matching unordered single constants in the middle", _ => {
+        assertMatches(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-7]), Adj([-3]), Adj([-4])]),
+            ~varTypes=[],
+            ~expectedIndices=[2, 3, 6]
+        )
+    })
+    it("multiple constants; matching unordered single constants on the right", _ => {
+        assertMatches(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-9]), Adj([-5]), Adj([-2])]),
+            ~varTypes=[],
+            ~expectedIndices=[1, 4, 8]
+        )
+    })
+    it("multiple constants; non-matching unordered single constants", _ => {
+        assertDoesntMatch(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-9]), Adj([-5]), Adj([-9])]),
             ~varTypes=[],
         )
     })

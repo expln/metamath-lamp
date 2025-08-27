@@ -48,7 +48,9 @@ let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>,
             exprI := exprI.contents + 1
             seqI := seqI.contents + 1
         }
-        begin := begin.contents + 1
+        if (!matched.contents) {
+            begin := begin.contents + 1
+        }
     }
     if (matched.contents) {
         begin.contents + maxSeqI
@@ -99,26 +101,30 @@ and let exprIncludesConstOrderedSeq = (
 and let exprIncludesConstUnorderedSeq = (
     ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>
 ):int => {
-    let res = ref(-1)
-    let i = ref(0)
-    let maxI = childElems->Array.length - 1
-    while (res.contents < 0 && i.contents <= maxI) {
-        if !(passedSeqIdxs->Array.includes(i.contents)) {
-            let curSeq = childElems->Array.getUnsafe(i.contents)
-            if (startIdx < curSeq.minConstMismatchIdx) {
-                let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~seq=curSeq, ~varTypes)
-                if (lastMatchedIdx >= 0) {
-                    passedSeqIdxs->Array.push(i.contents)
-                    res := exprIncludesConstUnorderedSeq(
-                        ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs
-                    )
-                    passedSeqIdxs->Array.pop->ignore
+    if (passedSeqIdxs->Array.length == childElems->Array.length) {
+        startIdx-1
+    } else {
+        let res = ref(-1)
+        let i = ref(0)
+        let maxI = childElems->Array.length - 1
+        while (res.contents < 0 && i.contents <= maxI) {
+            if !(passedSeqIdxs->Array.includes(i.contents)) {
+                let curSeq = childElems->Array.getUnsafe(i.contents)
+                if (startIdx < curSeq.minConstMismatchIdx) {
+                    let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~seq=curSeq, ~varTypes)
+                    if (lastMatchedIdx >= 0) {
+                        passedSeqIdxs->Array.push(i.contents)
+                        res := exprIncludesConstUnorderedSeq(
+                            ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs
+                        )
+                        passedSeqIdxs->Array.pop->ignore
+                    }
                 }
             }
+            i := i.contents + 1
         }
-        i := i.contents + 1
+        res.contents
     }
-    res.contents
 }
 
 let exprIncludesVarAdjSeq = (
