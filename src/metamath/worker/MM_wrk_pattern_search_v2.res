@@ -189,7 +189,7 @@ let rec exprIncludesVarSeq = (
     ~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~varTypes:array<int>,
     ~next:int=>unit
 ):unit => {
-    if (startIdx < expr->Array.length) {
+    if (startIdx < expr->Array.length && startIdx < seq.minConstMismatchIdx) {
         switch seq.elems {
             | Adjacent(seq) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~seq, ~varTypes, ~next)
             | Ordered(childElems) => {
@@ -232,16 +232,18 @@ and let exprIncludesVarUnorderedSeq = (
         while (res.contents < 0 && i.contents <= maxI) {
             if (!(passedSeqIdxs->Array.includes(i.contents))) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
-                exprIncludesVarSeq(
-                    ~expr, ~startIdx, ~seq=curSeq, ~varTypes,
-                    ~next = lastMatchedIdx => {
-                        passedSeqIdxs->Array.push(i.contents)
-                        exprIncludesVarUnorderedSeq(
-                            ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs, ~next
-                        )
-                        passedSeqIdxs->Array.pop->ignore
-                    }
-                )
+                if (startIdx < curSeq.minConstMismatchIdx) {
+                    exprIncludesVarSeq(
+                        ~expr, ~startIdx, ~seq=curSeq, ~varTypes,
+                        ~next = lastMatchedIdx => {
+                            passedSeqIdxs->Array.push(i.contents)
+                            exprIncludesVarUnorderedSeq(
+                                ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs, ~next
+                            )
+                            passedSeqIdxs->Array.pop->ignore
+                        }
+                    )
+                }
             }
             i := i.contents + 1
         }

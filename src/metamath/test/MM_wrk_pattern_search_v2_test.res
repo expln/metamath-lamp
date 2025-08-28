@@ -188,4 +188,47 @@ describe("exprIncludesSeq", _ => {
             ~varTypes=[],
         )
     })
+    it("multiple constants; matching unordered groups of constants on the left", _ => {
+        assertMatches(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-7,-8]), Adj([-3,-4,-5]), Adj([-1,-2])]),
+            ~varTypes=[],
+            ~expectedIndices=[0, 1, 2, 3, 4, 6, 7]
+        )
+    })
+    it("multiple constants; matching unordered groups of constants in the middle", _ => {
+        assertMatches(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-7, -8]), Adj([-2, -3]), Adj([-5])]),
+            ~varTypes=[],
+            ~expectedIndices=[1, 2, 4, 6, 7]
+        )
+    })
+    it("multiple constants; matching unordered groups of constants on the right", _ => {
+        assertMatches(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-7, -8, -9]), Adj([-5]), Adj([-2, -3])]),
+            ~varTypes=[],
+            ~expectedIndices=[1, 2, 4, 6, 7, 8]
+        )
+    })
+    it("multiple constants; non-matching unordered groups of constants", _ => {
+        assertDoesntMatch(
+            ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+            ~seq=Unord([Adj([-7, -8]), Adj([-2, -4]), Adj([-5])]),
+            ~varTypes=[],
+        )
+    })
+    // it("multiple constants; matching combination of different groups of constants", _ => {
+    //     assertMatches(
+    //         ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
+    //         ~seq=Unord([
+    //             Ord([Adj([-7,-8]), NonAdj([])]), 
+    //             Ord([Unord([NonAdj([]), Adj([])])]), 
+    //             NonAdj([-1,-2])
+    //         ]),
+    //         ~varTypes=[],
+    //         ~expectedIndices=[0, 1, 2, 3, 4, 6, 7]
+    //     )
+    // })
 })
