@@ -219,16 +219,26 @@ describe("exprIncludesSeq", _ => {
             ~varTypes=[],
         )
     })
-    // it("multiple constants; matching combination of different groups of constants", _ => {
-    //     assertMatches(
-    //         ~expr=[-1, -2, -3, -4 , -5, -6, -7, -8, -9],
-    //         ~seq=Unord([
-    //             Ord([Adj([-7,-8]), NonAdj([])]), 
-    //             Ord([Unord([NonAdj([]), Adj([])])]), 
-    //             NonAdj([-1,-2])
-    //         ]),
-    //         ~varTypes=[],
-    //         ~expectedIndices=[0, 1, 2, 3, 4, 6, 7]
-    //     )
-    // })
+    it("multiple constants; matching combination of different groups of constants", _ => {
+        assertMatches(
+            ~expr=[-100,-101,-9,-10,-11,-6,-102,-7,-103,-104,-8,-105,-106,-12,-13,-107,
+                -14,-15,-1,-2,-108,-109,-3,-4,-110,-111,-5],
+            ~seq=Unord([
+                Ord([
+                    Adj([-1,-2]), 
+                    NonAdj([-3,-4,-5])
+                ]), 
+                Ord([
+                    Unord([
+                        NonAdj([-6,-7,-8]), 
+                        Adj([-9,-10,-11])
+                    ]),
+                    Adj([-12,-13]),
+                ]), 
+                NonAdj([-14,-15])
+            ]),
+            ~varTypes=[],
+            ~expectedIndices=[2,3,4,5,7,10,13,14,16,17,18,19,22,23,26]
+        )
+    })
 })
