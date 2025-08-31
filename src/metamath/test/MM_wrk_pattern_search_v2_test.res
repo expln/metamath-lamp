@@ -241,4 +241,59 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[2,3,4,5,7,10,13,14,16,17,18,19,22,23,26]
         )
     })
+
+    it("single var; matching single var", _ => {
+        assertMatches(
+            ~expr=[0],
+            ~seq=Adj([0]),
+            ~varTypes=[-1],
+            ~expectedIndices=[0]
+        )
+    })
+    it("single var; matching single var (another integer)", _ => {
+        assertMatches(
+            ~expr=[0],
+            ~seq=Adj([1]),
+            ~varTypes=[-1,-1],
+            ~expectedIndices=[0]
+        )
+    })
+    it("single var; non-matching single var", _ => {
+        assertDoesntMatch(
+            ~expr=[0],
+            ~seq=Adj([1]),
+            ~varTypes=[-1,-2]
+        )
+    })
+    it("two vars; two matching vars", _ => {
+        assertMatches(
+            ~expr=[0,1],
+            ~seq=Adj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1]
+        )
+    })
+    it("same var in expr is assigned to different vars in pattern", _ => {
+        assertMatches(
+            ~expr=[0,-1,0],
+            ~seq=Adj([1,-1,2]),
+            ~varTypes=[-2,-2,-2],
+            ~expectedIndices=[0,1,2]
+        )
+    })
+    it("same var in pattern is assigned to same vars in expr", _ => {
+        assertMatches(
+            ~expr=[0,-1,0],
+            ~seq=Adj([2,-1,2]),
+            ~varTypes=[-2,-2,-2],
+            ~expectedIndices=[0,1,2]
+        )
+    })
+    it("same var in pattern doesn't match different vars in expr", _ => {
+        assertDoesntMatch(
+            ~expr=[0,-1,1],
+            ~seq=Adj([2,-1,2]),
+            ~varTypes=[-2,-2,-2],
+        )
+    })
 })
