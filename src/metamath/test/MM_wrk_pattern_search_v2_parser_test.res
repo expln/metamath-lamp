@@ -27,6 +27,10 @@ describe("parsePattern", _ => {
             Ok(seq(Ordered([seq(Symbols(["x"])), seq(Symbols(["y"]))])))
         )
         testPatternParser(
+            "x $** y $**",
+            Error(())
+        )
+        testPatternParser(
             "a b $** c d",
             Ok(seq(Ordered([seq(Symbols(["a","b"])), seq(Symbols(["c","d"]))])))
         )
@@ -43,6 +47,13 @@ describe("parsePattern", _ => {
             Ok(seq(Unordered([
                 seq(Ordered([seq(Symbols(["a","b"])), seq(Symbols(["c","d"]))])), 
                 seq(Symbols(["e","f"]))
+            ])))
+        )
+        testPatternParser(
+            "a b $|| c d $** e f",
+            Ok(seq(Unordered([
+                seq(Symbols(["a","b"])),
+                seq(Ordered([seq(Symbols(["c","d"])), seq(Symbols(["e","f"]))])), 
             ])))
         )
     })

@@ -27,7 +27,7 @@ let isEmpty = (inp:parserInput<'t>):bool => {
     inp.tokens->Array.length <= inp.begin
 }
 
-let mapRes = (parser:parser<'t,'a>, func:parsed<'t,'a>=>'b):parser<'t,'b> => inp => {
+let mapParsed = (parser:parser<'t,'a>, func:parsed<'t,'a>=>'b):parser<'t,'b> => inp => {
     switch parser(inp) {
         | Error(_) => Error(())
         | Ok(parsed) => Ok({...parsed, data:func(parsed)})
@@ -38,6 +38,13 @@ let map = (parser:parser<'t,'a>, func:'a=>'b):parser<'t,'b> => inp => {
     switch parser(inp) {
         | Error(_) => Error(())
         | Ok(parsed) => Ok({...parsed, data:func(parsed.data)})
+    }
+}
+
+let mapRes = (parser:parser<'t,'a>, func:'a=>result<'b,unit>):parser<'t,'b> => inp => {
+    switch parser(inp) {
+        | Error(_) => Error(())
+        | Ok(parsed) => parsed.data->func->Result.map(b => {...parsed, data:b})
     }
 }
 
@@ -150,17 +157,15 @@ let any = (parsers:array<()=>parser<'t,'d>>):parser<'t,'d> => inp => {
     }
 }
 
-let end: parser<'t,()> = inp => {
-    if (isEmpty(inp)) {
-        let tokens = inp.tokens
-        let numOfTokens = tokens->Array.length
-        Ok({
-            tokens,
-            begin:numOfTokens, 
-            end:numOfTokens,
-            data: ()
-        })
-    } else {
-        Error(())
+let end = (parser:parser<'t,'d>):parser<'t,'d> => inp => {
+    switch parser(inp) {
+        | Error(_) => Error(())
+        | Ok(parsed) => {
+            if (isEmpty(parsed->toInput)) {
+                Ok(parsed)
+            } else {
+                Error(())
+            }
+        }
     }
 }
