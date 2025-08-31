@@ -27,6 +27,20 @@ let isEmpty = (inp:parserInput<'t>):bool => {
     inp.tokens->Array.length <= inp.begin
 }
 
+let mapRes = (parser:parser<'t,'a>, func:parsed<'t,'a>=>'b):parser<'t,'b> => inp => {
+    switch parser(inp) {
+        | Error(_) => Error(())
+        | Ok(parsed) => Ok({...parsed, data:func(parsed)})
+    }
+}
+
+let map = (parser:parser<'t,'a>, func:'a=>'b):parser<'t,'b> => inp => {
+    switch parser(inp) {
+        | Error(_) => Error(())
+        | Ok(parsed) => Ok({...parsed, data:func(parsed.data)})
+    }
+}
+
 let match = (predicate:'t=>bool):parser<'t,'t> => inp => {
     if (isEmpty(inp)) {
         Error(())
@@ -40,7 +54,7 @@ let match = (predicate:'t=>bool):parser<'t,'t> => inp => {
     }
 }
 
-let rep = (parser:parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp => {
+let rep = (parser:()=>parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp => {
     let tokens = inp.tokens
     let begin = inp.begin
     let inp = ref(inp)
@@ -48,7 +62,7 @@ let rep = (parser:parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp => {
     let end = ref(-1)
     let mismatchFound = ref(false)
     while (!mismatchFound.contents) {
-        switch parser(inp.contents) {
+        switch parser()(inp.contents) {
             | Error(_) => mismatchFound := true
             | Ok(parsed) => {
                 res->Array.push(parsed.data)
@@ -64,14 +78,14 @@ let rep = (parser:parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp => {
     }
 }
 
-let seq = (parsers:array<parser<'t,'d>>):parser<'t,array<'d>> => inp => {
+let seq = (parsers:array<()=>parser<'t,'d>>):parser<'t,array<'d>> => inp => {
     parsers->Array.reduce(
         Ok([], -1, -1, inp),
         (ctx, parser) => {
             switch ctx {
                 | Error(_) => ctx
                 | Ok((datas, begin, _, inp)) => {
-                    switch parser(inp) {
+                    switch parser()(inp) {
                         | Error(_) => Error(())
                         | Ok(parsed) => {
                             datas->Array.push(parsed.data)
@@ -89,31 +103,11 @@ let seq = (parsers:array<parser<'t,'d>>):parser<'t,array<'d>> => inp => {
     )->Result.map(((datas, begin, end, inp)) => {tokens:inp.tokens, begin, end, data:datas})
 }
 
-let any = (parsers:array<parser<'t,'d>>):parser<'t,'d> => inp => {
-    switch parsers->Array.reduce(
-        None,
-        (ctx, parser) => {
-            switch ctx {
-                | Some(_) => ctx
-                | None => {
-                    switch parser(inp) {
-                        | Error(_) => None
-                        | Ok(parsed) => Some(parsed)
-                    }
-                }
-            }
-        }
-    ) {
-        | None => Error(())
-        | Some(parsed) => Ok(parsed)
-    }
-}
-
-let andThen = (parser1:parser<'t,'a>, parser2:parser<'t,'b>):parser<'t,('a,'b)> => inp => {
-    switch parser1(inp) {
+let seq2 = (parser1:()=>parser<'t,'d1>, parser2:()=>parser<'t,'d2>):parser<'t,('d1,'d2)> => inp => {
+    switch parser1()(inp) {
         | Error(_) => Error(())
         | Ok(parsed1) => {
-            switch parsed1->toInput->parser2 {
+            switch parser2()(toInput(parsed1)) {
                 | Error(_) => Error(())
                 | Ok(parsed2) => {
                     Ok({
@@ -128,16 +122,45 @@ let andThen = (parser1:parser<'t,'a>, parser2:parser<'t,'b>):parser<'t,('a,'b)> 
     }
 }
 
-let mapRes = (parser:parser<'t,'a>, func:parsed<'t,'a>=>'b):parser<'t,'b> => inp => {
-    switch parser(inp) {
-        | Error(_) => Error(())
-        | Ok(parsed) => Ok({...parsed, data:func(parsed)})
+let seq3 = (
+    parser1:()=>parser<'t,'d1>, 
+    parser2:()=>parser<'t,'d2>, 
+    parser3:()=>parser<'t,'d3>
+):parser<'t,('d1,'d2,'d3)> => {
+    seq2(() => seq2(parser1, parser2), parser3)->map((((d1,d2),d3)) => (d1,d2,d3))
+}
+
+let any = (parsers:array<()=>parser<'t,'d>>):parser<'t,'d> => inp => {
+    switch parsers->Array.reduce(
+        None,
+        (ctx, parser) => {
+            switch ctx {
+                | Some(_) => ctx
+                | None => {
+                    switch parser()(inp) {
+                        | Error(_) => None
+                        | Ok(parsed) => Some(parsed)
+                    }
+                }
+            }
+        }
+    ) {
+        | None => Error(())
+        | Some(parsed) => Ok(parsed)
     }
 }
 
-let map = (parser:parser<'t,'a>, func:'a=>'b):parser<'t,'b> => inp => {
-    switch parser(inp) {
-        | Error(_) => Error(())
-        | Ok(parsed) => Ok({...parsed, data:func(parsed.data)})
+let end: parser<'t,()> = inp => {
+    if (isEmpty(inp)) {
+        let tokens = inp.tokens
+        let numOfTokens = tokens->Array.length
+        Ok({
+            tokens,
+            begin:numOfTokens, 
+            end:numOfTokens,
+            data: ()
+        })
+    } else {
+        Error(())
     }
 }
