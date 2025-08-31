@@ -20,5 +20,7 @@ let match: ('t => bool) => parser<'t, 't>
 let rep: (parser<'t, 'd>, ~minCnt: int=?) => parser<'t, array<'d>>
 let seq: array<parser<'t, 'd>> => parser<'t, array<'d>>
 let any: array<parser<'t, 'd>> => parser<'t, 'd>
+let andThen: (parser<'t,'a>, parser<'t,'b>) => parser<'t,('a,'b)>
 
-let map: (parser<'t, 'a>, parsed<'t,'a> => 'b) => parser<'t, 'b>
+let mapRes: (parser<'t, 'a>, parsed<'t,'a> => 'b) => parser<'t, 'b>
+let map: (parser<'t, 'a>, 'a => 'b) => parser<'t, 'b>

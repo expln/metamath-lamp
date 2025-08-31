@@ -47,7 +47,7 @@ let rep = (parser:parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp => {
     let res:array<'p> = []
     let end = ref(-1)
     let mismatchFound = ref(false)
-    while (!mismatchFound.contents && !isEmpty(inp.contents)) {
+    while (!mismatchFound.contents) {
         switch parser(inp.contents) {
             | Error(_) => mismatchFound := true
             | Ok(parsed) => {
@@ -71,20 +71,16 @@ let seq = (parsers:array<parser<'t,'d>>):parser<'t,array<'d>> => inp => {
             switch ctx {
                 | Error(_) => ctx
                 | Ok((datas, begin, _, inp)) => {
-                    if (isEmpty(inp)) {
-                        Error(())
-                    } else {
-                        switch parser(inp) {
-                            | Error(_) => Error(())
-                            | Ok(parsed) => {
-                                datas->Array.push(parsed.data)
-                                Ok((
-                                    datas, 
-                                    datas->Array.length == 1 ? parsed.begin : begin,
-                                    parsed.end, 
-                                    parsed->toInput
-                                ))
-                            }
+                    switch parser(inp) {
+                        | Error(_) => Error(())
+                        | Ok(parsed) => {
+                            datas->Array.push(parsed.data)
+                            Ok((
+                                datas, 
+                                datas->Array.length == 1 ? parsed.begin : begin,
+                                parsed.end, 
+                                parsed->toInput
+                            ))
                         }
                     }
                 }
@@ -94,32 +90,54 @@ let seq = (parsers:array<parser<'t,'d>>):parser<'t,array<'d>> => inp => {
 }
 
 let any = (parsers:array<parser<'t,'d>>):parser<'t,'d> => inp => {
-    if (isEmpty(inp)) {
-        Error(())
-    } else {
-        switch parsers->Array.reduce(
-            None,
-            (ctx, parser) => {
-                switch ctx {
-                    | Some(_) => ctx
-                    | None => {
-                        switch parser(inp) {
-                            | Error(_) => None
-                            | Ok(parsed) => Some(parsed)
-                        }
+    switch parsers->Array.reduce(
+        None,
+        (ctx, parser) => {
+            switch ctx {
+                | Some(_) => ctx
+                | None => {
+                    switch parser(inp) {
+                        | Error(_) => None
+                        | Ok(parsed) => Some(parsed)
                     }
                 }
             }
-        ) {
-            | None => Error(())
-            | Some(parsed) => Ok(parsed)
+        }
+    ) {
+        | None => Error(())
+        | Some(parsed) => Ok(parsed)
+    }
+}
+
+let andThen = (parser1:parser<'t,'a>, parser2:parser<'t,'b>):parser<'t,('a,'b)> => inp => {
+    switch parser1(inp) {
+        | Error(_) => Error(())
+        | Ok(parsed1) => {
+            switch parsed1->toInput->parser2 {
+                | Error(_) => Error(())
+                | Ok(parsed2) => {
+                    Ok({
+                        tokens: parsed2.tokens,
+                        begin: parsed1.begin,
+                        end: parsed2.end,
+                        data: (parsed1.data, parsed2.data)
+                    })
+                }
+            }
         }
     }
 }
 
-let map = (parser:parser<'t,'a>, func:parsed<'t,'a>=>'b):parser<'t,'b> => inp => {
+let mapRes = (parser:parser<'t,'a>, func:parsed<'t,'a>=>'b):parser<'t,'b> => inp => {
     switch parser(inp) {
         | Error(_) => Error(())
         | Ok(parsed) => Ok({...parsed, data:func(parsed)})
+    }
+}
+
+let map = (parser:parser<'t,'a>, func:'a=>'b):parser<'t,'b> => inp => {
+    switch parser(inp) {
+        | Error(_) => Error(())
+        | Ok(parsed) => Ok({...parsed, data:func(parsed.data)})
     }
 }
