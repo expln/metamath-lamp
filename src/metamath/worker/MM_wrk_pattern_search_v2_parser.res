@@ -14,7 +14,17 @@ let toSymSeq = (elems:seqGrp):symSeq => {
     }
 }
 
-let rec symSeq:()=>Parser.parser<string,symSeq> = () =>
+let end = (parser:()=>Parser.parser<'t,'d>):(()=>Parser.parser<'t,'d>) => () => {
+    Parser.seq2(parser, () => Parser.end)->Parser.map(((res,_)) => res)
+}
+
+let rec symSeqEnd:()=>Parser.parser<string,symSeq> = () =>
+    Parser.any([
+        symbols->end,
+        ordered->end,
+        unordered->end,
+    ])
+and symSeq:()=>Parser.parser<string,symSeq> = () =>
     Parser.any([
         symbols,
         ordered,
@@ -40,7 +50,10 @@ and seqGrp: string=>Parser.parser<string,array<symSeq>> = operator =>
         symSeq
     )->Parser.map(((elems,lastElem)) => [...elems, lastElem])
 
-
+let parsePattern = (patternStr:string):result<symSeq,()> => {
+    symSeqEnd()(patternStr->String.trim->Common.getSpaceSeparatedValuesAsArray->Parser.makeParserInput)
+        ->Result.map(({data}) => data)
+}
 
 // let seqWithoutParens:Parser.parser<string,symSeq> = 
 //     Parser.rep(sym, ~minCnt=1)->Parser.map(symbols => {flags:"", symbols})
