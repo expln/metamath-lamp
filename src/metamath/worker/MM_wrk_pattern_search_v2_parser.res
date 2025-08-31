@@ -7,12 +7,7 @@ and seqGrp =
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
 
-let toSymSeq = (elems:seqGrp):symSeq => {
-    {
-        flags:"",
-        elems
-    }
-}
+let toSymSeq = (elems:seqGrp, ~flags:string=""):symSeq => { flags, elems }
 
 let symSeq:Parser.parser<string,symSeq> = {
     open Parser
@@ -21,6 +16,7 @@ let symSeq:Parser.parser<string,symSeq> = {
             symbols,
             unordered,
             ordered,
+            symSeqWithParens
         ])
     and sym = ():parser<string,string> =>
         match(str => !(str->String.includes("$")))
@@ -30,6 +26,24 @@ let symSeq:Parser.parser<string,symSeq> = {
         seqGrp("$**")->map(elems => Ordered(elems)->toSymSeq)
     and unordered = ():parser<string,symSeq> =>
         seqGrp("$||")->map(elems => Unordered(elems)->toSymSeq)
+    and symSeqWithParens = ():parser<string,symSeq> =>
+        seq3(openParen, ()=>allUntil("$]"), closeParen)->end
+            ->mapRes(((flags, symbols, _)) => {
+                switch symSeq()(symbols->makeParserInput) {
+                    | Error(_) => Error(())
+                    | Ok(parsed) => {
+                        if (parsed.data.flags == "") {
+                            Ok({...parsed.data, flags})
+                        } else {
+                            Ok(parsed.data)
+                        }
+                    }
+                }
+            })
+    and openParen = ():parser<string,string> =>
+        match(str => str->String.startsWith("$["))->map(str => str->String.substringToEnd(~start=2))
+    and closeParen = ():parser<string,unit> =>
+        match(str => str =="$]")->map(_ => ())
     and seqGrp = (operator:string):parser<string,array<symSeq>> =>
         seq2(
             ()=>rep(
