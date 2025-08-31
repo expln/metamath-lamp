@@ -30,5 +30,20 @@ describe("parsePattern", _ => {
             "a b $** c d",
             Ok(seq(Ordered([seq(Symbols(["a","b"])), seq(Symbols(["c","d"]))])))
         )
+        testPatternParser(
+            "a b $** c d $** e f",
+            Ok(seq(Ordered([seq(Symbols(["a","b"])), seq(Symbols(["c","d"])), seq(Symbols(["e","f"]))])))
+        )
+        testPatternParser(
+            "a b $|| c d $|| e f",
+            Ok(seq(Unordered([seq(Symbols(["a","b"])), seq(Symbols(["c","d"])), seq(Symbols(["e","f"]))])))
+        )
+        testPatternParser(
+            "a b $** c d $|| e f",
+            Ok(seq(Unordered([
+                seq(Ordered([seq(Symbols(["a","b"])), seq(Symbols(["c","d"]))])), 
+                seq(Symbols(["e","f"]))
+            ])))
+        )
     })
 })

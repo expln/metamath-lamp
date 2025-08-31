@@ -21,14 +21,14 @@ let end = (parser:()=>Parser.parser<'t,'d>):(()=>Parser.parser<'t,'d>) => () => 
 let rec symSeqEnd:()=>Parser.parser<string,symSeq> = () =>
     Parser.any([
         symbols->end,
-        ordered->end,
         unordered->end,
+        ordered->end,
     ])
 and symSeq:()=>Parser.parser<string,symSeq> = () =>
     Parser.any([
         symbols,
-        ordered,
         unordered,
+        ordered,
     ])
 and sym: () => Parser.parser<string,string> = () =>
     Parser.match(str => !(str->String.includes("$")))
