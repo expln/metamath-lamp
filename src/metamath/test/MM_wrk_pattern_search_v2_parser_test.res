@@ -70,6 +70,10 @@ describe("parsePattern", _ => {
             ]))
         )
         testPatternParser(
+            "$[ a b $] $|| $[ c d",
+            Error(())
+        )
+        testPatternParser(
             "$[ a b $] $|| $[ c d $]",
             Ok(unord([
                 sym(["a", "b"]),
