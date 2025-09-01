@@ -91,16 +91,13 @@ describe("parsePattern", _ => {
             ]))
         )
         testPatternParser(
-            "$[ $[ c d $] $|| $[ e f $] $] $|| $[ g h $]",
-            Ok(unord([
+            "$[ $[ a b $] $** $[ c d $] $] $** $[ e f $]",
+            Ok(ord([
                 ord([
                     sym(["a", "b"]),
-                    unord([
-                        sym(["c", "d"]),
-                        sym(["e", "f"]),
-                    ])
+                    sym(["c", "d"]),
                 ]),
-                sym(["g", "h"])
+                sym(["e", "f"])
             ]))
         )
         testPatternParser(
@@ -115,7 +112,7 @@ describe("parsePattern", _ => {
                 $] 
             $] 
             $|| 
-            $[ g h $]
+            g h
             ",
             Ok(unord([
                 ord([

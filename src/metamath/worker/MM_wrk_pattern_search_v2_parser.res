@@ -9,6 +9,9 @@ and seqGrp =
 
 let toSymSeq = (elems:seqGrp, ~flags:string=""):symSeq => { flags, elems }
 
+let isOpenParenthesis = (str:string) => str->String.startsWith("$[")
+let isCloseParenthesis = (str:string) => str == "$]"
+
 let symSeq:Parser.parser<string,symSeq> = {
     open Parser
     let rec symSeq = ():parser<string,symSeq> =>
@@ -27,7 +30,7 @@ let symSeq:Parser.parser<string,symSeq> = {
     and unordered = ():parser<string,symSeq> =>
         seqGrp("$||")->map(elems => Unordered(elems)->toSymSeq)
     and symSeqWithParens = ():parser<string,symSeq> =>
-        seq3(openParen, ()=>allButLast, closeParen)->end
+        seq3(openParen, ()=>take(-1), closeParen)->end
             ->mapRes(((flags, symbols, _)) => {
                 switch symSeq()(symbols->makeParserInput) {
                     | Error(_) => Error(())
@@ -41,15 +44,15 @@ let symSeq:Parser.parser<string,symSeq> = {
                 }
             })
     and openParen = ():parser<string,string> =>
-        match(str => str->String.startsWith("$["))->map(str => str->String.substringToEnd(~start=2))
+        match(isOpenParenthesis)->map(String.substringToEnd(_, ~start=2))
     and closeParen = ():parser<string,unit> =>
-        match(str => str =="$]")->map(_ => ())
+        match(isCloseParenthesis)->map(_ => ())
     and seqGrp = (operator:string):parser<string,array<symSeq>> =>
         seq2(
             ()=>rep(
                 ~minCnt=1,
                 ()=>seq2(
-                    ()=>allUntil(operator),
+                    ()=>nonEmptyUntil(operator),
                     ()=>match(str => str == operator)
                 )->map(((operand:array<string>,_)) => operand)
             ),
@@ -72,8 +75,34 @@ let symSeq:Parser.parser<string,symSeq> = {
                     }
                 })
             })
-    and allUntil = (until:string):parser<string,array<string>> =>
-        rep(()=>match(str => str != until), ~minCnt=1)
+    and nonEmptyUntil = (until:string):parser<string,array<string>> => inp => {
+        let {tokens, begin} = inp
+        let res = []
+        let i = ref(begin)
+        let maxI = tokens->Array.length-1
+        let parenCnt = ref(0)
+        let continue = ref(true)
+        while (i.contents <= maxI && continue.contents) {
+            let token = tokens->Array.getUnsafe(i.contents)
+            if (isOpenParenthesis(token)) {
+                parenCnt := parenCnt.contents + 1
+            } else if (isCloseParenthesis(token)) {
+                parenCnt := parenCnt.contents - 1
+            }
+            if (parenCnt.contents < 0 || parenCnt.contents == 0 && token == until) {
+                continue := false
+            } else {
+                res->Array.push(token)
+            }
+            i := i.contents + 1
+        }
+        let resLen = res->Array.length
+        if (parenCnt.contents < 0 || resLen == 0) {
+            Error(())
+        } else {
+            Ok({ tokens, begin, end: begin + resLen - 1, data: res })
+        }
+    }
     and nonEmpty = ():parser<string,array<string>> =>
         rep(()=>match(_ => true), ~minCnt=1)
     symSeq()

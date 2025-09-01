@@ -157,12 +157,18 @@ let any = (parsers:array<()=>parser<'t,'d>>):parser<'t,'d> => inp => {
     }
 }
 
-let allButLast:parser<'t, array<'t>> = inp => {
+let take = (cnt:int):parser<'t, array<'t>> => inp => {
     let tokens = inp.tokens
     let begin = inp.begin
-    let end = tokens->Array.length-2
-    let data = tokens->Array.slice(~start=begin, ~end=end+1)
-    Ok({tokens, begin, end, data})
+    if (cnt >= 0) {
+        let end = begin + cnt
+        let data = tokens->Array.slice(~start=begin, ~end=end+1)
+        Ok({tokens, begin, end, data})
+    } else {
+        let end = tokens->Array.length + cnt - 1
+        let data = tokens->Array.slice(~start=begin, ~end=end+1)
+        Ok({tokens, begin, end, data})
+    }
 }
 
 let nonEmpty = (parser:parser<'t,array<'d>>):parser<'t,array<'d>> => {
