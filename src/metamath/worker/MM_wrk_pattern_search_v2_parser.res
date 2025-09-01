@@ -27,7 +27,7 @@ let symSeq:Parser.parser<string,symSeq> = {
     and unordered = ():parser<string,symSeq> =>
         seqGrp("$||")->map(elems => Unordered(elems)->toSymSeq)
     and symSeqWithParens = ():parser<string,symSeq> =>
-        seq3(openParen, ()=>allUntil("$]"), closeParen)->end
+        seq3(openParen, ()=>allButLast, closeParen)->end
             ->mapRes(((flags, symbols, _)) => {
                 switch symSeq()(symbols->makeParserInput) {
                     | Error(_) => Error(())

@@ -157,6 +157,18 @@ let any = (parsers:array<()=>parser<'t,'d>>):parser<'t,'d> => inp => {
     }
 }
 
+let allButLast:parser<'t, array<'t>> = inp => {
+    let tokens = inp.tokens
+    let begin = inp.begin
+    let end = tokens->Array.length-2
+    let data = tokens->Array.slice(~start=begin, ~end=end+1)
+    Ok({tokens, begin, end, data})
+}
+
+let nonEmpty = (parser:parser<'t,array<'d>>):parser<'t,array<'d>> => {
+    parser->mapRes(ds => ds->Array.length == 0 ? Error(()) : Ok(ds))
+}
+
 let end = (parser:parser<'t,'d>):parser<'t,'d> => inp => {
     switch parser(inp) {
         | Error(_) => Error(())
