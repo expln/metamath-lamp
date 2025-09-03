@@ -129,5 +129,33 @@ describe("parsePattern", _ => {
                 sym(["g", "h"])
             ]))
         )
+        testPatternParser(
+            "$[+ a b c $]",
+            Ok(sym(["a", "b", "c"], ~flags="+"))
+        )
+        testPatternParser(
+            "$[+ $[- a b c $] $]",
+            Ok(sym(["a", "b", "c"], ~flags="-"))
+        )
+        testPatternParser(
+            "$[+ $[ $[- a b c $] $] $]",
+            Ok(sym(["a", "b", "c"], ~flags="-"))
+        )
+        testPatternParser(
+            "$[+ a b c $|| d $]",
+            Ok(unord([sym(["a", "b", "c"]), sym(["d"])], ~flags="+"))
+        )
+        testPatternParser(
+            "$[+ $[ a b c $] $|| d $]",
+            Ok(unord([sym(["a", "b", "c"]), sym(["d"])], ~flags="+"))
+        )
+        testPatternParser(
+            "$[+ $[- a b c $] $|| d $]",
+            Ok(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d"])], ~flags="+"))
+        )
+        testPatternParser(
+            "$[+ $[- a b c $] $|| $[ $[ $[ d e $] $] $] $]",
+            Ok(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d", "e"])], ~flags="+"))
+        )
     })
 })
