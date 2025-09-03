@@ -29,3 +29,5 @@ let any: array<()=>parser<'t, 'd>> => parser<'t, 'd>
 let take: int => parser<'t, array<'t>>
 let nonEmpty: parser<'t,array<'d>> => parser<'t,array<'d>>
 let end: parser<'t,'d> => parser<'t,'d>
+
+let parse: (array<'t>, ()=>parser<'t,'d>) => result<'d,unit>

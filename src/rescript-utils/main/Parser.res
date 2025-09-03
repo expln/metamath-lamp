@@ -187,3 +187,7 @@ let end = (parser:parser<'t,'d>):parser<'t,'d> => inp => {
         }
     }
 }
+
+let parse = (tokens:array<'t>, parser:()=>parser<'t,'d>):result<'d,unit> => {
+    parser()(tokens->makeParserInput)->Result.map(({data}) => data)
+}

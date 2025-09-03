@@ -1,8 +1,8 @@
 open Expln_test
 open MM_wrk_pattern_search_v2_parser
 
-let testPatternParser = (patternStr:string, expectedResult:result<symSeq,()>) => {
-    assertEqMsg( parsePattern(patternStr), expectedResult, patternStr )
+let testSymSeqParser = (text:string, expectedResult:result<symSeq,()>) => {
+    assertEqMsg( parseSymSeq(text), expectedResult, text )
 }
 
 let seq = (elems:seqGrp, ~flags):symSeq => { flags, elems }
@@ -11,90 +11,90 @@ let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbol
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
 
-describe("parsePattern", _ => {
-    it("works as expected", _ => {
-        testPatternParser(
+describe("MM_wrk_pattern_search_v2_parser", _ => {
+    it("parseSymSeq works as expected", _ => {
+        testSymSeqParser(
             "x",
             Ok(sym(["x"]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "x y",
             Ok(sym(["x","y"]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "x $** y",
             Ok(ord([sym(["x"]), sym(["y"])]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "x $** y $**",
             Error(())
         )
-        testPatternParser(
+        testSymSeqParser(
             "a b $** c d",
             Ok(ord([sym(["a","b"]), sym(["c","d"])]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "a b $** c d $** e f",
             Ok(ord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "a b $|| c d $|| e f",
             Ok(unord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "a b $** c d $|| e f",
             Ok(unord([
                 ord([sym(["a","b"]), sym(["c","d"])]), 
                 sym(["e","f"])
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "a b $|| c d $** e f",
             Ok(unord([
                 sym(["a","b"]),
                 ord([sym(["c","d"]), sym(["e","f"])]),
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ a b $|| c d $] $** e f",
             Ok(ord([
                 unord([sym(["a","b"]), sym(["c","d"])]),
                 sym(["e","f"]),
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ a b $] $|| c d",
             Ok(unord([
                 sym(["a","b"]),
                 sym(["c","d"]),
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ a b $] $|| $[ c d",
             Error(())
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ a b $] $|| $[ c d $]",
             Ok(unord([
                 sym(["a", "b"]),
                 sym(["c", "d"]),
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ $[ a b $] $|| $[ c d $] $]",
             Ok(unord([
                 sym(["a", "b"]),
                 sym(["c", "d"]),
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ a b $|| $[ c d $] $]",
             Ok(unord([
                 sym(["a", "b"]),
                 sym(["c", "d"]),
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[ $[ a b $] $** $[ c d $] $] $** $[ e f $]",
             Ok(ord([
                 ord([
@@ -104,7 +104,7 @@ describe("parsePattern", _ => {
                 sym(["e", "f"])
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "
             $[ 
                 a b 
@@ -129,31 +129,31 @@ describe("parsePattern", _ => {
                 sym(["g", "h"])
             ]))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ a b c $]",
             Ok(sym(["a", "b", "c"], ~flags="+"))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ $[- a b c $] $]",
             Ok(sym(["a", "b", "c"], ~flags="-"))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ $[ $[- a b c $] $] $]",
             Ok(sym(["a", "b", "c"], ~flags="-"))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ a b c $|| d $]",
             Ok(unord([sym(["a", "b", "c"]), sym(["d"])], ~flags="+"))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ $[ a b c $] $|| d $]",
             Ok(unord([sym(["a", "b", "c"]), sym(["d"])], ~flags="+"))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ $[- a b c $] $|| d $]",
             Ok(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d"])], ~flags="+"))
         )
-        testPatternParser(
+        testSymSeqParser(
             "$[+ $[- a b c $] $|| $[ $[ $[ d e $] $] $] $]",
             Ok(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d", "e"])], ~flags="+"))
         )

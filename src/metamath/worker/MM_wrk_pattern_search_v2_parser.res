@@ -7,10 +7,22 @@ and seqGrp =
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
 
+type patTarget = Frm | Hyps | Asrt
+
+type stmtPat = {
+    target: patTarget,
+    symSeq: symSeq,
+}
+
+let orderedOperator = "$**"
+let unorderedOperator = "$||"
+let openParen = "$["
+let closeParen = "$]"
+
 let toSymSeq = (elems:seqGrp, ~flags:string=""):symSeq => { flags, elems }
 
-let isOpenParenthesis = (str:string) => str->String.startsWith("$[")
-let isCloseParenthesis = (str:string) => str == "$]"
+let isOpenParenthesis = (str:string) => str->String.startsWith(openParen)
+let isCloseParenthesis = (str:string) => str == closeParen
 
 let openParen:Parser.parser<string,string> =
     Parser.match(isOpenParenthesis)->Parser.map(String.substringToEnd(_, ~start=2))
@@ -47,10 +59,10 @@ let nonEmptyUntil = (until:string):Parser.parser<string,array<string>> => inp =>
     }
 }
 
-let symSeq:Parser.parser<string,symSeq> = {
+let symSeq:()=>Parser.parser<string,symSeq> = {
     open Parser
     let rec symSeq = ():parser<string,symSeq> =>
-        any([symbols, symSeqWithParens, unordered, ordered])
+        any([symbols, symSeqWithParens, unordered, ordered])->end
     and sym = ():parser<string,string> =>
         match(str => !(str->String.includes("$")))
     and symbols = ():parser<string,symSeq> =>
@@ -58,21 +70,15 @@ let symSeq:Parser.parser<string,symSeq> = {
     and symSeqWithParens = ():parser<string,symSeq> =>
         seq3(()=>openParen, ()=>take(-1), ()=>closeParen)->end
             ->mapRes(((flags, symbols, _)) => {
-                switch symSeq()(symbols->makeParserInput) {
+                switch parse(symbols, symSeq) {
                     | Error(_) => Error(())
-                    | Ok(parsed) => {
-                        if (parsed.data.flags == "") {
-                            Ok({...parsed.data, flags})
-                        } else {
-                            Ok(parsed.data)
-                        }
-                    }
+                    | Ok(seq) => if (seq.flags == "") { Ok({...seq, flags}) } else { Ok(seq) }
                 }
             })
     and ordered = ():parser<string,symSeq> =>
-        seqGrp("$**")->map(elems => Ordered(elems)->toSymSeq)
+        seqGrp(orderedOperator)->map(elems => Ordered(elems)->toSymSeq)
     and unordered = ():parser<string,symSeq> =>
-        seqGrp("$||")->map(elems => Unordered(elems)->toSymSeq)
+        seqGrp(unorderedOperator)->map(elems => Unordered(elems)->toSymSeq)
     and seqGrp = (operator:string):parser<string,array<symSeq>> =>
         seq2(
             ()=>rep(
@@ -85,15 +91,15 @@ let symSeq:Parser.parser<string,symSeq> = {
             ()=>rep(()=>Parser.match(_ => true))->nonEmpty
         )->end
             ->map(((operands:array<array<string>>,lastOperand:array<string>)) => [...operands, lastOperand])
-            ->mapRes(operands => {
+            ->mapRes((operands:array<array<string>>) => {
                 operands->Array.reduce(Ok([]), (res,operand:array<string>) => {
                     switch res {
                         | Error(_) => Error(())
                         | Ok(res) => {
-                            switch symSeq()(operand->makeParserInput) {
+                            switch parse(operand, symSeq) {
                                 | Error(_) => Error(())
-                                | Ok(parsed) => {
-                                    res->Array.push(parsed.data)
+                                | Ok(seq) => {
+                                    res->Array.push(seq)
                                     Ok(res)
                                 }
                             }
@@ -101,10 +107,39 @@ let symSeq:Parser.parser<string,symSeq> = {
                     }
                 })
             })
-    symSeq()
+    symSeq
 }
 
-let parsePattern = (patternStr:string):result<symSeq,()> => {
-    patternStr->String.trim->Common.getSpaceSeparatedValuesAsArray->Parser.makeParserInput->symSeq
-        ->Result.map(({data}) => data)
+let parseSymSeq = (text:string):result<symSeq,()> => {
+    Parser.parse( text->String.trim->Common.getSpaceSeparatedValuesAsArray, symSeq )
 }
+
+// let isPatternBegin = (str:string):option<stmtPat> => {
+//     if (
+//         str->String.startsWith("$")
+//         && !(
+//             str->String.startsWith(orderedOperator)
+//             || str->String.startsWith(unorderedOperator)
+//             || str->String.startsWith(openParen)
+//             || str->String.startsWith(closeParen)
+//         )
+//     ) {
+
+//     } else {
+//         None
+//     }
+
+// }
+
+// let patternParser:()=>Parser.parser<string,array<stmtPat>> = {
+//     open Parser
+//     let rec pattern = ():parser<string,array<stmtPat>> =>
+//         any([symbols, symSeqWithParens, unordered, ordered])
+//     and patBegin = ():parser<string,array<stmtPat>> =>
+//         any([symbols, symSeqWithParens, unordered, ordered])
+//     pattern
+// }
+
+// let parsePattern = (text:string):result<array<stmtPat>,()> => {
+//     Parser.parse( text->String.trim->Common.getSpaceSeparatedValuesAsArray, patternParser )
+// }
