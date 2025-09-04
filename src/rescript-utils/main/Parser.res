@@ -48,27 +48,26 @@ let mapRes = (parser:parser<'t,'a>, func:'a=>result<'b,unit>):parser<'t,'b> => i
     }
 }
 
-let match = (predicate:'t=>bool):parser<'t,'t> => inp => {
+let match = (predicate:'t=>option<'d>):parser<'t,'d> => inp => {
     if (isEmpty(inp)) {
         Error(())
     } else {
         let token = inp.tokens->Array.getUnsafe(inp.begin)
-        if (predicate(token)) {
-            Ok({tokens:inp.tokens, begin:inp.begin, end:inp.begin, data:token})
-        } else {
-            Error(())
+        switch predicate(token) {
+            | None => Error(())
+            | Some(data) => Ok({tokens:inp.tokens, begin:inp.begin, end:inp.begin, data})
         }
     }
 }
 
-let rep = (parser:()=>parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp => {
+let rep = (parser:()=>parser<'t,'d>, ~minCnt:int=0, ~maxCnt:option<int>=?):parser<'t,array<'d>> => inp => {
     let tokens = inp.tokens
     let begin = inp.begin
     let inp = ref(inp)
-    let res:array<'p> = []
+    let res:array<'d> = []
     let end = ref(-1)
     let mismatchFound = ref(false)
-    while (!mismatchFound.contents) {
+    while (!mismatchFound.contents && maxCnt->Option.mapOr(true, maxCnt => res->Array.length < maxCnt)) {
         switch parser()(inp.contents) {
             | Error(_) => mismatchFound := true
             | Ok(parsed) => {
@@ -83,6 +82,10 @@ let rep = (parser:()=>parser<'t,'d>, ~minCnt:int=0):parser<'t,array<'d>> => inp 
     } else {
         Ok({tokens, begin, end:end.contents, data:res})
     }
+}
+
+let opt = (parser:()=>parser<'t, 'd>):parser<'t, option<'d>> => {
+    rep(parser, ~maxCnt=1)->map(found => found->Array.length == 1 ? Some(found->Array.getUnsafe(0)) : None)
 }
 
 let seq = (parsers:array<()=>parser<'t,'d>>):parser<'t,array<'d>> => inp => {

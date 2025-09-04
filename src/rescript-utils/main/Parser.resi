@@ -20,8 +20,9 @@ let mapParsed: (parser<'t, 'a>, parsed<'t,'a> => 'b) => parser<'t, 'b>
 let map: (parser<'t, 'a>, 'a => 'b) => parser<'t, 'b>
 let mapRes: (parser<'t, 'a>, 'a => result<'b,unit>) => parser<'t, 'b>
 
-let match: ('t => bool) => parser<'t, 't>
-let rep: (()=>parser<'t, 'd>, ~minCnt: int=?) => parser<'t, array<'d>>
+let match: ('t => option<'d>) => parser<'t, 'd>
+let rep: (()=>parser<'t, 'd>, ~minCnt:int=?, ~maxCnt:int=?) => parser<'t, array<'d>>
+let opt: (()=>parser<'t, 'd>) => parser<'t, option<'d>>
 let seq: array<()=>parser<'t, 'd>> => parser<'t, array<'d>>
 let seq2: (()=>parser<'t,'d1>, ()=>parser<'t,'d2>) => parser<'t,('d1,'d2)>
 let seq3: (()=>parser<'t,'d1>, ()=>parser<'t,'d2>, ()=>parser<'t,'d3>) => parser<'t,('d1,'d2,'d3)>
