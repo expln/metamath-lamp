@@ -87,12 +87,14 @@ module PatternParser = {
     let closeParen:parser<unit> =
         match(str => isCloseParenthesis(str) ? Some(()) : None)
 
-    let rec pattern = ():parser<array<subpat>> =>
-        rep(subpattern())->nonEmpty->end
-    and subpattern = ():parser<subpat> =>
+    let rec symSeq = ():parser<symSeq> =>
+        _ => None
+
+    let subpattern:parser<subpat> =
         seq2(opt(match(isSubpatternBegin)), symSeq())
             ->map(((beginOpt, seq)) => makeSubpattern(beginOpt, seq))
-    and symSeq = ():parser<symSeq> =>
-        _ => None
+
+    let pattern:parser<array<subpat>> =
+        rep(subpattern)->nonEmpty->end
 }
 
