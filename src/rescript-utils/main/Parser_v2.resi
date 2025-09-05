@@ -36,4 +36,6 @@ let seq2L: (()=>parser<'t, 'd1>, ()=>parser<'t, 'd2>) => parser<'t, ('d1, 'd2)>
 let seq3L: (()=>parser<'t, 'd1>, ()=>parser<'t, 'd2>, ()=>parser<'t, 'd3>) => parser<'t, ('d1, 'd2, 'd3)>
 let any: array<parser<'t, 'd>> => parser<'t, 'd>
 let anyL: array<()=>parser<'t, 'd>> => parser<'t, 'd>
+
+let nonEmpty: parser<'t,array<'d>> => parser<'t,array<'d>>
 let end: parser<'t, 'd> => parser<'t, 'd>

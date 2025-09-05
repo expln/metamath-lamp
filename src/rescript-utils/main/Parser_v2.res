@@ -169,9 +169,9 @@ let any = (parsers:array<parser<'t,'d>>):parser<'t,'d> => {
     anyL(parsers->Array.map(p => {()=>p}))
 }
 
-// let nonEmpty = (parser:parser<'t,array<'d>>):parser<'t,array<'d>> => {
-//     parser->mapOpt(ds => ds->Array.length == 0 ? None : Some(ds))
-// }
+let nonEmpty = (parser:parser<'t,array<'d>>):parser<'t,array<'d>> => {
+    parser->mapOpt(ds => ds->Array.length == 0 ? None : Some(ds))
+}
 
 let end = (parser:parser<'t,'d>):parser<'t,'d> => inp => {
     switch parser(inp) {
