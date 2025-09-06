@@ -24,6 +24,8 @@ let map: (parser<'t, 'a>, 'a => 'b) => parser<'t, 'b>
 let mapOpt: (parser<'t, 'a>, 'a => option<'b>) => parser<'t, 'b>
 
 let match: ('t => option<'d>) => parser<'t, 'd>
+let oneOf: (array<'t>) => parser<'t, 't>
+let val: 't => parser<'t, 't>
 let rep: (parser<'t, 'd>, ~minCnt: int=?, ~maxCnt: int=?) => parser<'t, array<'d>>
 let repL: (()=>parser<'t, 'd>, ~minCnt: int=?, ~maxCnt: int=?) => parser<'t, array<'d>>
 let opt: parser<'t, 'd> => parser<'t, option<'d>>

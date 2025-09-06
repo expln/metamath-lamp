@@ -169,6 +169,14 @@ let any = (parsers:array<parser<'t,'d>>):parser<'t,'d> => {
     anyL(parsers->Array.map(p => {()=>p}))
 }
 
+let oneOf = (values:array<'t>):parser<'t, 't> => {
+    any(values->Array.map(val => match(t => t == val ? Some(t) : None)))
+}
+
+let val = (value:'t):parser<'t, 't> => {
+    oneOf([value])
+}
+
 let nonEmpty = (parser:parser<'t,array<'d>>):parser<'t,array<'d>> => {
     parser->mapOpt(ds => ds->Array.length == 0 ? None : Some(ds))
 }
