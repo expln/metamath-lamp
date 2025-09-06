@@ -74,15 +74,15 @@ let makeSubpattern = (beginOpt:option<subpat>, seq:symSeq):subpat => {
     }
 }
 
-let inpToStr = (inp:Parser_v2.parserInput<string>, cnt:int):string => {
+let inpToStr = (inp:Parser.parserInput<string>, cnt:int):string => {
     inp.tokens->Array.slice(~start=inp.begin, ~end=inp.begin+cnt)->Array.join(" ")
 }
 
 let logParsers = false
-let log = (parser:Parser_v2.parser<string,'d>, name:string):Parser_v2.parser<string,'d> => {
+let log = (parser:Parser.parser<string,'d>, name:string):Parser.parser<string,'d> => {
     if (logParsers) {
         let tokensToPrint = 10
-        parser->Parser_v2.withCallbacks(
+        parser->Parser.withCallbacks(
             ~before=inp=>Console.log(`${name} trying: '${inpToStr(inp, tokensToPrint)}'`),
             ~onSuccess=parsed=>Console.log(`${name} parsed: ${Expln_utils_common.stringify(parsed.data)}`),
             ~onFail=inp=>Console.log(`${name} failed: '${inpToStr(inp, tokensToPrint)}'`),
@@ -93,7 +93,7 @@ let log = (parser:Parser_v2.parser<string,'d>, name:string):Parser_v2.parser<str
 }
 
 module PatternParser = {
-    open Parser_v2
+    open Parser
     type parser<'d> = parser<string,'d>
 
     type seqOrOperator =
@@ -120,14 +120,14 @@ module PatternParser = {
         oneOf([operatorOrdered, operatorUnordered])
         ->log("operator")
 
-    let seqOperand:Parser_v2.parser<seqOrOperator, symSeq> =
+    let seqOperand:Parser.parser<seqOrOperator, symSeq> =
         match(elem => switch elem {|Seq(seq)=>Some(seq) |Operator(_)=>None})
 
     let seqGrpForOperator = (
         operator:string, 
-        operand:Parser_v2.parser<seqOrOperator, symSeq>,
+        operand:Parser.parser<seqOrOperator, symSeq>,
         makeGrp:array<symSeq>=>seqGrp
-    ):Parser_v2.parser<seqOrOperator, symSeq> =>
+    ):Parser.parser<seqOrOperator, symSeq> =>
         seq2(
             rep(
                 seq2(
@@ -139,13 +139,13 @@ module PatternParser = {
         )->map(((begin:array<symSeq>, end:symSeq)) => begin->Array.concat([end]))
         ->map(elems => makeGrp(elems)->toSymSeq)
 
-    let ordered:Parser_v2.parser<seqOrOperator, symSeq> =
+    let ordered:Parser.parser<seqOrOperator, symSeq> =
         seqGrpForOperator(operatorOrdered, seqOperand, elems=>Ordered(elems))
 
-    let unordered:Parser_v2.parser<seqOrOperator, symSeq> =
+    let unordered:Parser.parser<seqOrOperator, symSeq> =
         seqGrpForOperator(operatorUnordered, any([ordered, seqOperand]), elems=>Unordered(elems))
 
-    let seqGrpParser:Parser_v2.parser<seqOrOperator, symSeq> =
+    let seqGrpParser:Parser.parser<seqOrOperator, symSeq> =
         any([unordered, ordered])
 
     let rec symSeq = ():parser<symSeq> =>
@@ -185,5 +185,5 @@ module PatternParser = {
 }
 
 let parsePattern = (text:string):option<array<subpat>> => {
-    Parser_v2.parse(text->String.trim->Common.getSpaceSeparatedValuesAsArray, PatternParser.pattern)
+    Parser.parse(text->String.trim->Common.getSpaceSeparatedValuesAsArray, PatternParser.pattern)
 }

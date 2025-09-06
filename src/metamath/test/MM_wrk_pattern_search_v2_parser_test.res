@@ -1,5 +1,5 @@
 open Expln_test
-open MM_wrk_pattern_search_v2_parser_v2
+open MM_wrk_pattern_search_v2_parser
 
 let testPatternParser = (text:string, expectedResult:option<array<subpat>>) => {
     assertEqMsg( parsePattern(text), expectedResult, text )
@@ -12,7 +12,7 @@ let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), 
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
 let pat = (symSeq:symSeq, ~target:subpatTarget=Frm):array<subpat> => [{target, symSeq}]
 
-describe("MM_wrk_pattern_search_v2_parser_v2", _ => {
+describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern works as expected", _ => {
         testPatternParser(
             "x",
