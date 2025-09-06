@@ -152,9 +152,8 @@ module PatternParser = {
         anyL([seqGrp, seqWithParens, ()=>symbols])
         ->log("symSeq")
     and seqWithParens = ():parser<symSeq> =>
-        seq3(
-            openParen, symSeq(), closeParen
-        )->map(((flags,seq,_)) => {...seq, flags: mergeFlags(flags, seq.flags)})
+        seq3(openParen, symSeq(), closeParen)
+        ->map(((flags,seq,_)) => {...seq, flags: mergeFlags(flags, seq.flags)})
         ->log("seqWithParens")
     and operand = ():parser<symSeq> =>
         any([seqWithParens(), symbols])

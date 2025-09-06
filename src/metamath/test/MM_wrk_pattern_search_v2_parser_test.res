@@ -27,8 +27,8 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             Some(pat(ord([sym(["x"]), sym(["y"])])))
         )
         testPatternParser(
-            "x $** y $**",
-            None
+            "x $|| y",
+            Some(pat(unord([sym(["x"]), sym(["y"])])))
         )
         testPatternParser(
             "a b $** c d",
@@ -69,10 +69,6 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
                 sym(["a","b"]),
                 sym(["c","d"]),
             ])))
-        )
-        testPatternParser(
-            "$[ a b $] $|| $[ c d",
-            None
         )
         testPatternParser(
             "$[ a b $] $|| $[ c d $]",
@@ -158,5 +154,60 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             "$[+ $[- a b c $] $|| $[ $[ $[ d e $] $] $] $]",
             Some(pat(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d", "e"])], ~flags="+")))
         )
+    })
+    
+    it("doesn't parse invalid patterns", _ => {
+        testPatternParser(
+            "x $**",
+            None
+        )
+        testPatternParser(
+            "x $** y $**",
+            None
+        )
+        testPatternParser(
+            "$** y $**",
+            None
+        )
+        testPatternParser(
+            "$** y",
+            None
+        )
+        testPatternParser(
+            "$**",
+            None
+        )
+        testPatternParser(
+            "x $||",
+            None
+        )
+        testPatternParser(
+            "x $|| y $||",
+            None
+        )
+        testPatternParser(
+            "$|| y $||",
+            None
+        )
+        testPatternParser(
+            "$|| y",
+            None
+        )
+        testPatternParser(
+            "$||",
+            None
+        )
+        testPatternParser(
+            "$[ a b $] $|| $[ c d",
+            None
+        )
+    })
+    
+    it("multiple subpatterns should begin with $", _ => {
+        testPatternParser(
+            "$[ a $** b $] $[ c $** d $]",
+            None
+        )
+        
     })
 })
