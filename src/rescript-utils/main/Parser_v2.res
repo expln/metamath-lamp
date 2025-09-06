@@ -50,8 +50,8 @@ let mapOpt = (parser:parser<'t,'a>, func:'a=>option<'b>):parser<'t,'b> => inp =>
     }
 }
 
-let flatMap = (parser1:parser<'t, array<'a>>, parser2:parser<'a,'b>):parser<'t, 'b> => {
-    parser1->mapOpt(parse(_, parser2))
+let flatMap = (parser:parser<'t, array<'a>>, mapper:array<'a>=>parser<'a,'b>):parser<'t, 'b> => {
+    parser->mapOpt(parsed => parse(parsed, mapper(parsed)))
 }
 
 let match = (matcher:'t=>option<'d>):parser<'t,'d> => inp => {
@@ -83,7 +83,8 @@ let repL = (parser:()=>parser<'t,'d>, ~minCnt:int=0, ~maxCnt:option<int>=?):pars
     if (res->Array.length < minCnt) {
         None
     } else {
-        Some({tokens, begin, end:end.contents, data:res})
+        let end = res->Array.length == 0 ? begin - 1 : end.contents
+        Some({tokens, begin, end, data:res})
     }
 }
 
@@ -194,6 +195,25 @@ let end = (parser:parser<'t,'d>):parser<'t,'d> => inp => {
             } else {
                 None
             }
+        }
+    }
+}
+
+let withCallbacks = (
+    parser:parser<'t,'d>,
+    ~before:option<parserInput<'t>=>unit>=?,
+    ~onSuccess:option<parsed<'t,'d>=>unit>=?,
+    ~onFail:option<parserInput<'t>=>unit>=?,
+):parser<'t,'d> => inp => {
+    before->Option.forEach(before => before(inp))
+    switch parser(inp) {
+        | Some(parsed) => {
+            onSuccess->Option.forEach(onSuccess => onSuccess(parsed))
+            Some(parsed)
+        }
+        | None => {
+            onFail->Option.forEach(onFail => onFail(inp))
+            None
         }
     }
 }

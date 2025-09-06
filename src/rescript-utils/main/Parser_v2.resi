@@ -22,7 +22,7 @@ let isEmpty: parserInput<'t> => bool
 let mapParsed: (parser<'t, 'a>, parsed<'t, 'a> => 'b) => parser<'t, 'b>
 let map: (parser<'t, 'a>, 'a => 'b) => parser<'t, 'b>
 let mapOpt: (parser<'t, 'a>, 'a => option<'b>) => parser<'t, 'b>
-let flatMap: (parser<'t, array<'a>>, parser<'a,'b>) => parser<'t, 'b>
+let flatMap: (parser<'t, array<'a>>, array<'a>=>parser<'a,'b>) => parser<'t, 'b>
 
 let match: ('t => option<'d>) => parser<'t, 'd>
 let oneOf: (array<'t>) => parser<'t, 't>
@@ -42,3 +42,10 @@ let anyL: array<()=>parser<'t, 'd>> => parser<'t, 'd>
 
 let nonEmpty: parser<'t,array<'d>> => parser<'t,array<'d>>
 let end: parser<'t, 'd> => parser<'t, 'd>
+
+let withCallbacks: (
+    parser<'t,'d>,
+    ~before:parserInput<'t>=>unit=?,
+    ~onSuccess:parsed<'t,'d>=>unit=?,
+    ~onFail:parserInput<'t>=>unit=?,
+) => parser<'t,'d>
