@@ -22,6 +22,7 @@ let isEmpty: parserInput<'t> => bool
 let mapParsed: (parser<'t, 'a>, parsed<'t, 'a> => 'b) => parser<'t, 'b>
 let map: (parser<'t, 'a>, 'a => 'b) => parser<'t, 'b>
 let mapOpt: (parser<'t, 'a>, 'a => option<'b>) => parser<'t, 'b>
+let flatMap: (parser<'t, array<'a>>, parser<'a,'b>) => parser<'t, 'b>
 
 let match: ('t => option<'d>) => parser<'t, 'd>
 let oneOf: (array<'t>) => parser<'t, 't>

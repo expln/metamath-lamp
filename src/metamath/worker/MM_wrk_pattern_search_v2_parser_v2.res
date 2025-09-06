@@ -100,30 +100,37 @@ module PatternParser = {
     let operator:parser<string> =
         oneOf([operatorOrdered, operatorUnordered])
 
-    let seqGrpForOp = (operator:string):Parser_v2.parser<seqOrOperator, array<symSeq>> =>
+    let seqOperand:Parser_v2.parser<seqOrOperator, symSeq> =
+        match(elem => switch elem {|Seq(seq)=>Some(seq) |Operator(_)=>None})
+
+    let seqGrpForOperator = (
+        operator:string, 
+        operand:Parser_v2.parser<seqOrOperator, symSeq>
+    ):Parser_v2.parser<seqOrOperator, symSeq> =>
         seq2(
             rep(
                 seq2(
-                    match(elem => switch elem {|Seq(seq)=>Some(seq) |Operator(_)=>None}),
+                    operand,
                     match(elem => switch elem {|Seq(_)=>None |Operator(op)=>op==operator?Some(()):None})
                 )->map(((seq,_)) => seq)
-            ),
-            match(elem => switch elem {|Seq(seq)=>Some(seq) |Operator(_)=>None})
+            )->nonEmpty,
+            operand
         )->map(((begin:array<symSeq>, end:symSeq)) => begin->Array.concat([end]))
-
-    let unordered:Parser_v2.parser<seqOrOperator, symSeq> =
-        seqGrpForOp(operatorUnordered)->map(elems => Unordered(elems)->toSymSeq)
+        ->map(elems => Ordered(elems)->toSymSeq)
 
     let ordered:Parser_v2.parser<seqOrOperator, symSeq> =
-        seqGrpForOp(operatorUnordered)->map(elems => Ordered(elems)->toSymSeq)
+        seqGrpForOperator(operatorOrdered, seqOperand)
 
-    let seqGrp:Parser_v2.parser<seqOrOperator, symSeq> =
+    let unordered:Parser_v2.parser<seqOrOperator, symSeq> =
+        seqGrpForOperator(operatorUnordered, any([ordered, seqOperand]))
+
+    let seqGrpParser:Parser_v2.parser<seqOrOperator, symSeq> =
         any([unordered, ordered])
     
     
 
     let rec symSeq = ():parser<symSeq> =>
-        _ => None
+        anyL([seqGrp, seqWithParens, ()=>symbols])
     and seqWithParens = ():parser<symSeq> =>
         seq3(
             match(str => isOpenParenthesis(str) ? Some(str->String.substringToEnd(~start=2)) : None),
@@ -142,6 +149,8 @@ module PatternParser = {
             )->nonEmpty->map(Array.concatMany([], _)),
             operand()
         )->map(((begin:array<seqOrOperator>,end:symSeq)) => Array.concat(begin, [Seq(end)]))
+    and seqGrp = ():parser<symSeq> =>
+        operators()->flatMap(seqGrpParser)
 
     let subpattern:parser<subpat> =
         seq2(opt(match(isSubpatternBegin)), symSeq())

@@ -50,6 +50,10 @@ let mapOpt = (parser:parser<'t,'a>, func:'a=>option<'b>):parser<'t,'b> => inp =>
     }
 }
 
+let flatMap = (parser1:parser<'t, array<'a>>, parser2:parser<'a,'b>):parser<'t, 'b> => {
+    parser1->mapOpt(parse(_, parser2))
+}
+
 let match = (matcher:'t=>option<'d>):parser<'t,'d> => inp => {
     if (isEmpty(inp)) {
         None
