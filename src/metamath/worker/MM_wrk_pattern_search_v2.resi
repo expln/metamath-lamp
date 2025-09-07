@@ -19,6 +19,15 @@ and seqGrp =
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
 
+type patternTarget = Frm | Hyps | Asrt
+
+type pattern = {
+    target: patternTarget,
+    symSeq: symSeq,
+}
+
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => bool
 
 let getMatchedIndices: symSeq => array<int>
+
+let parsePattern: (string, Belt_HashMapString.t<sym>) => result<array<pattern>,string>

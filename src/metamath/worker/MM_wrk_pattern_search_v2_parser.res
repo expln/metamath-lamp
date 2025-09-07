@@ -1,4 +1,6 @@
-type flags = string
+type flags = {
+    adj:option<bool>
+}
 
 type rec symSeq = {
     flags:flags,
@@ -23,7 +25,13 @@ let operatorUnordered = "$||"
 let openParenthesis = "$["
 let closeParenthesis = "$]"
 
-let toSymSeq = (elems:seqGrp, ~flags:string=""):symSeq => { flags, elems }
+let toSymSeq = (elems:seqGrp, ~flags:flags={adj:None}):symSeq => { flags, elems }
+
+let parseFlags = (str:string):flags => {
+    {
+        adj: str->String.includes("+") ? Some(true) : str->String.includes("-") ? Some(false) : None
+    }
+}
 
 let isPatternBegin = (str:string):option<pattern> => {
     if (
@@ -45,10 +53,7 @@ let isPatternBegin = (str:string):option<pattern> => {
                     Frm
                 },
             symSeq: {
-                flags: str
-                    ->String.replaceAll("$", "")
-                    ->String.replaceAll("h", "")
-                    ->String.replaceAll("a", ""),
+                flags: parseFlags(str),
                 elems: Symbols([])
             },
         })
@@ -57,8 +62,14 @@ let isPatternBegin = (str:string):option<pattern> => {
     }
 }
 
-let mergeFlags = (parentFlags:string, childFlags:string):string => {
-    childFlags->String.length == 0 ? parentFlags : childFlags
+let mergeOpt = (parent:option<'a>, child:option<'a>):option<'a> => {
+    child->Option.isSome ? child : parent
+}
+
+let passFlagsFromParentToChild = (parentFlags:flags, childFlags:flags):flags => {
+    {
+        adj: mergeOpt(parentFlags.adj, childFlags.adj)
+    }
 }
 
 let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
@@ -69,7 +80,7 @@ let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
                 target: stmtPat.target, 
                 symSeq: {
                     ...seq,
-                    flags: mergeFlags(stmtPat.symSeq.flags, seq.flags)
+                    flags: passFlagsFromParentToChild(stmtPat.symSeq.flags, seq.flags)
                 }, 
             }
         }
@@ -102,7 +113,7 @@ module PatternParser = {
         | Operator(string)
 
     let openParen:parser<flags> =
-        match(str => str->String.startsWith(openParenthesis) ? Some(String.substringToEnd(str, ~start=2)) : None)
+        match(str => str->String.startsWith(openParenthesis) ? Some(parseFlags(str)) : None)
         ->log("openParen")
 
     let closeParen:parser<unit> =
@@ -154,7 +165,7 @@ module PatternParser = {
         ->log("symSeq")
     and seqWithParens = ():parser<symSeq> =>
         seq3(openParen, symSeq(), closeParen)
-        ->map(((flags,seq,_)) => {...seq, flags: mergeFlags(flags, seq.flags)})
+        ->map(((flags,seq,_)) => {...seq, flags: passFlagsFromParentToChild(flags, seq.flags)})
         ->log("seqWithParens")
     and operand = ():parser<symSeq> =>
         any([seqWithParens(), symbols])

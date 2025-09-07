@@ -5,7 +5,7 @@ let testPatternParser = (text:string, expectedResult:option<array<pattern>>) => 
     assertEqMsg( parsePattern(text), expectedResult, text )
 }
 
-let seq = (elems:seqGrp, ~flags):symSeq => { flags, elems }
+let seq = (elems:seqGrp, ~flags:string):symSeq => { flags:parseFlags(flags), elems }
 
 let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbols), ~flags)
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
