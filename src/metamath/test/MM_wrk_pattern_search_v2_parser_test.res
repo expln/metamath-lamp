@@ -156,7 +156,7 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
         )
     })
     
-    it("doesn't parse invalid patterns", _ => {
+    it("parsePattern doesn't parse invalid patterns", _ => {
         let assertIsNotParsed = (text:string):unit => testPatternParser( text, None )
         assertIsNotParsed("x $**")
         assertIsNotParsed("x $** y $**")
@@ -175,7 +175,7 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
         assertIsNotParsed("a b c $]")
     })
     
-    it("multiple subpatterns should begin with $", _ => {
+    it("parsePattern: multiple subpatterns should begin with $", _ => {
         testPatternParser(
             "$[ a $** b $] $[ c $|| d $]",
             None
@@ -185,6 +185,45 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             Some([
                 pat(ord([sym(["a"]),sym(["b"])])),
                 pat(unord([sym(["c"]),sym(["d"])])),
+            ])
+        )
+    })
+    
+    it("parsePattern parses flags correctly", _ => {
+        testPatternParser(
+            "$+ a b",
+            Some([ pat(sym(["a", "b"], ~flags="+"))])
+        )
+        testPatternParser(
+            "$+ $[ a b $]",
+            Some([ pat(sym(["a", "b"], ~flags="+"))])
+        )
+        testPatternParser(
+            "$+ $[- a b $]",
+            Some([ pat(sym(["a", "b"], ~flags="-"))])
+        )
+        testPatternParser(
+            "$ a b $h a b $a a b",
+            Some([ 
+                pat(sym(["a", "b"]), ~target=Frm),
+                pat(sym(["a", "b"]), ~target=Hyps),
+                pat(sym(["a", "b"]), ~target=Asrt),
+            ])
+        )
+        testPatternParser(
+            "$+ a b $h+ a b $a+ a b",
+            Some([ 
+                pat(sym(["a", "b"], ~flags="+"), ~target=Frm),
+                pat(sym(["a", "b"], ~flags="+"), ~target=Hyps),
+                pat(sym(["a", "b"], ~flags="+"), ~target=Asrt),
+            ])
+        )
+        testPatternParser(
+            "$+ $[- a b $] $h+ $[- a b $] $a+ $[- a b $]",
+            Some([ 
+                pat(sym(["a", "b"], ~flags="-"), ~target=Frm),
+                pat(sym(["a", "b"], ~flags="-"), ~target=Hyps),
+                pat(sym(["a", "b"], ~flags="-"), ~target=Asrt),
             ])
         )
     })
