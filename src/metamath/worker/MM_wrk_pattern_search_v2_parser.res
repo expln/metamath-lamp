@@ -9,12 +9,14 @@ and seqGrp =
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
 
-type subpatTarget = Frm | Hyps | Asrt
+type patternTarget = Frm | Hyps | Asrt
 
-type subpat = {
-    target: subpatTarget,
+type pattern = {
+    target: patternTarget,
     symSeq: symSeq,
 }
+
+let logParsers = false
 
 let operatorOrdered = "$**"
 let operatorUnordered = "$||"
@@ -23,7 +25,7 @@ let closeParenthesis = "$]"
 
 let toSymSeq = (elems:seqGrp, ~flags:string=""):symSeq => { flags, elems }
 
-let isSubpatternBegin = (str:string):option<subpat> => {
+let isPatternBegin = (str:string):option<pattern> => {
     if (
         str->String.startsWith("$")
         && !(
@@ -59,7 +61,7 @@ let mergeFlags = (parentFlags:string, childFlags:string):string => {
     childFlags->String.length == 0 ? parentFlags : childFlags
 }
 
-let makeSubpattern = (beginOpt:option<subpat>, seq:symSeq):subpat => {
+let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
     switch beginOpt {
         | None => { target: Frm, symSeq: seq }
         | Some(stmtPat) => {
@@ -78,10 +80,9 @@ let inpToStr = (inp:Parser.parserInput<string>, cnt:int):string => {
     inp.tokens->Array.slice(~start=inp.begin, ~end=inp.begin+cnt)->Array.join(" ")
 }
 
-let logParsers = false
 let log = (parser:Parser.parser<string,'d>, name:string):Parser.parser<string,'d> => {
     if (logParsers) {
-        let tokensToPrint = 10
+        let tokensToPrint = 100
         parser->Parser.withCallbacks(
             ~before=inp=>Console.log(`${name} trying: '${inpToStr(inp, tokensToPrint)}'`),
             ~onSuccess=parsed=>Console.log(`${name} parsed: ${Expln_utils_common.stringify(parsed.data)}`),
@@ -173,16 +174,24 @@ module PatternParser = {
         operators()->flatMap(_ => seqGrpParser)
         ->log("seqGrp")
 
-    let subpattern:parser<subpat> =
-        seq2(opt(match(isSubpatternBegin)), symSeq())
-        ->map(((beginOpt, seq)) => makeSubpattern(beginOpt, seq))
-        ->log("subpattern")
+    let singlePattern:parser<pattern> =
+        seq2(opt(match(isPatternBegin)), symSeq())
+        ->map(((beginOpt, seq)) => makePattern(beginOpt, seq))
+        ->log("singlePattern")
 
-    let pattern:parser<array<subpat>> =
-        rep(subpattern)->nonEmpty->end
-        ->log("pattern")
+    let nonSinglePattern:parser<pattern> =
+        seq2(match(isPatternBegin), symSeq())
+        ->map(((begin, seq)) => makePattern(Some(begin), seq))
+        ->log("nonSinglePattern")
+
+    let patterns:parser<array<pattern>> =
+        any([
+            rep(nonSinglePattern)->nonEmpty,
+            singlePattern->map(pat => [pat]),
+        ])->end
+        ->log("patterns")
 }
 
-let parsePattern = (text:string):option<array<subpat>> => {
-    Parser.parse(text->String.trim->Common.getSpaceSeparatedValuesAsArray, PatternParser.pattern)
+let parsePattern = (text:string):option<array<pattern>> => {
+    Parser.parse(text->String.trim->Common.getSpaceSeparatedValuesAsArray, PatternParser.patterns)
 }

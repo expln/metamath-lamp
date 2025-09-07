@@ -64,6 +64,7 @@ let match = (matcher:'t=>option<'d>):parser<'t,'d> => inp => {
 }
 
 let repL = (parser:()=>parser<'t,'d>, ~minCnt:int=0, ~maxCnt:option<int>=?):parser<'t,array<'d>> => inp => {
+    let parser = parser()
     let tokens = inp.tokens
     let begin = inp.begin
     let inp = ref(inp)
@@ -71,7 +72,7 @@ let repL = (parser:()=>parser<'t,'d>, ~minCnt:int=0, ~maxCnt:option<int>=?):pars
     let end = ref(-1)
     let mismatchFound = ref(false)
     while (!mismatchFound.contents && maxCnt->Option.mapOr(true, maxCnt => res->Array.length < maxCnt)) {
-        switch parser()(inp.contents) {
+        switch parser(inp.contents) {
             | None => mismatchFound := true
             | Some(parsed) => {
                 res->Array.push(parsed.data)
