@@ -24,6 +24,7 @@ type patternTarget = Frm | Hyps | Asrt
 type pattern = {
     target: patternTarget,
     symSeq: symSeq,
+    allSeq: array<symSeq>,
 }
 
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => bool

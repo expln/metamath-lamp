@@ -27,6 +27,7 @@ type patternTarget = Frm | Hyps | Asrt
 type pattern = {
     target: patternTarget,
     symSeq: symSeq,
+    allSeq: array<symSeq>,
 }
 
 let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>):int => {
@@ -314,11 +315,23 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<sym>
     }
 }
 
+let rec collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
+    allSeq->Array.push(seq)
+    switch seq.elems {
+        | Adjacent(_) => ()
+        | Ordered(childSeq) | Unordered(childSeq) => childSeq->Array.forEach(collectAllSeq(_, allSeq))
+        
+    }
+}
+
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<sym>):pattern => {
-    {
+    let res = {
         target: switch ast.target {|Frm => Frm |Hyps => Hyps |Asrt => Asrt},
         symSeq: astToSymSeq(ast.symSeq, {adj:None}, symMap),
+        allSeq: []
     }
+    collectAllSeq(res.symSeq, res.allSeq)
+    res
 }
 
 let parsePattern = (text:string, symMap:Belt_HashMapString.t<sym>):result<array<pattern>,string> => {

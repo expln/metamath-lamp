@@ -59,11 +59,16 @@ let assertDoesntMatch = (
 let adj = (syms:array<sym>):symSeq => { elems: Adjacent(syms), minConstMismatchIdx: -1 }
 let ord = (seq:array<symSeq>):symSeq => { elems: Ordered(seq), minConstMismatchIdx: -1 }
 let unord = (seq:array<symSeq>):symSeq => { elems: Unordered(seq), minConstMismatchIdx: -1 }
+let pat = (target:patternTarget, symSeq:symSeq):pattern => { target, symSeq, allSeq:[] }
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<sym>, ~expectedResult:result<array<pattern>,string>
 ):unit => {
-    assertEqMsg( parsePattern(pattern, syms), expectedResult, pattern )
+    assertEqMsg(
+        parsePattern(pattern, syms)->Result.map(ps => ps->Array.map(p => {...p, allSeq:[]})), 
+        expectedResult, 
+        pattern
+    )
 }
 
 describe("exprIncludesSeq", _ => {
@@ -317,149 +322,131 @@ describe("parsePattern", _ => {
 
     it("passes flags from parent to child", _ => {
         assertParsePattern(~pattern="a b $** c d", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: ord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                ord([
                     ord([adj([a]), adj([b])]),
                     ord([adj([c]), adj([d])]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="a b $|| c d", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: unord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                unord([
                     ord([adj([a]), adj([b])]),
                     ord([adj([c]), adj([d])]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="$+ a b $|| c d", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: unord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                unord([
                     adj([a, b]),
                     adj([c, d]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="$+ $[- a b $] $|| c d", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: unord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="$+ $[- a b $] $|| $[+ c d $]", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: unord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="$[- a b $] $|| $[+ c d $]", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: unord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="a b $|| $[+ c d $** $[- a b $] $]", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: unord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                unord([
                     ord([adj([a]), adj([b])]),
                     ord([
                         adj([c, d]), 
                         ord([adj([a]), adj([b])]),
                     ]),
                 ])
-            }])
+            )])
         )
         assertParsePattern(~pattern="$+ a b $** $[- c d $|| $[+ a b $] $]", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: ord([
+            ~expectedResult=Ok([pat(
+                Frm,
+                ord([
                     adj([a, b]), 
                     unord([
                         ord([adj([c]), adj([d])]),
                         adj([a, b]),
                     ]),
                 ])
-            }])
+            )])
         )
     })
     it("sets pattern targets", _ => {
         assertParsePattern(~pattern="a b", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: ord([adj([a]), adj([b])])
-            }])
+            ~expectedResult=Ok([pat(
+                Frm,
+                ord([adj([a]), adj([b])])
+            )])
         )
         assertParsePattern(~pattern="$ a b", ~syms, 
-            ~expectedResult=Ok([{
-                target:Frm,
-                symSeq: ord([adj([a]), adj([b])])
-            }])
+            ~expectedResult=Ok([pat(
+                Frm,
+                ord([adj([a]), adj([b])])
+            )])
         )
         assertParsePattern(~pattern="$h a b", ~syms, 
-            ~expectedResult=Ok([{
-                target:Hyps,
-                symSeq: ord([adj([a]), adj([b])])
-            }])
+            ~expectedResult=Ok([pat(
+                Hyps,
+                ord([adj([a]), adj([b])])
+            )])
         )
         assertParsePattern(~pattern="$a a b", ~syms, 
-            ~expectedResult=Ok([{
-                target:Asrt,
-                symSeq: ord([adj([a]), adj([b])])
-            }])
+            ~expectedResult=Ok([pat(
+                Asrt,
+                ord([adj([a]), adj([b])])
+            )])
         )
         assertParsePattern(~pattern="$h+ a b", ~syms, 
-            ~expectedResult=Ok([{
-                target:Hyps,
-                symSeq: adj([a,b])
-            }])
+            ~expectedResult=Ok([pat(
+                Hyps,
+                adj([a,b])
+            )])
         )
         assertParsePattern(~pattern="$a+ a b", ~syms, 
-            ~expectedResult=Ok([{
-                target:Asrt,
-                symSeq: adj([a,b])
-            }])
+            ~expectedResult=Ok([pat(
+                Asrt,
+                adj([a,b])
+            )])
         )
     })
     it("can parse multiple patterns", _ => {
         assertParsePattern(~pattern="$ a b $h c d $a a b $+ c d $h+ a b $a+ c d", ~syms, 
             ~expectedResult=Ok([
-                {
-                    target:Frm,
-                    symSeq: ord([adj([a]), adj([b])])
-                },
-                {
-                    target:Hyps,
-                    symSeq: ord([adj([c]), adj([d])])
-                },
-                {
-                    target:Asrt,
-                    symSeq: ord([adj([a]), adj([b])])
-                },
-                {
-                    target:Frm,
-                    symSeq: adj([c,d])
-                },
-                {
-                    target:Hyps,
-                    symSeq: adj([a,b])
-                },
-                {
-                    target:Asrt,
-                    symSeq: adj([c,d])
-                },
+                pat(Frm, ord([adj([a]), adj([b])])),
+                pat(Hyps, ord([adj([c]), adj([d])])),
+                pat(Asrt, ord([adj([a]), adj([b])])),
+                pat(Frm, adj([c,d])),
+                pat(Hyps, adj([a,b])),
+                pat(Asrt, adj([c,d])),
             ])
         )
     })
