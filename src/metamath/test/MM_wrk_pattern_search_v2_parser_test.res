@@ -57,6 +57,29 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             ]))])
         )
         testPatternParser(
+            "a b $** c d $|| e f $** g h",
+            Some([pat(unord([
+                ord([sym(["a","b"]), sym(["c","d"])]),
+                ord([sym(["e","f"]), sym(["g","h"])]),
+            ]))])
+        )
+        testPatternParser(
+            "a b $** c d $|| e f $** g h $|| i j $** k l",
+            Some([pat(unord([
+                ord([sym(["a","b"]), sym(["c","d"])]),
+                ord([sym(["e","f"]), sym(["g","h"])]),
+                ord([sym(["i","j"]), sym(["k","l"])]),
+            ]))])
+        )
+        testPatternParser(
+            "a b $** $[ c d $|| e f $] $** g h",
+            Some([pat(ord([
+                sym(["a","b"]),
+                unord([sym(["c","d"]), sym(["e","f"])]),
+                sym(["g","h"]),
+            ]))])
+        )
+        testPatternParser(
             "$[ a b $|| c d $] $** e f",
             Some([pat(ord([
                 unord([sym(["a","b"]), sym(["c","d"])]),

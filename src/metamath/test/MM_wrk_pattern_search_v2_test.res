@@ -278,6 +278,14 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[2,3,4,5,7,10,13,14,16,17,18,19,22,23,26]
         )
     })
+    it("var in expr matches type in pattern", _ => {
+        assertMatches(
+            ~expr=[-1, -2, 0, -4, -5],
+            ~seq=Adj([-2, -3, -4]),
+            ~varTypes=[-3],
+            ~expectedIndices=[1,2,3]
+        )
+    })
 
     it("single var; matching single var", _ => {
         assertMatches(

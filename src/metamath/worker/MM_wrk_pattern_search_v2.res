@@ -29,6 +29,14 @@ type pattern = {
     allSeq: array<symSeq>,
 }
 
+let getVarType = (varTypes: array<int>, var:int):int => {
+    varTypes[var]->Option.getExn(~message=`No type is defiend for var ${var->Int.toString}`)
+}
+
+let exprSymMatchesSeqConst = (exprSym:int, seqConst:int, varTypes: array<int>):bool => {
+    exprSym == seqConst || exprSym >= 0 && varTypes->getVarType(exprSym) == seqConst
+}
+
 let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>):int => {
     let begin = ref(startIdx)
     let maxBegin = expr->Array.length - seq->Array.length
@@ -42,15 +50,8 @@ let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>,
             let seqSym:sym = seq->Array.getUnsafe(seqI.contents)
             let exprSym:int = expr->Array.getUnsafe(exprI.contents)
             switch seqSym.constOrVar {
-                | Const(seqConst) => {
-                    matched := seqConst == exprSym
-                        || exprSym >= 0 
-                           && varTypes[exprSym]->Option.mapOr(false, exprVarType => seqConst == exprVarType)
-                }
-                | Var({typ:seqVarType}) => {
-                    matched := exprSym >= 0 
-                        && varTypes[exprSym]->Option.mapOr(false, exprVarType => seqVarType == exprVarType)
-                }
+                | Const(seqConst) => matched := exprSymMatchesSeqConst(exprSym, seqConst, varTypes)
+                | Var({typ:seqVarType}) => matched := exprSym >= 0 && varTypes->getVarType(exprSym) == seqVarType
             }
             exprI := exprI.contents + 1
             seqI := seqI.contents + 1
@@ -150,16 +151,11 @@ let exprIncludesVarAdjSeq = (
             let seqSym:sym = seq->Array.getUnsafe(seqI.contents)
             let exprSym:int = expr->Array.getUnsafe(exprI.contents)
             switch seqSym.constOrVar {
-                | Const(seqConst) => matched := seqConst == exprSym
+                | Const(seqConst) => matched := exprSymMatchesSeqConst(exprSym, seqConst, varTypes)
                 | Var(seqVar) => {
                     if (seqVar.capVar >= 0) {
                         matched := seqVar.capVar == exprSym
-                    } else if (
-                        exprSym >= 0
-                        && varTypes[exprSym]->Option.getExn(
-                            ~message=`Type is not defiend for var ${exprSym->Int.toString}`
-                        ) == seqVar.typ
-                    ) {
+                    } else if ( exprSym >= 0 && varTypes->getVarType(exprSym) == seqVar.typ ) {
                         seqVar.capVar = exprSym
                         seqVar.capVarIdx = exprI.contents
                     } else {
