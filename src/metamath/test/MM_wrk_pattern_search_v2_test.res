@@ -472,30 +472,47 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[0,1,2,5,6,7]
         )
     })
-    it("two unordered groups of adj vars and consts on the left", _ => {
+    it("two unordered groups of adj vars and consts on the left (the search stops as soon as a match is found)", _ => {
         assertMatches(
             ~expr=[1,-11,0,-11,-12,0,-10,1,-15,-16,0,-10,1,-11,-12,1,-11,0],
+            ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[5,6,7,15,16,17]
+        )
+    })
+    it("two unordered groups of adj vars and consts on the left", _ => {
+        assertMatches(
+            ~expr=[1,-11,0,-11,-12,0,-10,1,-15,-16,0,-10,1,-11,-12,1,-20,0],
             ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
             ~varTypes=[-1,-2,-1,-2],
             ~expectedIndices=[0,1,2,5,6,7]
         )
     })
-    // it("two unordered groups of adj vars and consts in the middle", _ => {
-    //     assertMatches(
-    //         ~expr=[-15,4,0,-10,1,-11,-12,1,-11,0,-17,-18],
-    //         ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
-    //         ~varTypes=[-1,-2,-1,-2,-3],
-    //         ~expectedIndices=[2,3,4,7,8,9]
-    //     )
-    // })
-    // it("two unordered groups of adj vars and consts on the right", _ => {
-    //     assertMatches(
-    //         ~expr=[-15,4,0,-10,1,-11,-12,1,-11,0],
-    //         ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
-    //         ~varTypes=[-1,-2,-1,-2,-3],
-    //         ~expectedIndices=[2,3,4,7,8,9]
-    //     )
-    // })
+    it("two unordered groups of adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,-11,0,-11,-12,0,-10,1,-17,-18],
+            ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[2,3,4,7,8,9]
+        )
+    })
+    it("two unordered groups of adj vars and consts on the right", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,-11,0,-11,-12,0,-10,1],
+            ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[2,3,4,7,8,9]
+        )
+    })
+
+    it("two unordered groups of non-adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,5,-11,5,0,-11,-12,0,5,-10,4,1,-17,-18],
+            ~seq=Unord([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3,-4],
+            ~expectedIndices=[2,4,6,9,11,13]
+        )
+    })
 })
 
 describe("parsePattern", _ => {
