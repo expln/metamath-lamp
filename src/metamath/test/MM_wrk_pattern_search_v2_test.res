@@ -295,7 +295,7 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[0]
         )
     })
-    it("single var; matching single var (another integer)", _ => {
+    it("single var; matching single var represented by another integer", _ => {
         assertMatches(
             ~expr=[0],
             ~seq=Adj([1]),
@@ -303,19 +303,75 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[0]
         )
     })
-    it("single var; non-matching single var", _ => {
+    it("single var; single var with another type", _ => {
         assertDoesntMatch(
             ~expr=[0],
             ~seq=Adj([1]),
             ~varTypes=[-1,-2]
         )
     })
-    it("two vars; two matching vars", _ => {
+    it("two adj vars; two matching vars", _ => {
         assertMatches(
             ~expr=[0,1],
             ~seq=Adj([2,3]),
             ~varTypes=[-1,-2,-1,-2],
             ~expectedIndices=[0,1]
+        )
+    })
+    it("two adj vars; two matching vars on the left", _ => {
+        assertMatches(
+            ~expr=[0,1,-10,-11],
+            ~seq=Adj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1]
+        )
+    })
+    it("two adj vars; two matching vars in the middle", _ => {
+        assertMatches(
+            ~expr=[-10,-11,0,1,-10,-11],
+            ~seq=Adj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[2,3]
+        )
+    })
+    it("two adj vars; two matching vars on the right", _ => {
+        assertMatches(
+            ~expr=[-10,-11,0,1],
+            ~seq=Adj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[2,3]
+        )
+    })
+    it("two non-adj vars; two matching vars", _ => {
+        assertMatches(
+            ~expr=[0,-10,-11,1],
+            ~seq=NonAdj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,3]
+        )
+    })
+    it("two non-adj vars; two matching vars on the left", _ => {
+        assertMatches(
+            ~expr=[0,-10,-11,1,-12,-13],
+            ~seq=NonAdj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,3]
+        )
+    })
+    it("two non-adj vars; two matching vars in the middle", _ => {
+        assertMatches(
+            ~expr=[-10,-11,0,-12,-13,1,-14,-15],
+            ~seq=NonAdj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[2,5]
+        )
+    })
+    it("two non-adj vars; two matching vars on the right", _ => {
+        assertMatches(
+            ~expr=[-10,-11,0,-12,-13,1],
+            ~seq=NonAdj([2,3]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[2,5]
         )
     })
     it("same var in expr is assigned to different vars in pattern", _ => {
@@ -329,8 +385,8 @@ describe("exprIncludesSeq", _ => {
     it("same var in pattern is assigned to same vars in expr", _ => {
         assertMatches(
             ~expr=[0,-1,0],
-            ~seq=Adj([2,-1,2]),
-            ~varTypes=[-2,-2,-2],
+            ~seq=Adj([1,-1,1]),
+            ~varTypes=[-2,-2],
             ~expectedIndices=[0,1,2]
         )
     })
@@ -341,6 +397,105 @@ describe("exprIncludesSeq", _ => {
             ~varTypes=[-2,-2,-2],
         )
     })
+
+    it("two ordered groups of adj vars and consts", _ => {
+        assertMatches(
+            ~expr=[0,-10,1,-11,-12,1,-11,0],
+            ~seq=Ord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1,2,5,6,7]
+        )
+    })
+    it("two ordered groups of adj vars and consts on the left", _ => {
+        assertMatches(
+            ~expr=[0,-10,1,-11,-12,1,-11,0,-15,-16,0,-10,1,-11,-12,1,-11,0],
+            ~seq=Ord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1,2,5,6,7]
+        )
+    })
+    it("two ordered groups of adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,0,-10,1,-11,-12,1,-11,0,-17,-18],
+            ~seq=Ord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[2,3,4,7,8,9]
+        )
+    })
+    it("two ordered groups of adj vars and consts on the right", _ => {
+        assertMatches(
+            ~expr=[-15,4,0,-10,1,-11,-12,1,-11,0],
+            ~seq=Ord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[2,3,4,7,8,9]
+        )
+    })
+    
+    it("two ordered groups of non-adj vars and consts", _ => {
+        assertMatches(
+            ~expr=[0,-17,-10,1,-11,-12,1,-18,-19,-11,-20,0],
+            ~seq=Ord([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,2,3,6,9,11]
+        )
+    })
+    it("two ordered groups of non-adj vars and consts on the left", _ => {
+        assertMatches(
+            ~expr=[0,-17,-10,1,-11,-12,1,-18,-19,-11,-20,0,-21,0,-17,-10,1,-11,-12,1,-18,-19,-11,-20,0],
+            ~seq=Ord([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,2,3,6,9,11]
+        )
+    })
+    it("two ordered groups of non-adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-21,-22,0,-17,-10,1,-11,-12,1,-18,-19,-11,-20,0,-23,-24],
+            ~seq=Ord([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[2,4,5,8,11,13]
+        )
+    })
+    it("two ordered groups of non-adj vars and consts on the right", _ => {
+        assertMatches(
+            ~expr=[-21,-22,0,-17,-10,1,-11,-12,1,-18,-19,-11,-20,0],
+            ~seq=Ord([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[2,4,5,8,11,13]
+        )
+    })
+
+    it("two unordered groups of adj vars and consts", _ => {
+        assertMatches(
+            ~expr=[1,-11,0,-11,-12,0,-10,1],
+            ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1,2,5,6,7]
+        )
+    })
+    it("two unordered groups of adj vars and consts on the left", _ => {
+        assertMatches(
+            ~expr=[1,-11,0,-11,-12,0,-10,1,-15,-16,0,-10,1,-11,-12,1,-11,0],
+            ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1,2,5,6,7]
+        )
+    })
+    // it("two unordered groups of adj vars and consts in the middle", _ => {
+    //     assertMatches(
+    //         ~expr=[-15,4,0,-10,1,-11,-12,1,-11,0,-17,-18],
+    //         ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+    //         ~varTypes=[-1,-2,-1,-2,-3],
+    //         ~expectedIndices=[2,3,4,7,8,9]
+    //     )
+    // })
+    // it("two unordered groups of adj vars and consts on the right", _ => {
+    //     assertMatches(
+    //         ~expr=[-15,4,0,-10,1,-11,-12,1,-11,0],
+    //         ~seq=Unord([Adj([2,-10,3]),Adj([3,-11,2])]),
+    //         ~varTypes=[-1,-2,-1,-2,-3],
+    //         ~expectedIndices=[2,3,4,7,8,9]
+    //     )
+    // })
 })
 
 describe("parsePattern", _ => {
