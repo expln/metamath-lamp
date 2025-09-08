@@ -7,51 +7,74 @@ type rec testSeqGrp =
     | Ord(array<testSeqGrp>)
     | Unord(array<testSeqGrp>)
 
-let makeSeq = (seq:array<int>, varTypes:array<int>): array<sym> => {
-    let maxVar = seq->Array.reduce(-1, (maxVar, s) => if 0 <= s {Math.Int.max(maxVar,s)} else {maxVar})
-    let variables = Belt_Array.range(0,maxVar)->Array.map(v => {
-        {
-            typ: varTypes->Array.getUnsafe(v),
-            capVar: -1, 
-            capVarIdx: -1
-        }
-    })
+let makeSeq = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>): array<sym> => {
     seq->Array.map(i => {
         {
-            constOrVar: if i < 0 { Const(i) } else { Var(variables->Array.getUnsafe(i)) },
+            constOrVar: symMap->Belt_HashMapInt.get(i)
+                ->Option.getExn(~message=`makeSeq: unexpected sym ${i->Int.toString}`),
             matchedIdx: -1
         }
     })
 }
 
-let rec makeSymSeq = (seq:testSeqGrp, varTypes:array<int>, minConstMismatchIdx:int): symSeq => {
+let rec collectAllSyms = (seq:testSeqGrp, allSyms:Belt_HashSetInt.t):unit => {
+    switch seq {
+        | Adj(ints) | NonAdj(ints) => ints->Array.forEach(Belt_HashSetInt.add(allSyms, _))
+        | Ord(ch) | Unord(ch) => ch->Array.forEach(collectAllSyms(_, allSyms))
+    }
+}
+
+let rec makeSymSeq = (
+    seq:testSeqGrp, 
+    minConstMismatchIdx:int, 
+    symMap:Belt_HashMapInt.t<constOrVar>
+): symSeq => {
     let elems = switch seq {
-        | Adj(seq) => Adjacent(makeSeq(seq, varTypes))
+        | Adj(seq) => Adjacent(makeSeq(seq, symMap))
         | NonAdj(seq) => {
             Ordered(seq->Array.map(i => {
                 {
-                    elems: Adjacent(makeSeq([i], varTypes)),
+                    elems: Adjacent(makeSeq([i], symMap)),
                     minConstMismatchIdx,
                 }
             }))
         }
-        | Ord(childElems) => Ordered(childElems->Array.map(ch=>makeSymSeq(ch,varTypes, minConstMismatchIdx)))
-        | Unord(childElems) => Unordered(childElems->Array.map(ch=>makeSymSeq(ch,varTypes, minConstMismatchIdx)))
+        | Ord(childElems) => Ordered(childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap)))
+        | Unord(childElems) => Unordered(childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap)))
     }
     { elems, minConstMismatchIdx, }
+}
+
+let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_HashMapInt.t<constOrVar> => {
+    let allSym = Belt_HashSetInt.make(~hintSize=expr->Array.length)
+    collectAllSyms(seq, allSym)
+    Belt_HashMapInt.fromArray(
+        allSym->Belt_HashSetInt.toArray->Array.map(i => {
+            if (i < 0) {
+                (i, Const(i))
+            } else {
+                let var = Var({
+                    typ: varTypes[i]->Option.getExn(~message=`No type is defined for var ${i->Int.toString}`),
+                    capVar: -1,
+                    capVarIdx: -1,
+                })
+                (i, var)
+            }
+        })
+    )
 }
 
 let assertMatches = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
 ):unit => {
-    let seq = makeSymSeq(seq, varTypes, expr->Array.length)
+    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
     assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), Some(expectedIndices))
 }
 
 let assertDoesntMatch = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
 ):unit => {
-    let seq = makeSymSeq(seq, varTypes, expr->Array.length)
+    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
     assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), None)
 }
 
