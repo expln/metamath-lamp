@@ -45,15 +45,14 @@ let assertMatches = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
 ):unit => {
     let seq = makeSymSeq(seq, varTypes, expr->Array.length)
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), true)
-    assertEq(getMatchedIndices(seq), expectedIndices)
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), Some(expectedIndices))
 }
 
 let assertDoesntMatch = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
 ):unit => {
     let seq = makeSymSeq(seq, varTypes, expr->Array.length)
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), false)
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), None)
 }
 
 let adj = (syms:array<sym>):symSeq => { elems: Adjacent(syms), minConstMismatchIdx: -1 }
@@ -62,7 +61,7 @@ let unord = (seq:array<symSeq>):symSeq => { elems: Unordered(seq), minConstMisma
 let pat = (target:patternTarget, symSeq:symSeq):pattern => { target, symSeq, allSeq:[] }
 
 let assertParsePattern = (
-    ~pattern:string, ~syms:Belt_HashMapString.t<sym>, ~expectedResult:result<array<pattern>,string>
+    ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
 ):unit => {
     assertEqMsg(
         parsePattern(pattern, syms)->Result.map(ps => ps->Array.map(p => {...p, allSeq:[]})), 
@@ -318,7 +317,12 @@ describe("parsePattern", _ => {
     let b = {constOrVar:Const(-2), matchedIdx:-1}
     let c = {constOrVar:Const(-3), matchedIdx:-1}
     let d = {constOrVar:Const(-4), matchedIdx:-1}
-    let syms = Belt_HashMapString.fromArray([ ("a", a), ("b", b), ("c", c), ("d", d), ])
+    let syms = Belt_HashMapString.fromArray([ 
+        ("a", a.constOrVar), 
+        ("b", b.constOrVar), 
+        ("c", c.constOrVar), 
+        ("d", d.constOrVar), 
+    ])
 
     it("passes flags from parent to child", _ => {
         assertParsePattern(~pattern="a b $** c d", ~syms, 

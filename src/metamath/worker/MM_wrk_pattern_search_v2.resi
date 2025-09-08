@@ -27,8 +27,6 @@ type pattern = {
     allSeq: array<symSeq>,
 }
 
-let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => bool
+let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
 
-let getMatchedIndices: symSeq => array<int>
-
-let parsePattern: (string, Belt_HashMapString.t<sym>) => result<array<pattern>,string>
+let parsePattern: (string, Belt_HashMapString.t<constOrVar>) => result<array<pattern>,string>

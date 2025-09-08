@@ -1,5 +1,4 @@
 module P = MM_wrk_pattern_search_v2_parser
-module MC = MM_context
 
 type variable = {
     typ: int,
@@ -148,8 +147,8 @@ let exprIncludesVarAdjSeq = (
         let exprI = ref(begin.contents)
         let seqI = ref(0)
         while (seqI.contents <= maxSeqI && matched.contents) {
-            let seqSym = seq->Array.getUnsafe(seqI.contents)
-            let exprSym = expr->Array.getUnsafe(exprI.contents)
+            let seqSym:sym = seq->Array.getUnsafe(seqI.contents)
+            let exprSym:int = expr->Array.getUnsafe(exprI.contents)
             switch seqSym.constOrVar {
                 | Const(seqConst) => matched := seqConst == exprSym
                 | Var(seqVar) => {
@@ -157,7 +156,9 @@ let exprIncludesVarAdjSeq = (
                         matched := seqVar.capVar == exprSym
                     } else if (
                         exprSym >= 0
-                        && varTypes[exprSym]->Option.mapOr(false, exprVarType => seqVar.typ == exprVarType)
+                        && varTypes[exprSym]->Option.getExn(
+                            ~message=`Type is not defiend for var ${exprSym->Int.toString}`
+                        ) == seqVar.typ
                     ) {
                         seqVar.capVar = exprSym
                         seqVar.capVarIdx = exprI.contents
@@ -178,6 +179,7 @@ let exprIncludesVarAdjSeq = (
         seqI := Math.Int.min(seqI.contents, maxSeqI)
         while (seqI.contents >= 0) {
             let seqSym = seq->Array.getUnsafe(seqI.contents)
+            seqSym.matchedIdx = -1
             switch seqSym.constOrVar {
                 | Const(_) => ()
                 | Var(seqVar) => {
@@ -258,16 +260,6 @@ and let exprIncludesVarUnorderedSeq = (
     }
 }
 
-let exprIncludesSeq = (
-    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>
-):bool => {
-    let res = ref(false)
-    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~seq, ~varTypes) >= 0) {
-        exprIncludesVarSeq(~expr, ~startIdx=0, ~seq, ~varTypes, ~next = lastMatchedIdx => res := lastMatchedIdx >= 0)
-    }
-    res.contents
-}
-
 let getMatchedIndices = (seq:symSeq):array<int> => {
     let indices = []
     let rec go = (seq:symSeq):unit => {
@@ -281,30 +273,53 @@ let getMatchedIndices = (seq:symSeq):array<int> => {
     indices
 }
 
+let exprIncludesSeq = (
+    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>
+):option<array<int>> => {
+    let res = ref(None)
+    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~seq, ~varTypes) >= 0) {
+        exprIncludesVarSeq(
+            ~expr, ~startIdx=0, ~seq, ~varTypes, 
+            ~next = lastMatchedIdx => {
+                if (lastMatchedIdx >= 0) {
+                    switch res.contents {
+                        | None => res := Some(getMatchedIndices(seq))
+                        | Some(_) => Exn.raiseError("next() is called twice in exprIncludesSeq.")
+                    }
+                }
+            }
+        )
+    }
+    res.contents
+}
+
 let isAdj = (flags:P.flags):bool => {
     flags.adj->Option.getOr(false)
 }
 
-let rec astToSymSeq = (ast:P.symSeq, flags:P.flags, symMap:Belt_HashMapString.t<sym>):symSeq => {
+let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
+    {
+        matchedIdx: -1,
+        constOrVar: 
+            symMap->Belt_HashMapString.get(symStr)->Option.getExn(~message=`makeSym: unknown symbol ${symStr}`)
+    }
+}
+
+let rec astToSymSeq = (ast:P.symSeq, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
     {
         elems: astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(flags, ast.flags), symMap),
         minConstMismatchIdx: -1
     }
 }
-and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<sym>):seqGrp => {
+and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):seqGrp => {
     switch ast {
         | Symbols(syms) => {
             if (isAdj(flags)) {
-                Adjacent(syms->Array.map(sym => {
-                    symMap->Belt_HashMapString.get(sym)->Option.getExn(~message=`astToSeqGrp: unknown symbol ${sym}`)
-                }))
+                Adjacent(syms->Array.map(makeSym(_,symMap)))
             } else {
-                Ordered(syms->Array.map(sym => {
+                Ordered(syms->Array.map(symStr => {
                     {
-                        elems:Adjacent([
-                            symMap->Belt_HashMapString.get(sym)
-                                ->Option.getExn(~message=`astToSeqGrp: unknown symbol ${sym}`)
-                        ]),
+                        elems:Adjacent([makeSym(symStr,symMap)]),
                         minConstMismatchIdx:-1
                     }
                 }))
@@ -324,7 +339,7 @@ let rec collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
     }
 }
 
-let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<sym>):pattern => {
+let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):pattern => {
     let res = {
         target: switch ast.target {|Frm => Frm |Hyps => Hyps |Asrt => Asrt},
         symSeq: astToSymSeq(ast.symSeq, {adj:None}, symMap),
@@ -334,7 +349,7 @@ let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<sym>):pattern => 
     res
 }
 
-let parsePattern = (text:string, symMap:Belt_HashMapString.t<sym>):result<array<pattern>,string> => {
+let parsePattern = (text:string, symMap:Belt_HashMapString.t<constOrVar>):result<array<pattern>,string> => {
     switch P.parsePattern(text) {
         | None => Error(`Cannot parse the pattern '${text}'`)
         | Some(ast) => Ok(ast->Array.map(astToPattern(_, symMap)))
