@@ -1,4 +1,5 @@
 module P = MM_wrk_pattern_search_v2_parser
+module MC = MM_context
 
 type variable = {
     typ: int,
@@ -330,13 +331,40 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<cons
     }
 }
 
-let rec collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
-    allSeq->Array.push(seq)
+let rec traverseAst = (
+    seq:P.symSeq,
+    ~onSymSeq:P.symSeq=>unit=_=>(),
+    ~onSeqGrp:P.seqGrp=>unit=_=>(),
+    ~onSym:string=>unit=_=>(),
+):unit => {
+    onSymSeq(seq)
+    onSeqGrp(seq.elems)
     switch seq.elems {
-        | Adjacent(_) => ()
-        | Ordered(childSeq) | Unordered(childSeq) => childSeq->Array.forEach(collectAllSeq(_, allSeq))
-        
+        | Symbols(syms) => syms->Array.forEach(onSym)
+        | Ordered(childSeq) | Unordered(childSeq) => {
+            childSeq->Array.forEach(traverseAst(_, ~onSymSeq, ~onSeqGrp, ~onSym))
+        }
     }
+}
+
+let rec traversePattern = (
+    seq:symSeq,
+    ~onSymSeq:symSeq=>unit=_=>(),
+    ~onSeqGrp:seqGrp=>unit=_=>(),
+    ~onSym:sym=>unit=_=>(),
+):unit => {
+    onSymSeq(seq)
+    onSeqGrp(seq.elems)
+    switch seq.elems {
+        | Adjacent(syms) => syms->Array.forEach(onSym)
+        | Ordered(childSeq) | Unordered(childSeq) => {
+            childSeq->Array.forEach(traversePattern(_, ~onSymSeq, ~onSeqGrp, ~onSym))
+        }
+    }
+}
+
+let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
+    traversePattern(seq, ~onSymSeq=s=>allSeq->Array.push(s))
 }
 
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):pattern => {
@@ -349,9 +377,74 @@ let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):patt
     res
 }
 
-let parsePattern = (text:string, symMap:Belt_HashMapString.t<constOrVar>):result<array<pattern>,string> => {
+let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<constOrVar>, string> => {
+    let symMap = Belt_HashMapString.make(~hintSize=20)
+    let errors:array<string> = []
+    traverseAst(ast.symSeq, ~onSym=sym => {
+        switch ctx->MC.getTokenType(sym) {
+            | Some(C) => {
+                if (!(symMap->Belt_HashMapString.has(sym))) {
+                    symMap->Belt_HashMapString.set(sym, Const(ctx->MC.ctxSymToIntExn(sym)))
+                }
+            }
+            | Some(V) => {
+                if (!(symMap->Belt_HashMapString.has(sym))) {
+                    symMap->Belt_HashMapString.set(sym, Var({
+                        typ: ctx->MC.getTypeOfVarExn(ctx->MC.ctxSymToIntExn(sym)),
+                        capVar: -1,
+                        capVarIdx: -1,
+                    }))
+                }
+            }
+            | Some(F) | Some(E) | Some(A) | Some(P) | None => errors->Array.push(`$'{sym}' is not a math symbol`)
+        }
+    })
+    if (errors->Array.length == 0) {
+        Ok(symMap)
+    } else {
+        Error(errors->Array.join("; "))
+    }
+}
+
+let parsePattern = (
+    text:string, 
+    ~symMap:option<Belt_HashMapString.t<constOrVar>>=?, //symMap may be passed as a parameter only for testing
+    ~ctx:option<MC.mmContext>=?,
+):result<array<pattern>,string> => {
     switch P.parsePattern(text) {
         | None => Error(`Cannot parse the pattern '${text}'`)
-        | Some(ast) => Ok(ast->Array.map(astToPattern(_, symMap)))
+        | Some(asts) => {
+            let subpatterns:array<result<pattern,string>> = asts->Array.map(ast => {
+                let symMap:result<Belt_HashMapString.t<constOrVar>, string> = switch symMap {
+                    | Some(symMap) => Ok(symMap)
+                    | None => {
+                        makeSymMap(
+                            ast, 
+                            ctx->Option.getExn(~message="parsePattern: either symMap or ctx must be provided.")
+                        )
+                    }
+                }
+                symMap->Result.map(astToPattern(ast, _))
+            })
+            subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
+                switch acc {
+                    | Ok(subpatArr) => {
+                        switch subpatRes {
+                            | Ok(subpat) => {
+                                subpatArr->Array.push(subpat)
+                                Ok(subpatArr)
+                            }
+                            | Error(msg) => Error(msg)
+                        }
+                    }
+                    | Error(prevMsg) => {
+                        switch subpatRes {
+                            | Ok(_) => Error(prevMsg)
+                            | Error(msg) => Error(prevMsg ++ "; " ++ msg)
+                        }
+                    }
+                }
+            })
+        }
     }
 }

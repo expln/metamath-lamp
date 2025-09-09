@@ -29,4 +29,8 @@ type pattern = {
 
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
 
-let parsePattern: (string, Belt_HashMapString.t<constOrVar>) => result<array<pattern>,string>
+let parsePattern: (
+    string, 
+    ~symMap:Belt_HashMapString.t<constOrVar>=?,
+    ~ctx:MM_context.mmContext=?
+) => result<array<pattern>,string>

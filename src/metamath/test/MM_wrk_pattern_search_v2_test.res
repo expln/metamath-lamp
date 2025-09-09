@@ -87,7 +87,7 @@ let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
 ):unit => {
     assertEqMsg(
-        parsePattern(pattern, syms)->Result.map(ps => ps->Array.map(p => {...p, allSeq:[]})), 
+        parsePattern(pattern, ~symMap=syms)->Result.map(ps => ps->Array.map(p => {...p, allSeq:[]})), 
         expectedResult, 
         pattern
     )
