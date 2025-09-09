@@ -43,8 +43,8 @@ type frame = {
     isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
     usageCnt: int, //the number of theorems which directly depend on this assertion
-    mutable allHyps?:array<int>, //concatenation of all hyps, used for the pattern search
-    mutable allHypsAsrt?:array<int>, //concatenation of all hyps and asrt, used for the pattern search
+    mutable allHyps?:array<int>, //concatenation of all essential hyps, used for the pattern search
+    mutable allHypsAsrt?:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
 }
 
 type optimizedConstsOrder = {

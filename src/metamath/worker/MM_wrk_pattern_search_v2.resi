@@ -27,10 +27,14 @@ type pattern = {
     allSeq: array<symSeq>,
 }
 
-let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
-
 let parsePattern: (
     string, 
     ~symMap:Belt_HashMapString.t<constOrVar>=?,
     ~ctx:MM_context.mmContext=?
 ) => result<array<pattern>,string>
+
+//FOR TESTING
+
+let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
+
+let convertMatchedIndices: (MM_context.frame, array<int>, patternTarget) => array<array<int>>

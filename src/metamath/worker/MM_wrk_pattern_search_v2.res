@@ -448,3 +448,50 @@ let parsePattern = (
         }
     }
 }
+
+let convertMatchedIndices = (frm:MC.frame, idxs:array<int>, target:patternTarget):array<array<int>> => {
+    let hyps = frm.hyps->Array.filter(hyp => hyp.typ == E)
+    let numOfHyps = hyps->Array.length
+    let res = Array.fromInitializer(~length=numOfHyps+1, _=>[])
+    let idxI = ref(0)
+    let maxIdxI = idxs->Array.length-1
+    switch target {
+        | Frm | Hyps => {
+            let hypI = ref(0)
+            let maxHypI = numOfHyps-1
+            let hypLenSum = ref(0)
+            while (hypI.contents <= maxHypI) {
+                let curHypLen = (hyps->Array.getUnsafe(hypI.contents)).expr->Array.length
+                let maxIdx = hypLenSum.contents + curHypLen - 1
+                let curResArr = res->Array.getUnsafe(hypI.contents)
+                let curIdx = ref(idxs[idxI.contents])
+                while (curIdx.contents->Option.mapOr(false, curIdx => curIdx <= maxIdx) && idxI.contents <= maxIdxI) {
+                    curResArr->Array.push(curIdx.contents->Option.getExn - hypLenSum.contents)
+                    idxI := idxI.contents + 1
+                    curIdx := idxs[idxI.contents]
+                }
+                hypLenSum := hypLenSum.contents + curHypLen
+                hypI := hypI.contents + 1
+            }
+            let curResArr = res->Array.getUnsafe(hypI.contents)
+            while (idxI.contents <= maxIdxI) {
+                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum.contents)
+                idxI := idxI.contents + 1
+            }
+            res
+        }
+        | Asrt => {
+            let hypLenSum = hyps->Array.map(hyp => hyp.expr->Array.length)->Array.reduce(0, (s,l) => s + l)
+            let curResArr = res->Array.getUnsafe(numOfHyps)
+            while (idxI.contents <= maxIdxI) {
+                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum)
+                idxI := idxI.contents + 1
+            }
+            res
+        }
+    }
+}
+
+// let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int>>> => {
+
+// }

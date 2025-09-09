@@ -85,8 +85,8 @@ type frame = {
     isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
     usageCnt: int, //the number of theorems which directly depend on this assertion
-    mutable allHyps?:array<int>, //concatenation of all hyps, used for the pattern search
-    mutable allHypsAsrt?:array<int>, //concatenation of all hyps and asrt, used for the pattern search
+    mutable allHyps?:array<int>, //concatenation of all essential hyps, used for the pattern search
+    mutable allHypsAsrt?:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
 }
 
 type disjMutable = Belt_HashMapInt.t<Belt_HashSetInt.t>
@@ -586,7 +586,7 @@ let frmGetAllHyps = (frm:frame):array<int> => {
     switch frm.allHyps {
         | Some(arr) => arr
         | None => {
-            let allHyps:array<array<int>> = frm.hyps->Array.map(hyp => hyp.expr)
+            let allHyps:array<array<int>> = frm.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr)
             let res = Array.concatMany([], allHyps)
             frm.allHyps = Some(res)
             res

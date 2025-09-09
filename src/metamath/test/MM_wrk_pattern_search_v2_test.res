@@ -671,3 +671,22 @@ describe("parsePattern", _ => {
         )
     })
 })
+
+describe("convertMatchedIndices", () => {
+    let makeFrame = (hyps:array<array<int>>, asrt:array<int>):MM_context.frame => {
+        {
+            ord:-1, isAxiom:false, disj: Belt_MapInt.empty,
+            hyps: hyps->Array.map((expr):MM_context.hypothesis => {typ:E, label:"", expr}),
+            asrt: asrt,
+            label: "", frameVarToSymb: [], varTypes: [], varHyps: [], numOfVars: -1, numOfArgs: -1, descr:None, 
+            descrNorm:None, proof:None, isDisc:false, isDepr:false, isTranDepr:false, dbg:None, usageCnt:-1,
+        }
+    }
+    it("converts indices for Frm target", () => {
+        assertEqMsg(
+            convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2], Frm),
+            [[0],[0],[0]],
+            "case 1"
+        )
+    })
+})
