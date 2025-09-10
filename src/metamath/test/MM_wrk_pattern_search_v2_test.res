@@ -533,6 +533,7 @@ describe("exprIncludesSeq", _ => {
             ~varTypes=[],
             ~expectedIndices=[0]
         )
+
         assertMatches(
             ~expr=[0,2,1,-1,0,1,2,-1,2,1,0],
             ~seq=Ord([Adj([0,1,2]),Adj([2,1,0])]),
@@ -540,10 +541,23 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[4,5,6,8,9,10]
         )
         assertMatches(
+            ~expr=[0,2,1,0,1,2,2,1,0],
+            ~seq=Ord([Adj([0,1,2]),Adj([2,1,0])]),
+            ~varTypes=[-9,-9,-9],
+            ~expectedIndices=[3,4,5,6,7,8]
+        )
+        
+        assertMatches(
             ~expr=[0,2,1,-1,0,1,2,-1,2,1,0],
             ~seq=Unord([Adj([0,1,2]),Adj([2,1,0])]),
             ~varTypes=[-9,-9,-9],
             ~expectedIndices=[4,5,6,8,9,10]
+        )
+        assertMatches(
+            ~expr=[0,2,1,0,1,2,2,1,0],
+            ~seq=Unord([Adj([0,1,2]),Adj([2,1,0])]),
+            ~varTypes=[-9,-9,-9],
+            ~expectedIndices=[3,4,5,6,7,8]
         )
     })
 })
