@@ -12,6 +12,7 @@ and constOrVar = Const(int) | Var(variable)
 
 type rec symSeq = {
     elems: seqGrp,
+    minLen:int,
     mutable minConstMismatchIdx:int,
 }
 and seqGrp = 
@@ -34,6 +35,8 @@ let parsePattern: (
 ) => result<array<pattern>,string>
 
 //FOR TESTING
+
+let countMinLen: array<symSeq> => int
 
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
 

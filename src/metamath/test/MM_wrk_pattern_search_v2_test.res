@@ -7,7 +7,7 @@ type rec testSeqGrp =
     | Ord(array<testSeqGrp>)
     | Unord(array<testSeqGrp>)
 
-let makeSeq = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>): array<sym> => {
+let makeArrayOfSymbols = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>): array<sym> => {
     seq->Array.map(i => {
         {
             constOrVar: symMap->Belt_HashMapInt.get(i)
@@ -29,20 +29,28 @@ let rec makeSymSeq = (
     minConstMismatchIdx:int, 
     symMap:Belt_HashMapInt.t<constOrVar>
 ): symSeq => {
-    let elems = switch seq {
-        | Adj(seq) => Adjacent(makeSeq(seq, symMap))
+    let (elems, minLen) = switch seq {
+        | Adj(seq) => (Adjacent(makeArrayOfSymbols(seq, symMap)), seq->Array.length)
         | NonAdj(seq) => {
-            Ordered(seq->Array.map(i => {
+            let seqGrp = Ordered(seq->Array.map(i => {
                 {
-                    elems: Adjacent(makeSeq([i], symMap)),
+                    elems: Adjacent(makeArrayOfSymbols([i], symMap)),
+                    minLen: 1,
                     minConstMismatchIdx,
                 }
             }))
+            (seqGrp, seq->Array.length)
         }
-        | Ord(childElems) => Ordered(childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap)))
-        | Unord(childElems) => Unordered(childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap)))
+        | Ord(childElems) => {
+            let childSeq:array<symSeq> = childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap))
+            (Ordered(childSeq), countMinLen(childSeq))
+        }
+        | Unord(childElems) => {
+            let childSeq:array<symSeq> = childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap))
+            (Unordered(childSeq), countMinLen(childSeq))
+        }
     }
-    { elems, minConstMismatchIdx, }
+    { elems, minLen, minConstMismatchIdx, }
 }
 
 let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_HashMapInt.t<constOrVar> => {
@@ -78,9 +86,9 @@ let assertDoesntMatch = (
     assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), None)
 }
 
-let adj = (syms:array<sym>):symSeq => { elems: Adjacent(syms), minConstMismatchIdx: -1 }
-let ord = (seq:array<symSeq>):symSeq => { elems: Ordered(seq), minConstMismatchIdx: -1 }
-let unord = (seq:array<symSeq>):symSeq => { elems: Unordered(seq), minConstMismatchIdx: -1 }
+let adj = (syms:array<sym>):symSeq => { elems: Adjacent(syms), minLen:syms->Array.length, minConstMismatchIdx: -1 }
+let ord = (seq:array<symSeq>):symSeq => { elems: Ordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 }
+let unord = (seq:array<symSeq>):symSeq => { elems: Unordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 }
 let pat = (target:patternTarget, symSeq:symSeq):pattern => { target, symSeq, allSeq:[] }
 
 let assertParsePattern = (
@@ -524,6 +532,18 @@ describe("exprIncludesSeq", _ => {
             ~seq=Adj([-1]),
             ~varTypes=[],
             ~expectedIndices=[0]
+        )
+        assertMatches(
+            ~expr=[0,2,1,-1,0,1,2,-1,2,1,0],
+            ~seq=Ord([Adj([0,1,2]),Adj([2,1,0])]),
+            ~varTypes=[-9,-9,-9],
+            ~expectedIndices=[4,5,6,8,9,10]
+        )
+        assertMatches(
+            ~expr=[0,2,1,-1,0,1,2,-1,2,1,0],
+            ~seq=Unord([Adj([0,1,2]),Adj([2,1,0])]),
+            ~varTypes=[-9,-9,-9],
+            ~expectedIndices=[4,5,6,8,9,10]
         )
     })
 })

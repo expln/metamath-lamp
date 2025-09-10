@@ -15,6 +15,7 @@ and constOrVar = Const(int) | Var(variable)
 
 type rec symSeq = {
     elems: seqGrp,
+    minLen:int,
     mutable minConstMismatchIdx:int,
 }
 and seqGrp = 
@@ -37,6 +38,8 @@ let getVarType = (varTypes: array<int>, var:int):int => {
 let exprSymMatchesSeqConst = (exprSym:int, seqConst:int, varTypes: array<int>):bool => {
     exprSym == seqConst || exprSym >= 0 && varTypes->getVarType(exprSym) == seqConst
 }
+
+let countMinLen = (seq:array<symSeq>):int => seq->Array.reduce(0,(sum,seq)=>sum+seq.minLen)
 
 let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>):int => {
     let begin = ref(startIdx)
@@ -216,14 +219,20 @@ and let exprIncludesVarOrderedSeq = (
     if (childElems->Array.length <= childElemIdx) {
         next(startIdx-1)
     } else {
-        exprIncludesVarSeq(
-            ~expr, ~startIdx, ~seq=childElems->Array.getUnsafe(childElemIdx), ~varTypes,
-            ~next = lastMatchedIdx => exprIncludesVarOrderedSeq(
-                ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes,
-                ~next, ~childElemIdx=childElemIdx+1, ~stop
-            ), 
-            ~stop
-        )
+        let curSeq = childElems->Array.getUnsafe(childElemIdx)
+        let begin = ref(startIdx)
+        let beginMax = expr->Array.length - curSeq.minLen
+        while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
+            exprIncludesVarSeq(
+                ~expr, ~startIdx=begin.contents, ~seq=curSeq, ~varTypes,
+                ~next = lastMatchedIdx => exprIncludesVarOrderedSeq(
+                    ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes,
+                    ~next, ~childElemIdx=childElemIdx+1, ~stop
+                ), 
+                ~stop
+            )
+            begin := begin.contents + 1
+        }
     }
 }
 
@@ -239,9 +248,11 @@ and let exprIncludesVarUnorderedSeq = (
         while (!stop.contents && i.contents <= maxI) {
             if (!(passedSeqIdxs->Array.includes(i.contents))) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
-                if (startIdx < curSeq.minConstMismatchIdx) {
+                let begin = ref(startIdx)
+                let beginMax = expr->Array.length - curSeq.minLen
+                while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
                     exprIncludesVarSeq(
-                        ~expr, ~startIdx, ~seq=curSeq, ~varTypes,
+                        ~expr, ~startIdx=begin.contents, ~seq=curSeq, ~varTypes,
                         ~next = lastMatchedIdx => {
                             passedSeqIdxs->Array.push(i.contents)
                             exprIncludesVarUnorderedSeq(
@@ -251,6 +262,7 @@ and let exprIncludesVarUnorderedSeq = (
                         },
                         ~stop
                     )
+                    begin := begin.contents + 1
                 }
             }
             i := i.contents + 1
@@ -307,10 +319,12 @@ let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
 }
 
 let rec astToSymSeq = (ast:P.symSeq, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
-    {
-        elems: astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(flags, ast.flags), symMap),
-        minConstMismatchIdx: -1
+    let elems = astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(flags, ast.flags), symMap)
+    let minLen = switch elems {
+        | Adjacent(syms) => syms->Array.length
+        | Ordered(symSeq) | Unordered(symSeq) => countMinLen(symSeq)
     }
+    { elems, minLen, minConstMismatchIdx: -1, }
 }
 and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):seqGrp => {
     switch ast {
@@ -321,7 +335,8 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<cons
                 Ordered(syms->Array.map(symStr => {
                     {
                         elems:Adjacent([makeSym(symStr,symMap)]),
-                        minConstMismatchIdx:-1
+                        minLen:1,
+                        minConstMismatchIdx:-1,
                     }
                 }))
             }
