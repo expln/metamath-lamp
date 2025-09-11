@@ -34,6 +34,8 @@ let parsePattern: (
     ~ctx:MM_context.mmContext=?
 ) => result<array<pattern>,string>
 
+let frameMatchesPatterns: (MM_context.frame, array<pattern>) => option<array<array<int>>>
+
 //FOR TESTING
 
 let countMinLen: array<symSeq> => int
@@ -41,3 +43,5 @@ let countMinLen: array<symSeq> => int
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
 
 let convertMatchedIndices: (MM_context.frame, array<int>, patternTarget) => array<array<int>>
+
+let mergeMatchedIndices: array<array<array<int>>> => array<array<int>>

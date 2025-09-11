@@ -134,6 +134,8 @@ let frmIntToSym: (mmContext, frame, int) => option<string>
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
 let frmIntsToSymsExn: (mmContext, frame, expr) => array<string>
+let frmGetAllHyps: frame => array<int>
+let frmGetAllHypsAsrt: frame => array<int>
 let createFrame: (
     ~ctx:mmContext, 
     ~ord:int,

@@ -464,10 +464,14 @@ let parsePattern = (
     }
 }
 
+let makeEmptyMatchedIdxs = (numOfStmts:int):array<array<int>> => {
+    Array.fromInitializer(~length=numOfStmts, _=>[])
+}
+
 let convertMatchedIndices = (frm:MC.frame, idxs:array<int>, target:patternTarget):array<array<int>> => {
     let hyps = frm.hyps->Array.filter(hyp => hyp.typ == E)
     let numOfHyps = hyps->Array.length
-    let res = Array.fromInitializer(~length=numOfHyps+1, _=>[])
+    let res = makeEmptyMatchedIdxs(numOfHyps+1)
     let idxI = ref(0)
     let maxIdxI = idxs->Array.length-1
     switch target {
@@ -507,6 +511,46 @@ let convertMatchedIndices = (frm:MC.frame, idxs:array<int>, target:patternTarget
     }
 }
 
-// let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int>>> => {
+let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
+    let numOfStmts = idxs[0]->Option.getExn(~message="mergeMatchedIndices: error 1")->Array.length
+    let res:array<array<int>> = makeEmptyMatchedIdxs(numOfStmts)
+    idxs->Array.forEach((patIdxs:array<array<int>>) => {
+        patIdxs->Array.forEachWithIndex((stmtIdxs:array<int>, stmtI) => {
+            res[stmtI]->Option.getExn(~message="mergeMatchedIndices: error 2")->Array.pushMany(stmtIdxs)
+        })
+    })
+    res->Array.forEach(stmtIdxs => Array.sort(stmtIdxs, Int.compare))
+    res
+}
 
-// }
+let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int>>> => {
+    let expr = switch pattern.target {
+        | Frm => MC.frmGetAllHypsAsrt(frm)
+        | Hyps => MC.frmGetAllHyps(frm)
+        | Asrt => frm.asrt
+    }
+    let exprLen = expr->Array.length
+    pattern.allSeq->Array.forEach(seq => seq.minConstMismatchIdx = exprLen)
+    exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes)
+        ->Option.map(convertMatchedIndices(frm, _, pattern.target))
+}
+
+let frameMatchesPatterns = (frm:MC.frame, patterns:array<pattern>):option<array<array<int>>> => {
+    patterns->Array.reduce(
+        Some([]),
+        (idxs,pattern) => {
+            switch idxs {
+                | None => None
+                | Some(idxs) => {
+                    switch frameMatchesPattern(frm, pattern) {
+                        | None => None
+                        | Some(patIdxs) => {
+                            idxs->Array.push(patIdxs)
+                            Some(idxs)
+                        }
+                    }
+                }
+            }
+        }
+    )->Option.map(mergeMatchedIndices)
+}
