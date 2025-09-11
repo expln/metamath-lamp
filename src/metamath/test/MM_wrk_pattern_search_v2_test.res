@@ -717,10 +717,83 @@ describe("convertMatchedIndices", () => {
         }
     }
     it("converts indices for Frm target", () => {
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2], Frm), [[0],[0],[0]], "case 1" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Frm), [[0],[],[]], "case 2" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1], Frm), [[],[0],[]], "case 3" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2], Frm), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Frm), [[0]], "case 5" )
         assertEqMsg(
-            convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2], Frm),
-            [[0],[0],[0]],
-            "case 1"
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [0,1,2,6,7,8,12,13,14,15,19], 
+                Frm
+            ),
+            [[0,1,2],[1,2,3],[2,3,4],[0,4]],
+            "case 6"
+        )
+    })
+    it("converts indices for Hyps target", () => {
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1], Hyps), [[0],[0],[]], "case 1" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Hyps), [[0],[],[]], "case 2" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1], Hyps), [[],[0],[]], "case 3" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [], Hyps), [[]], "case 5" )
+        assertEqMsg(
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [0,1,2,6,7,8,12,13,14], 
+                Hyps
+            ),
+            [[0,1,2],[1,2,3],[2,3,4],[]],
+            "case 6"
+        )
+    })
+    it("converts indices for Asrt target", () => {
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2], Asrt), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Asrt), [[0]], "case 5" )
+        assertEqMsg(
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [15,19], 
+                Asrt
+            ),
+            [[],[],[],[0,4]],
+            "case 6"
+        )
+        assertEqMsg(
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [15,16,17], 
+                Asrt
+            ),
+            [[],[],[],[0,1,2]],
+            "case 7"
+        )
+        assertEqMsg(
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [16,17,18], 
+                Asrt
+            ),
+            [[],[],[],[1,2,3]],
+            "case 8"
+        )
+        assertEqMsg(
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [17,18,19], 
+                Asrt
+            ),
+            [[],[],[],[2,3,4]],
+            "case 9"
+        )
+        assertEqMsg(
+            convertMatchedIndices(
+                makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
+                [16,18], 
+                Asrt
+            ),
+            [[],[],[],[1,3]],
+            "case 10"
         )
     })
 })
