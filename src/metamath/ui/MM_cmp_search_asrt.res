@@ -9,7 +9,6 @@ open Expln_React_Modal
 open MM_wrk_settings
 open Common
 open MM_wrk_pre_ctx_data
-open MM_wrk_pattern_search_v1
 
 type state = {
     label:string,
@@ -147,12 +146,15 @@ let make = (
 
     let actSearch = () => {
         onTypChange(state.typ)
-        switch makeSearchPattern( ~searchStr=state.patternStr->String.trim, ~ctx=wrkCtx ) {
+        let patternStr = state.patternStr->String.trim
+        let patternVersion = 1
+        let ctx = wrkCtx
+        switch MM_wrk_pattern_search.parsePattern( ~patternStr, ~patternVersion, ~ctx ) {
             | Error(msg) => {
                 setState(setPatternErr(_, Some(msg)))
                 actResultsRetrieved([])
             }
-            | Ok(searchPattern) => {
+            | Ok(_) => {
                 setState(setPatternErr(_, None))
                 openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
                     updateModal(
@@ -168,7 +170,8 @@ let make = (
                         ~isAxiom=None,
                         ~typ=Some(state.typ),
                         ~label=state.label->String.trim,
-                        ~searchPattern,
+                        ~pattern=patternStr,
+                        ~patternVersion,
                         ~isDisc=None,
                         ~isDepr=None,
                         ~isTranDepr=None,
@@ -177,7 +180,9 @@ let make = (
                                 ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                             )
                         )
-                    )->promiseMap(foundLabels => {
+                    )
+                    ->promiseMap(searchRes => searchRes->Array.map(((label,_)) => label))
+                    ->promiseMap(foundLabels => {
                         closeModal(modalRef, modalId)
                         actResultsRetrieved(foundLabels)
                     })

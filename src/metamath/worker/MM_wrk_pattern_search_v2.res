@@ -1,6 +1,10 @@
 module P = MM_wrk_pattern_search_v2_parser
 module MC = MM_context
 
+type matchResult = 
+    | Matched(option<array<array<int>>>) 
+    | NotMatched
+
 type variable = {
     typ: int,
     mutable capVar: int, //captured variable
@@ -426,40 +430,44 @@ let parsePattern = (
     ~symMap:option<Belt_HashMapString.t<constOrVar>>=?, //symMap may be passed as a parameter only for testing
     ~ctx:option<MC.mmContext>=?,
 ):result<array<pattern>,string> => {
-    switch P.parsePattern(text) {
-        | None => Error(`Cannot parse the pattern '${text}'`)
-        | Some(asts) => {
-            let subpatterns:array<result<pattern,string>> = asts->Array.map(ast => {
-                let symMap:result<Belt_HashMapString.t<constOrVar>, string> = switch symMap {
-                    | Some(symMap) => Ok(symMap)
-                    | None => {
-                        makeSymMap(
-                            ast, 
-                            ctx->Option.getExn(~message="parsePattern: either symMap or ctx must be provided.")
-                        )
+    if (text->String.trim->String.length == 0) {
+        Ok([])
+    } else {
+        switch P.parsePattern(text) {
+            | None => Error(`Cannot parse the pattern '${text}'`)
+            | Some(asts) => {
+                let subpatterns:array<result<pattern,string>> = asts->Array.map(ast => {
+                    let symMap:result<Belt_HashMapString.t<constOrVar>, string> = switch symMap {
+                        | Some(symMap) => Ok(symMap)
+                        | None => {
+                            makeSymMap(
+                                ast, 
+                                ctx->Option.getExn(~message="parsePattern: either symMap or ctx must be provided.")
+                            )
+                        }
                     }
-                }
-                symMap->Result.map(astToPattern(ast, _))
-            })
-            subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
-                switch acc {
-                    | Ok(subpatArr) => {
-                        switch subpatRes {
-                            | Ok(subpat) => {
-                                subpatArr->Array.push(subpat)
-                                Ok(subpatArr)
+                    symMap->Result.map(astToPattern(ast, _))
+                })
+                subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
+                    switch acc {
+                        | Ok(subpatArr) => {
+                            switch subpatRes {
+                                | Ok(subpat) => {
+                                    subpatArr->Array.push(subpat)
+                                    Ok(subpatArr)
+                                }
+                                | Error(msg) => Error(msg)
                             }
-                            | Error(msg) => Error(msg)
+                        }
+                        | Error(prevMsg) => {
+                            switch subpatRes {
+                                | Ok(_) => Error(prevMsg)
+                                | Error(msg) => Error(prevMsg ++ "; " ++ msg)
+                            }
                         }
                     }
-                    | Error(prevMsg) => {
-                        switch subpatRes {
-                            | Ok(_) => Error(prevMsg)
-                            | Error(msg) => Error(prevMsg ++ "; " ++ msg)
-                        }
-                    }
-                }
-            })
+                })
+            }
         }
     }
 }
@@ -535,22 +543,29 @@ let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int
         ->Option.map(convertMatchedIndices(frm, _, pattern.target))
 }
 
-let frameMatchesPatterns = (frm:MC.frame, patterns:array<pattern>):option<array<array<int>>> => {
-    patterns->Array.reduce(
-        Some([]),
-        (idxs,pattern) => {
-            switch idxs {
-                | None => None
-                | Some(idxs) => {
-                    switch frameMatchesPattern(frm, pattern) {
-                        | None => None
-                        | Some(patIdxs) => {
-                            idxs->Array.push(patIdxs)
-                            Some(idxs)
+let frameMatchesPatterns = (frm:MC.frame, patterns:array<pattern>):matchResult => {
+    if (patterns->Array.length == 0) {
+        Matched(None)
+    } else {
+        switch patterns->Array.reduce(
+            Some([]),
+            (idxs,pattern) => {
+                switch idxs {
+                    | None => None
+                    | Some(idxs) => {
+                        switch frameMatchesPattern(frm, pattern) {
+                            | None => None
+                            | Some(patIdxs) => {
+                                idxs->Array.push(patIdxs)
+                                Some(idxs)
+                            }
                         }
                     }
                 }
             }
+        )->Option.map(mergeMatchedIndices) {
+            | Some(idxs) => Matched(Some(idxs))
+            | None => NotMatched
         }
-    )->Option.map(mergeMatchedIndices)
+    }
 }

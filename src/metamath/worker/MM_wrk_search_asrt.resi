@@ -1,7 +1,6 @@
 open MM_context
 open MM_statements_dto
 open MM_wrk_settings
-open MM_wrk_pattern_search_v1
 
 let procName: string
 
@@ -15,12 +14,14 @@ let doSearchAssertions: (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
-    ~searchPattern:array<stmtPattern>,
+    ~pattern:string,
+    ~patternVersion:int,
+    ~ctx:mmContext,
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
     ~onProgress:float=>unit=?
-) => array<frame>
+) => array<(frame,option<array<array<int>>>)>
 
 let searchAssertions: (
     ~settingsVer:int,
@@ -30,12 +31,13 @@ let searchAssertions: (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
-    ~searchPattern:array<stmtPattern>,
+    ~pattern:string,
+    ~patternVersion:int,
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
     ~onProgress:float=>unit,
-) => promise<array<string>>
+) => promise<array<(string,option<array<array<int>>>)>>
 
 let frameToStmtsDto: (
     ~wrkCtx:mmContext,

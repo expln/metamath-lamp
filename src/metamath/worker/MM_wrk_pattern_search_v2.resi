@@ -1,3 +1,7 @@
+type matchResult = 
+    | Matched(option<array<array<int>>>) 
+    | NotMatched
+
 type variable = {
     typ: int,
     mutable capVar: int, //captured variable
@@ -34,7 +38,7 @@ let parsePattern: (
     ~ctx:MM_context.mmContext=?
 ) => result<array<pattern>,string>
 
-let frameMatchesPatterns: (MM_context.frame, array<pattern>) => option<array<array<int>>>
+let frameMatchesPatterns: (MM_context.frame, array<pattern>) => matchResult
 
 //FOR TESTING
 

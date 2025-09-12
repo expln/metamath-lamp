@@ -177,15 +177,15 @@ let make = React.memoCustomCompareProps(({
             actRefreshOnPreCtxDataChange()
         } else {
             setApplyFiltersRequested(_ => false)
-            let searchPattern = MM_wrk_pattern_search_v1.makeSearchPattern(
-                ~searchStr=patternFilterStr->String.trim,
-                ~ctx=preCtxData.ctxV.val.full
-            )
+            let patternStr = patternFilterStr->String.trim
+            let patternVersion = 1
+            let ctx = preCtxData.ctxV.val.full
+            let searchPattern = MM_wrk_pattern_search.parsePattern( ~patternStr, ~patternVersion, ~ctx )
             switch searchPattern {
                 | Error(msg) => setPatternFilterErr(_ => Some(msg))
                 | Ok(searchPattern) => {
                     setPatternFilterErr(_ => None)
-                    if (searchPattern->Array.length == 0) {
+                    if (MM_wrk_pattern_search.patternIsEmpty(searchPattern)) {
                         setFilteredLabels(_ => {
                             MM_wrk_search_asrt.doSearchAssertions(
                                 ~allFramesInDeclarationOrder,
@@ -197,11 +197,14 @@ let make = React.memoCustomCompareProps(({
                                     )
                                 }), 
                                 ~label=labelFilter, 
-                                ~searchPattern=[],
+                                ~pattern="",
+                                ~patternVersion,
+                                ~ctx,
                                 ~isDisc=discFilter,
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
                             )
+                            ->Array.map(((label,_)) => label)
                             ->filterByDescr
                             ->filterByDependsOn
                             ->Array.toSorted(sorting.comparator)
@@ -227,7 +230,8 @@ let make = React.memoCustomCompareProps(({
                                     )
                                 }),
                                 ~label=labelFilter,
-                                ~searchPattern,
+                                ~pattern=patternStr,
+                                ~patternVersion,
                                 ~isDisc=discFilter,
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
@@ -236,7 +240,9 @@ let make = React.memoCustomCompareProps(({
                                         ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                                     )
                                 )
-                            )->promiseMap(foundLabels => {
+                            )
+                            ->promiseMap(searchRes => searchRes->Array.map(((label,_)) => label))
+                            ->promiseMap(foundLabels => {
                                 let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
                                 setFilteredLabels(_ => {
                                     allFramesInDeclarationOrder

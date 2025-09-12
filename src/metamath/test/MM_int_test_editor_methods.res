@@ -15,7 +15,6 @@ open MM_int_test_utils
 open MM_substitution
 open Common
 open MM_bottom_up_prover_params
-open MM_wrk_pattern_search_v1
 
 type rootStmtsToUse =
     | AllStmts
@@ -243,14 +242,13 @@ let addStmtsBySearch = (
                 ~isAxiom=None,
                 ~typ=Some(preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-"))),
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
-                ~searchPattern=makeSearchPattern(
-                    ~searchStr=filterPattern->Belt_Option.getWithDefault(""),
-                    ~ctx=preCtx
-                )->Result.getExn,
+                ~pattern=filterPattern->Belt_Option.getWithDefault(""),
+                ~patternVersion=1,
+                ~ctx=preCtx,
                 ~isDisc=None,
                 ~isDepr=None,
                 ~isTranDepr=None,
-            )->Array.map(frame => frameToStmtsDto(~wrkCtx, ~frame))
+            )->Array.map(((frame,_)) => frameToStmtsDto(~wrkCtx, ~frame))
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
                     raise(MmException({

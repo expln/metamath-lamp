@@ -4,8 +4,7 @@ open MM_wrk_ctx_proc
 open MM_statements_dto
 open MM_progress_tracker
 open MM_wrk_settings
-open Expln_utils_common
-open MM_wrk_pattern_search_v1
+open MM_wrk_pattern_search
 
 let procName = "MM_wrk_search_asrt"
 
@@ -14,7 +13,9 @@ type request =
         isAxiom:option<bool>,
         typ:option<int>, 
         label:string, 
-        searchPattern:array<stmtPattern>,
+        pattern:string,
+        patternVersion:int,
+        ctx:mmContext,
         isDisc:option<bool>,
         isDepr:option<bool>,
         isTranDepr:option<bool>,
@@ -22,12 +23,12 @@ type request =
 
 type response =
     | OnProgress(float)
-    | SearchResult(array<string>)
+    | SearchResult(array<(string,option<array<array<int>>>)>)
 
 let reqToStr = req => {
     switch req {
-        | FindAssertions({label, searchPattern}) => 
-            `FindAssertions(label="${label}", pattern=${stringify(searchPattern)})`
+        | FindAssertions({label, pattern}) => 
+            `FindAssertions(label="${label}", pattern=${pattern})`
     }
 }
 
@@ -46,12 +47,13 @@ let searchAssertions = (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
-    ~searchPattern:array<stmtPattern>,
+    ~pattern:string,
+    ~patternVersion:int,
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
     ~onProgress:float=>unit,
-): promise<array<string>> => {
+): promise<array<(string,option<array<array<int>>>)>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
@@ -61,7 +63,9 @@ let searchAssertions = (
             ~varsText="",
             ~disjText="",
             ~procName,
-            ~initialRequest = FindAssertions({ isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, }),
+            ~initialRequest = FindAssertions({
+                isAxiom, typ, label, pattern, patternVersion, ctx:preCtx, isDisc, isDepr, isTranDepr
+            }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -137,19 +141,24 @@ let doSearchAssertions = (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
-    ~searchPattern:array<stmtPattern>,
+    ~pattern:string,
+    ~patternVersion:int,
+    ~ctx:mmContext,
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
     ~onProgress:option<float=>unit>=?
-):array<frame> => {
+):array<(frame,option<array<array<int>>>)> => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat
-    let mapping = Belt_HashMapInt.make(~hintSize=10)
+    let pattern = switch parsePattern(~patternStr=pattern, ~patternVersion, ~ctx) {
+        | Error(msg) => Exn.raiseError(`Cannot parse the search pattern in doSearchAssertions: ${msg}`)
+        | Ok(pattern) => pattern
+    }
 
     let labelTrim = label->String.trim->String.toLowerCase
-    allFramesInDeclarationOrder->Array.filter(frame => {
+    allFramesInDeclarationOrder->Array.map(frame => {
         switch onProgress {
             | None => ()
             | Some(_) => {
@@ -159,31 +168,41 @@ let doSearchAssertions = (
                 )
             }
         }
-        isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
+        let matched = isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
             && typ->Option.mapOr( true, typ => typ == frame.asrt->Array.getUnsafe(0) )
             && frame.label->String.toLowerCase->String.includes(labelTrim)
             && (threeStateBoolMatchesTwoStateBool(isDisc, frame.isDisc))
             && (threeStateBoolMatchesTwoStateBool(isDepr, frame.isDepr))
             && (threeStateBoolMatchesTwoStateBool(isTranDepr, frame.isTranDepr))
-            && frameMatchesPattern(~frame, ~searchPattern, ~mapping)
-    })
+        if (matched) {
+            switch frameMatchesPattern(frame, pattern) {
+                | NotMatched => None
+                | Matched(idxs) => Some((frame,idxs))
+            }
+        } else {
+            None
+        }
+    })->Array.filter(res => res->Option.isSome)
+        ->Array.map(Option.getExn(_))
 }
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr}) => {
+        | FindAssertions({isAxiom, typ, label, pattern, patternVersion, ctx, isDisc, isDepr, isTranDepr}) => {
             let filteredFrames = doSearchAssertions(
                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
                 ~isAxiom,
                 ~typ,
                 ~label,
-                ~searchPattern,
+                ~pattern,
+                ~patternVersion,
+                ~ctx,
                 ~isDisc,
                 ~isDepr,
                 ~isTranDepr,
                 ~onProgress = pct => sendToClient(OnProgress(pct))
             )
-            sendToClient(SearchResult(filteredFrames->Array.map(frame => frame.label)))
+            sendToClient(SearchResult(filteredFrames->Array.map(((frame,idxs)) => (frame.label,idxs))))
         }
     }
 }
