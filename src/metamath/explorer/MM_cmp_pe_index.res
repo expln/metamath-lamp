@@ -178,7 +178,7 @@ let make = React.memoCustomCompareProps(({
         } else {
             setApplyFiltersRequested(_ => false)
             let patternStr = patternFilterStr->String.trim
-            let patternVersion = 1
+            let patternVersion = 2
             let ctx = preCtxData.ctxV.val.full
             let searchPattern = MM_wrk_pattern_search.parsePattern( ~patternStr, ~patternVersion, ~ctx )
             switch searchPattern {

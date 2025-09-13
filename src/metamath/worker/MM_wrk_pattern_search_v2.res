@@ -35,11 +35,16 @@ type pattern = {
     allSeq: array<symSeq>,
 }
 
+type subSeqMatchRes = {
+    matchBegin:int,
+    matchEnd:int
+}
+
 let getVarType = (varTypes: array<int>, var:int):int => {
     varTypes[var]->Option.getExn(~message=`No type is defiend for var ${var->Int.toString}`)
 }
 
-let exprSymMatchesSeqConst = (exprSym:int, seqConst:int, varTypes: array<int>):bool => {
+let exprSymMatchesSeqConst = (~exprSym:int, ~seqConst:int, ~varTypes: array<int>):bool => {
     exprSym == seqConst || exprSym >= 0 && varTypes->getVarType(exprSym) == seqConst
 }
 
@@ -58,7 +63,7 @@ let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>,
             let seqSym:sym = seq->Array.getUnsafe(seqI.contents)
             let exprSym:int = expr->Array.getUnsafe(exprI.contents)
             switch seqSym.constOrVar {
-                | Const(seqConst) => matched := exprSymMatchesSeqConst(exprSym, seqConst, varTypes)
+                | Const(seqConst) => matched := exprSymMatchesSeqConst(~exprSym, ~seqConst, ~varTypes)
                 | Var({typ:seqVarType}) => matched := exprSym >= 0 && varTypes->getVarType(exprSym) == seqVarType
             }
             exprI := exprI.contents + 1
@@ -145,7 +150,7 @@ and let exprIncludesConstUnorderedSeq = (
 
 let exprIncludesVarAdjSeq = (
     ~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>,
-    ~next:int=>unit
+    ~next:subSeqMatchRes=>unit
 ):unit => {
     let begin = ref(startIdx)
     let maxBegin = expr->Array.length - seq->Array.length
@@ -159,7 +164,7 @@ let exprIncludesVarAdjSeq = (
             let seqSym:sym = seq->Array.getUnsafe(seqI.contents)
             let exprSym:int = expr->Array.getUnsafe(exprI.contents)
             switch seqSym.constOrVar {
-                | Const(seqConst) => matched := exprSymMatchesSeqConst(exprSym, seqConst, varTypes)
+                | Const(seqConst) => matched := exprSymMatchesSeqConst(~exprSym, ~seqConst, ~varTypes)
                 | Var(seqVar) => {
                     if (seqVar.capVar >= 0) {
                         matched := seqVar.capVar == exprSym
@@ -178,7 +183,7 @@ let exprIncludesVarAdjSeq = (
             seqI := seqI.contents + 1
         }
         if (matched.contents) {
-            next(begin.contents + maxSeqI)
+            next({matchBegin:begin.contents, matchEnd:begin.contents + maxSeqI})
         }
         seqI := Math.Int.min(seqI.contents, maxSeqI)
         while (seqI.contents >= 0) {
@@ -201,16 +206,20 @@ let exprIncludesVarAdjSeq = (
 
 let rec exprIncludesVarSeq = (
     ~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~varTypes:array<int>,
-    ~next:int=>unit, ~stop:ref<bool>
+    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>
 ):unit => {
     if (startIdx < expr->Array.length && startIdx < seq.minConstMismatchIdx) {
         switch seq.elems {
             | Adjacent(seq) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~seq, ~varTypes, ~next)
             | Ordered(childElems) => {
-                exprIncludesVarOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~childElemIdx=0, ~stop)
+                exprIncludesVarOrderedSeq(
+                    ~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~res=None, ~childElemIdx=0, ~stop
+                )
             }
             | Unordered(childElems) => {
-                exprIncludesVarUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next, ~stop)
+                exprIncludesVarUnorderedSeq(
+                    ~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next, ~res=None, ~stop
+                )
             }
         }
     }
@@ -218,35 +227,46 @@ let rec exprIncludesVarSeq = (
 
 and let exprIncludesVarOrderedSeq = (
     ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
-    ~next:int=>unit, ~childElemIdx:int, ~stop:ref<bool>
+    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~childElemIdx:int, ~stop:ref<bool>
 ):unit => {
     if (childElems->Array.length <= childElemIdx) {
-        next(startIdx-1)
-    } else {
+        switch res {
+            | None => Exn.raiseError("exprIncludesVarOrderedSeq: res is None")
+            | Some(res) => next({...res, matchEnd:startIdx-1})
+        }
+    } else if (startIdx < expr->Array.length) {
         let curSeq = childElems->Array.getUnsafe(childElemIdx)
         let begin = ref(startIdx)
         let beginMax = expr->Array.length - curSeq.minLen
         while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
+            let beginCopy = begin.contents
+            begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
             exprIncludesVarSeq(
-                ~expr, ~startIdx=begin.contents, ~seq=curSeq, ~varTypes,
-                ~next = lastMatchedIdx => exprIncludesVarOrderedSeq(
-                    ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes,
-                    ~next, ~childElemIdx=childElemIdx+1, ~stop
-                ), 
+                ~expr, ~startIdx=beginCopy, ~seq=curSeq, ~varTypes,
+                ~next = curSeqRes => {
+                    exprIncludesVarOrderedSeq(
+                        ~expr, ~startIdx=curSeqRes.matchEnd+1, ~childElems, ~varTypes, ~next,
+                        ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
+                        ~childElemIdx=childElemIdx+1, ~stop
+                    )
+                    begin := curSeqRes.matchBegin + 1
+                }, 
                 ~stop
             )
-            begin := begin.contents + 1
         }
     }
 }
 
 and let exprIncludesVarUnorderedSeq = (
     ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>,
-    ~next:int=>unit, ~stop:ref<bool>
+    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~stop:ref<bool>
 ):unit => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
-        next(startIdx-1)
-    } else {
+        switch res {
+            | None => Exn.raiseError("exprIncludesVarUnorderedSeq: res is None")
+            | Some(res) => next({...res, matchEnd:startIdx-1})
+        }
+    } else if (startIdx < expr->Array.length) {
         let i = ref(0)
         let maxI = childElems->Array.length - 1
         while (!stop.contents && i.contents <= maxI) {
@@ -255,18 +275,22 @@ and let exprIncludesVarUnorderedSeq = (
                 let begin = ref(startIdx)
                 let beginMax = expr->Array.length - curSeq.minLen
                 while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
+                    let beginCopy = begin.contents
+                    begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
                     exprIncludesVarSeq(
-                        ~expr, ~startIdx=begin.contents, ~seq=curSeq, ~varTypes,
-                        ~next = lastMatchedIdx => {
+                        ~expr, ~startIdx=beginCopy, ~seq=curSeq, ~varTypes,
+                        ~next = curSeqRes => {
                             passedSeqIdxs->Array.push(i.contents)
                             exprIncludesVarUnorderedSeq(
-                                ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs, ~next, ~stop
+                                ~expr, ~startIdx=curSeqRes.matchEnd+1, ~childElems, ~varTypes, ~passedSeqIdxs, ~next,
+                                ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
+                                ~stop
                             )
                             passedSeqIdxs->Array.pop->ignore
+                            begin := curSeqRes.matchBegin + 1
                         },
                         ~stop
                     )
-                    begin := begin.contents + 1
                 }
             }
             i := i.contents + 1
@@ -295,13 +319,11 @@ let exprIncludesSeq = (
         let stop = ref(false)
         exprIncludesVarSeq(
             ~expr, ~startIdx=0, ~seq, ~varTypes, 
-            ~next = lastMatchedIdx => {
-                if (lastMatchedIdx >= 0) {
-                    stop := true
-                    switch res.contents {
-                        | None => res := Some(getMatchedIndices(seq))
-                        | Some(_) => Exn.raiseError("next() is called twice in exprIncludesSeq.")
-                    }
+            ~next = _ => {
+                stop := true
+                switch res.contents {
+                    | None => res := Some(getMatchedIndices(seq))
+                    | Some(_) => Exn.raiseError("next() is called twice in exprIncludesSeq.")
                 }
             },
             ~stop
