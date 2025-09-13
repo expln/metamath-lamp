@@ -289,6 +289,7 @@ let make = React.memoCustomCompareProps( ({
                                         stmt=hyp
                                         symColors=state.symColors
                                         symRename=state.symRename
+                                        symsToHighlight={matchedIdxs->Option.flatMap(idxs => idxs[i])}
                                         editStmtsByLeftClick
                                         openExplorer
                                     />
@@ -313,6 +314,7 @@ let make = React.memoCustomCompareProps( ({
                 stmt=state.asrt
                 symColors=state.symColors
                 symRename=state.symRename
+                symsToHighlight={matchedIdxs->Option.flatMap(idxs => idxs[idxs->Array.length-1])}
                 editStmtsByLeftClick
                 openExplorer
             />
