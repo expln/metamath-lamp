@@ -28,6 +28,7 @@ type props = {
 
     frame:frame,
     order:option<int>,
+    matchedIdxs:option<MM_wrk_pattern_search.matchedIndices>,
     openFrameExplorer:option<string=>unit>,
     openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
@@ -42,6 +43,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.symColors === b.symColors
     && a.frame === b.frame
     && a.order === b.order
+    && a.matchedIdxs === b.matchedIdxs
 }
 
 let make = React.memoCustomCompareProps( ({
@@ -57,6 +59,7 @@ let make = React.memoCustomCompareProps( ({
     parenCnt,
     frame,
     order,
+    matchedIdxs,
     openFrameExplorer,
     openExplorer,
     addAsrtByLabel,

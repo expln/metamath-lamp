@@ -23,7 +23,7 @@ type request =
 
 type response =
     | OnProgress(float)
-    | SearchResult(array<(string,option<array<array<int>>>)>)
+    | SearchResult(array<(string,option<matchedIndices>)>)
 
 let reqToStr = req => {
     switch req {
@@ -53,7 +53,7 @@ let searchAssertions = (
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
     ~onProgress:float=>unit,
-): promise<array<(string,option<array<array<int>>>)>> => {
+): promise<array<(string,option<matchedIndices>)>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
@@ -148,7 +148,7 @@ let doSearchAssertions = (
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
     ~onProgress:option<float=>unit>=?
-):array<(frame,option<array<array<int>>>)> => {
+):array<(frame,option<matchedIndices>)> => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat

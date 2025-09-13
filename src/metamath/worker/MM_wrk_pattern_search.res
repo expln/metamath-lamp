@@ -5,8 +5,10 @@ type pattern =
     | V1({pattern:array<PS1.stmtPattern>, mapping:Belt_HashMapInt.t<int>})
     | V2(array<PS2.pattern>)
 
+type matchedIndices = array<array<int>>
+
 type matchResult =
-    | Matched(option<array<array<int>>>)
+    | Matched(option<matchedIndices>)
     | NotMatched
 
 let frameMatchesPattern = (frame:MM_context.frame, pattern:pattern):matchResult => {

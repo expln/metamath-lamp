@@ -16,7 +16,7 @@ type state = {
     typ: int,
     patternStr: string,
     patternErr: option<string>,
-    results: option<array<string>>,
+    results: option<array<(string,option<MM_wrk_pattern_search.matchedIndices>)>>,
     resultsPerPage:int,
     resultsMaxPage:int,
     resultsPage:int,
@@ -46,7 +46,7 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
 
 let setResults = (
     st,
-    ~results: array<string>,
+    ~results: array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,
 ):state => {
     let maxPage = Math.Int.ceil(results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
@@ -133,7 +133,7 @@ let make = (
         None
     }, [state.resultsPage])
 
-    let actResultsRetrieved = (results:array<string>) => {
+    let actResultsRetrieved = (results:array<(string,option<MM_wrk_pattern_search.matchedIndices>)>) => {
         setState(setResults(_, ~results))
     }
 
@@ -181,7 +181,6 @@ let make = (
                             )
                         )
                     )
-                    ->promiseMap(searchRes => searchRes->Array.map(((label,_)) => label))
                     ->promiseMap(foundLabels => {
                         closeModal(modalRef, modalId)
                         actResultsRetrieved(foundLabels)
@@ -203,7 +202,10 @@ let make = (
         switch state.results {
             | None => ()
             | Some(results) => {
-                onResultsSelected(results->Array.filterWithIndex((_,i) => state.checkedResultsIdx->Array.includes(i)))
+                onResultsSelected(
+                    results->Array.filterWithIndex((_,i) => state.checkedResultsIdx->Array.includes(i))
+                        ->Array.map(((label,_)) => label)
+                )
             }
         }
     }
@@ -312,7 +314,7 @@ let make = (
         Promise.resolve(Ok(()))
     }
 
-    let rndFrameSummary = (label:string) => {
+    let rndFrameSummary = ((label,matchedIdxs):(string,option<MM_wrk_pattern_search.matchedIndices>)) => {
         switch preCtxData.ctxV.val.min->getFrame(label) {
             | None => React.null
             | Some(frame) => {
@@ -327,6 +329,7 @@ let make = (
                     parenCnt=preCtxData.parenCnt
                     frame
                     order=None
+                    matchedIdxs
                     typeColors=preCtxData.typeColors
                     typeOrderInDisj=preCtxData.typeOrderInDisj
                     editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick

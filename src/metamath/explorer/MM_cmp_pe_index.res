@@ -9,6 +9,7 @@ open Common
 open Local_storage_utils
 open Expln_utils_promise
 open MM_wrk_sort_asrts
+open MM_wrk_pattern_search
 
 type props = {
     modalRef:modalRef,
@@ -28,6 +29,11 @@ let propsAreSame = (a:props, b:props):bool => {
     a.preCtxData === b.preCtxData
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
     && a.tabTitle == b.tabTitle
+}
+
+type sorting = {
+    sortBys:sortBys, 
+    comparator:Expln_utils_common.comparator<frame>
 }
 
 let make = React.memoCustomCompareProps(({
@@ -65,7 +71,7 @@ let make = React.memoCustomCompareProps(({
     let (deprFilter, setDeprFilter) = React.useState(() => None)
     let (tranDeprFilter, setTranDeprFilter) = React.useState(() => None)
 
-    let (sorting, setSorting) = React.useState(() => {sortBys:[], comparator:(_,_)=>Ordering.equal})
+    let (sorting, setSorting) = React.useState(():sorting => {sortBys:[], comparator:(_,_)=>Ordering.equal})
 
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
 
@@ -93,10 +99,10 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let filterByDescr = (frames:array<frame>):array<frame> => {
+    let filterByDescr = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
         let descrFilterStrNorm = normalizeDescr(descrFilterStr)
         if (descrFilterStrNorm->String.length > 0) {
-            frames->Array.filter(frame => {
+            frames->Array.filter(((frame,_)) => {
                 frame.descrNorm->Belt.Option.mapWithDefault(false, descrNorm => {
                     descrNorm->String.includes(descrFilterStrNorm)
                 })
@@ -106,20 +112,21 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let filterByDependsOn = (frames:array<frame>):array<frame> => {
+    let filterByDependsOn = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
         let dependsOn:Belt_HashSetString.t = dependsOnFilter
             ->Common.getSpaceSeparatedValuesAsArray
             ->Belt_HashSetString.fromArray
         if (dependsOn->Belt_HashSetString.isEmpty) {
             frames
         } else {
-            let res:array<frame> = []
-            frames->Array.forEach(frame => {
+            let res:array<(frame,option<matchedIndices>)> = []
+            frames->Array.forEach(frameAndIdxs => {
+                let (frame, _) = frameAndIdxs
                 switch frame.proof {
                     | None => ()
                     | Some(Uncompressed({labels:parentLabels})) | Some(Compressed({labels:parentLabels})) => {
                         if (parentLabels->Array.some(Belt_HashSetString.has(dependsOn, _))) {
-                            res->Array.push(frame)
+                            res->Array.push(frameAndIdxs)
                             if (dependsOnTranFilter) {
                                 dependsOn->Belt_HashSetString.add(frame.label)
                             }
@@ -131,8 +138,8 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let mapToLabel = (frames:array<frame>):array<string> => {
-        frames->Array.map(frame => frame.label)
+    let mapToLabel = (frames:array<(frame,option<matchedIndices>)>):array<(string,option<matchedIndices>)> => {
+        frames->Array.map(((frame,idxs)) => (frame.label,idxs))
     }
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
@@ -147,7 +154,12 @@ let make = React.memoCustomCompareProps(({
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
             ->Expln_utils_common.sortInPlaceWith(Expln_utils_common.comparatorByInt(frm => frm.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
-        setFilteredLabels(_ => allFramesInDeclarationOrder->Array.toSorted(sorting.comparator)->mapToLabel)
+        setFilteredLabels(_ => {
+            allFramesInDeclarationOrder
+                ->Array.toSorted(sorting.comparator)
+                ->Array.map(frame => (frame,None))
+                ->mapToLabel
+        })
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
@@ -185,6 +197,7 @@ let make = React.memoCustomCompareProps(({
                 | Error(msg) => setPatternFilterErr(_ => Some(msg))
                 | Ok(searchPattern) => {
                     setPatternFilterErr(_ => None)
+                    let resultComparator = Expln_utils_common.comparatorBy(((frame,_)) => frame, sorting.comparator)
                     if (MM_wrk_pattern_search.patternIsEmpty(searchPattern)) {
                         setFilteredLabels(_ => {
                             MM_wrk_search_asrt.doSearchAssertions(
@@ -204,10 +217,9 @@ let make = React.memoCustomCompareProps(({
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
                             )
-                            ->Array.map(((label,_)) => label)
                             ->filterByDescr
                             ->filterByDependsOn
-                            ->Array.toSorted(sorting.comparator)
+                            ->Array.toSorted(resultComparator)
                             ->mapToLabel
                         })
                     } else {
@@ -241,15 +253,21 @@ let make = React.memoCustomCompareProps(({
                                     )
                                 )
                             )
-                            ->promiseMap(searchRes => searchRes->Array.map(((label,_)) => label))
-                            ->promiseMap(foundLabels => {
-                                let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
+                            ->promiseMap((foundLabels:array<(string,option<matchedIndices>)>) => {
+                                let labelToIdxs = Belt_HashMapString.fromArray(foundLabels)
                                 setFilteredLabels(_ => {
                                     allFramesInDeclarationOrder
-                                        ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
+                                        ->Array.filter(frame => labelToIdxs->Belt_HashMapString.has(frame.label))
+                                        ->Array.map(frame => {
+                                            (
+                                                frame, 
+                                                labelToIdxs->Belt_HashMapString.get(frame.label)
+                                                    ->Option.getExn(~message="Error MM_cmp_pe_index.actApplyFilters[3]")
+                                            )
+                                        })
                                         ->filterByDescr
                                         ->filterByDependsOn
-                                        ->Array.toSorted(sorting.comparator)
+                                        ->Array.toSorted(resultComparator)
                                         ->mapToLabel
                                 })
                                 closeModal(modalRef, modalId)
@@ -504,7 +522,7 @@ let make = React.memoCustomCompareProps(({
     let actSetSorting = (sortBys:sortBys) => {
         setSorting(_ => {
             sortBys,
-            comparator: MM_wrk_sort_asrts.makeComparator(sortBys)
+            comparator: MM_wrk_sort_asrts.makeComparator(sortBys),
         })
     }
 

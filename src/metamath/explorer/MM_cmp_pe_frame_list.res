@@ -24,7 +24,7 @@ type props = {
     syntaxTypes:array<int>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
 
-    labels:array<string>,
+    labels:array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     asrtsPerPage:int,
@@ -110,7 +110,7 @@ let make = React.memoCustomCompareProps(({
         </Row>
     }
 
-    let rndFrameSummary = (label) => {
+    let rndFrameSummary = ((label,matchedIdxs):(string,option<MM_wrk_pattern_search.matchedIndices>)) => {
         switch preCtx->getFrame(label) {
             | None => React.null
             | Some(frame) => {
@@ -126,6 +126,7 @@ let make = React.memoCustomCompareProps(({
                     parenCnt
                     frame
                     order=Some(order)
+                    matchedIdxs
                     typeColors
                     typeOrderInDisj
                     editStmtsByLeftClick

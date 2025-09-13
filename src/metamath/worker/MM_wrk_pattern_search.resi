@@ -1,7 +1,9 @@
 type pattern
 
+type matchedIndices = array<array<int>>
+
 type matchResult = 
-    | Matched(option<array<array<int>>>) 
+    | Matched(option<matchedIndices>) 
     | NotMatched
 
 let parsePattern: (~patternStr:string, ~patternVersion:int, ~ctx:MM_context.mmContext) => result<pattern,string>
