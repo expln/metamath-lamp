@@ -25,6 +25,8 @@ type props = {
     onTabTitleChange:string=>unit,
 }
 
+let defaultPatternVersion = 2
+
 let propsAreSame = (a:props, b:props):bool => {
     a.preCtxData === b.preCtxData
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
@@ -80,6 +82,10 @@ let make = React.memoCustomCompareProps(({
 
     let (asrtsPerPage, setAsrtsPerPage) = useStateFromLocalStorageInt(
         ~key="pe-index-asrts-per-page", ~default=10
+    )
+    let (patternVersion, setPatternVersion) = React.useState(() => defaultPatternVersion)
+    let (highlightMatchedSymbols, setHighlightMatchedSymbols) = useStateFromLocalStorageBool(
+        ~key="pe-index-highlight-matched-symbols", ~default=true
     )
 
     let actClearFilters = (~applyFilters:bool) => {
@@ -190,7 +196,6 @@ let make = React.memoCustomCompareProps(({
         } else {
             setApplyFiltersRequested(_ => false)
             let patternStr = patternFilterStr->String.trim
-            let patternVersion = 2
             let ctx = preCtxData.ctxV.val.full
             let searchPattern = MM_wrk_pattern_search.parsePattern( ~patternStr, ~patternVersion, ~ctx )
             switch searchPattern {
@@ -446,6 +451,27 @@ let make = React.memoCustomCompareProps(({
         })->ignore
     }
 
+    let actOpenPatternSearchParamsDialog = () => {
+        let prevPatternVersion = patternVersion
+        openModalPaneWithTitle(
+            ~modalRef, 
+            ~title="Pattern search parameters",
+            ~content=(~close:unit=>unit) => {
+                <MM_cmp_pattern_search_params
+                    patternVersion
+                    highlightMatchedSymbols
+                    onOk={(~patternVersion:int, ~highlightMatchedSymbols:bool)=>{
+                        close()
+                        setApplyFiltersRequested(_ => prevPatternVersion != patternVersion)
+                        setPatternVersion(_ => Math.Int.max(1,Math.Int.min(patternVersion,2)))
+                        setHighlightMatchedSymbols(_=>highlightMatchedSymbols)
+                    }}
+                    onCancel=close
+                />
+            }
+        )
+    }
+
     let rndIsAxiomFilter = () => {
         <FormControl size=#small>
             <InputLabel id="isAxiomFilter-label">"Assertion type"</InputLabel>
@@ -543,9 +569,17 @@ let make = React.memoCustomCompareProps(({
         )
     }
 
+    let getPatternFieldTitle = ():string => {
+        if (patternVersion == defaultPatternVersion) {
+            "Pattern"
+        } else {
+            `Pattern (version ${patternVersion->Int.toString})`
+        }
+    }
+
     let rndPatternFilter = () => {
         <TextField 
-            label="Pattern"
+            label={getPatternFieldTitle()}
             size=#small
             style=ReactDOM.Style.make(~width="300px", ())
             value=patternFilterStr
@@ -722,6 +756,14 @@ let make = React.memoCustomCompareProps(({
                         >
                             {React.string(`Assertions per page: ${asrtsPerPage->Belt_Int.toString}`)}
                         </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenPatternSearchParamsDialog()
+                            }}
+                        >
+                            {React.string(`Pattern search parameters`)}
+                        </MenuItem>
                     </Menu>
                 }
             }
@@ -761,6 +803,7 @@ let make = React.memoCustomCompareProps(({
                                 parenCnt=preCtxData.parenCnt
                                 syntaxTypes=preCtxData.syntaxTypes
                                 labels=filteredLabels
+                                highlightMatchedSymbols
                                 openFrameExplorer
                                 openExplorer
                                 asrtsPerPage
