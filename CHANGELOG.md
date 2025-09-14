@@ -1,17 +1,18 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### [Version 30](https://expln.github.io/lamp/v30/index.html)
 * Sort assertions on the Explorer tab. https://github.com/expln/metamath-lamp/issues/235
 * Bug fix: Crash when adding statements with "use". https://github.com/expln/metamath-lamp/issues/239
 * Bug fix: DV conditions can oscillate and prevent editing. https://github.com/expln/metamath-lamp/issues/241
-### Version 29
+### [Version 29](https://expln.github.io/lamp/v29/index.html)
 * Add "Depends on" filter to the Explorer tab. 
 This filter allows to quickly find all assertions which depend (directly and transitively) on the given assertion.
-### Version 28
+### [Version 28](https://expln.github.io/lamp/v28/index.html)
 * Support label mode in comments (labels and URLs are clickable in comments).
 * Partially support math mode in comments 
 (additional styling is applied to symbols in math mode in comments, 
 but typesetting is not supported).
 * Usability improvement: add some styling to tabs to make it easier to switch between tabs.
-### Version 27
+### [Version 27](https://expln.github.io/lamp/v27/index.html)
 * Multiple editor tabs. https://github.com/expln/metamath-lamp/issues/153
 * Bug fix: Search by description produces misleading results. https://github.com/expln/metamath-lamp/issues/215
 * Updates in the macros API.
@@ -25,7 +26,7 @@ It automatically reorders steps taking into account dependencies between them.
 * Possibility to reorder [bookmarked steps](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v27/editor/bookmark_steps.md)
 when only bookmarked steps are displayed.
 * Slight changes in the formatting of the completed proof.
-### Version 26
+### [Version 26](https://expln.github.io/lamp/v26/index.html)
 * Enable automatic substitution search to minimize presses of the "Find Substitution" button.
 * Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog.
 * Bug fix: scrolling position changes "randomly" when switching between tabs.
@@ -36,7 +37,7 @@ when only bookmarked steps are displayed.
 * Make it possible to change default parameter values for the bottom-up prover.
 * Fix a bug in "Find substitution by unification".
 * Add a "Restore default settings" button to the Settings tab.
-### Version 25
+### [Version 25](https://expln.github.io/lamp/v25/index.html)
 * Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor.
 https://github.com/expln/metamath-lamp/issues/199
 * Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/search_by_pattern.md):
@@ -67,13 +68,13 @@ This is an equivalent of using the Search button in the Editor, but more handy i
 * Changes in the API of the Fragment Transform feature.
 * Make it possible to run a macro from the UI.
 * Migrate to ReScript 11. No functional changes.
-### Version 24
+### [Version 24](https://expln.github.io/lamp/v24/index.html)
 * Add a new validation in the Editor: "Any statement must begin with a constant".
-### Version 23
+### [Version 23](https://expln.github.io/lamp/v23/index.html)
 * Add more info to the [Merge dialog](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/merge_similar_steps.md) to understand easier what statement to use https://github.com/expln/metamath-lamp/issues/188
 * Implement the feature of Macros in the experimental mode (this allows to automate certain actions in Metamath-lamp using custom JavaScript code). 
   In this version it is not possible to run a macro from the UI.
-### Version 22
+### [Version 22](https://expln.github.io/lamp/v22/index.html)
 * Support variables in the [pattern search](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/search_by_pattern.md) (https://github.com/expln/metamath-lamp/issues/13)
 * Implement the "[Delete unrelated steps](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/delete_unrelated_steps.md)" feature in the Editor.
 * Implement the "[Rename hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/labels_for_hypotheses.md)" 
@@ -82,24 +83,24 @@ feature in the Editor.
 * Usability improvement: Add empty space at the bottom of the editor for longer proofs.
 * Usability improvement: Allow sorting by "Number of new steps" in the Bottom-up prover dialog.
 * Set the default value of "Allow new variables" in the bottom-up prover to False https://github.com/expln/metamath-lamp/issues/180
-### Version 21
+### [Version 21](https://expln.github.io/lamp/v21/index.html)
 * Bug fix: Unify hangs for certain statements/theorems https://github.com/expln/metamath-lamp/issues/175
-### Version 20
+### [Version 20](https://expln.github.io/lamp/v20/index.html)
 * Always sort variables in disjoints according to the specified order https://github.com/expln/metamath-lamp/issues/172
 * Allow opening [multiple Explorer tabs](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/explorer/multiple_explorer_tabs.md) 
 by clicking the "search" button on a selected fragment.
-### Version 19
+### [Version 19](https://expln.github.io/lamp/v19/index.html)
 * Change the order in which assertions are selected by the prover https://github.com/expln/metamath-lamp/issues/163
 * Bug fix: Bottom-up prover adds unnecessary disjoints https://github.com/expln/metamath-lamp/issues/166
 * Usability improvement: Make it possible to manually add disjoints on mobile https://github.com/expln/metamath-lamp/issues/164
-### Version 18
+### [Version 18](https://expln.github.io/lamp/v18/index.html)
 * Implement ["Fragment Transformers"](https://lamp-guide.metamath.org/#transformers-more-than-meets-the-eye) (https://github.com/expln/metamath-lamp/issues/121) 
-### Version 17
+### [Version 17](https://expln.github.io/lamp/v17/index.html)
 * Implement rules how to work with `discouraged`/`deprecated`/`transitively deprecated` assertions https://github.com/expln/metamath-lamp/issues/31 https://github.com/expln/metamath-lamp/issues/111
 * Add "Duplicate up" button in the Editor https://github.com/expln/metamath-lamp/issues/154
 * Usability improvement: When substituting, always use the most recent selections https://github.com/expln/metamath-lamp/issues/155
 * In the Explorer allow selection of final type https://github.com/expln/metamath-lamp/issues/111
-### Version 16
+### [Version 16](https://expln.github.io/lamp/v16/index.html)
 * Preload existing proofs into the editor https://github.com/expln/metamath-lamp/issues/8
 * For goal labels, apply same strict label validation rules as for hypotheses https://github.com/expln/metamath-lamp/issues/81
 * Make it more obvious how to get a completed proof https://github.com/expln/metamath-lamp/issues/11
@@ -109,7 +110,7 @@ with one merge button click https://github.com/expln/metamath-lamp/issues/149
 * Usability improvement: Replacement fields should use selections consistently in the Substitution dialog https://github.com/expln/metamath-lamp/issues/82
 * Full unification in the Substitution dialog https://github.com/expln/metamath-lamp/pull/147
 * Add a "Reset editor content" menu item in the Editor https://github.com/expln/metamath-lamp/issues/21
-### Version 15
+### [Version 15](https://expln.github.io/lamp/v15/index.html)
 * Automate creating of [labels for hypotheses](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/v26/editor/labels_for_hypotheses.md) (https://github.com/expln/metamath-lamp/issues/32)
 * Make it possible to switch on/off parentheses autocomplete https://github.com/expln/metamath-lamp/issues/64
 * Usability improvement: Open proof explorer by clicking refs in justifications https://github.com/expln/metamath-lamp/issues/99
@@ -117,8 +118,8 @@ with one merge button click https://github.com/expln/metamath-lamp/issues/149
 * Usability improvement: Allow shrinking to a single symbol in fragment selector https://github.com/expln/metamath-lamp/issues/112
 * UI improvement: In visualizations, don't repeat if conclusion is all constants https://github.com/expln/metamath-lamp/issues/115
 * Bug fix: Alt+click doesn't edit label and step type when "long click" is enabled https://github.com/expln/metamath-lamp/issues/138
-### Version 14
+### [Version 14](https://expln.github.io/lamp/v14/index.html)
 * The undo/redo feature in the editor https://github.com/expln/metamath-lamp/pull/133
-### Version 13
+### [Version 13](https://expln.github.io/lamp/v13/index.html)
 * "paste" command for statement fragments https://github.com/expln/metamath-lamp/pull/130
 * Add cancel button for modifying step type https://github.com/expln/metamath-lamp/pull/132
