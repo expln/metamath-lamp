@@ -748,21 +748,21 @@ describe("convertMatchedIndices", () => {
         )
     })
     it("converts indices for Asrt target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2], Asrt), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Asrt), [[],[],[0]], "case 4" )
         assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Asrt), [[0]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [15,19], 
+                [0,1], 
                 Asrt
             ),
-            [[],[],[],[0,4]],
+            [[],[],[],[0,1]],
             "case 6"
         )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [15,16,17], 
+                [0,1,2], 
                 Asrt
             ),
             [[],[],[],[0,1,2]],
@@ -771,7 +771,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [16,17,18], 
+                [1,2,3], 
                 Asrt
             ),
             [[],[],[],[1,2,3]],
@@ -780,7 +780,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [17,18,19], 
+                [2,3,4], 
                 Asrt
             ),
             [[],[],[],[2,3,4]],
@@ -789,7 +789,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [16,18], 
+                [1,3], 
                 Asrt
             ),
             [[],[],[],[1,3]],

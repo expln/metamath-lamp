@@ -530,10 +530,9 @@ let convertMatchedIndices = (frm:MC.frame, idxs:array<int>, target:patternTarget
             res
         }
         | Asrt => {
-            let hypLenSum = hyps->Array.map(hyp => hyp.expr->Array.length)->Array.reduce(0, (s,l) => s + l)
             let curResArr = res->Array.getUnsafe(numOfHyps)
             while (idxI.contents <= maxIdxI) {
-                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum)
+                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents))
                 idxI := idxI.contents + 1
             }
             res
