@@ -818,3 +818,105 @@ describe("mergeMatchedIndices", () => {
         )
     })
 })
+
+describe("validatePattern", () => {
+    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
+    let (ast, _) = MM_parser.parseMmFile(~mmFileContent=mmFileText)
+    let ctx = MM_context.loadContext(ast)
+    it("is not a contant or variable", () => {
+        assertEq( 
+            validatePattern(~text="t = rr", ~ctx), 
+            Some("'rr' - is not a contant or variable") 
+        )
+    })
+    it("is not a contant or variable (negative)", () => {
+        assertEq( 
+            validatePattern(~text="t = r", ~ctx), 
+            None
+        )
+    })
+
+    it("all control tokens must start with $", () => {
+        assertEq( 
+            validatePattern(~text="+$ t = r", ~ctx), 
+            Some("'+$' - all control tokens must start with '$'") 
+        )
+    })
+    it("all control tokens must start with $ (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$+ t = r", ~ctx), 
+            None
+        )
+    })
+
+    it("invalid flag", () => {
+        assertEq( 
+            validatePattern(~text="$~ t = r", ~ctx), 
+            Some("'$~' - invalid flag '~'") 
+        )
+    })
+    it("invalid flag (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$a+ t = r", ~ctx), 
+            None
+        )
+    })
+
+    it("flags 'h' and 'a' cannot be used together", () => {
+        assertEq( 
+            validatePattern(~text="$ha t = r", ~ctx), 
+            Some("'$ha' - flags 'h' and 'a' cannot be used together") 
+        )
+    })
+    it("flags 'h' and 'a' cannot be used together (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$h- t = r", ~ctx), 
+            None
+        )
+    })
+
+    it("flags '+' and '-' cannot be used together", () => {
+        assertEq( 
+            validatePattern(~text="$[+- t = r $]", ~ctx), 
+            Some("'$[+-' - flags '+' and '-' cannot be used together") 
+        )
+    })
+    it("flags '+' and '-' cannot be used together (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$[+ $[- t = r $] $]", ~ctx), 
+            None
+        )
+    })
+
+    it("parentheses mismatch: missing parenthesis", () => {
+        assertEq( 
+            validatePattern(~text="$[ $[ t = r $]", ~ctx), 
+            Some("parentheses mismatch") 
+        )
+    })
+    it("parentheses mismatch: redundant parenthesis", () => {
+        assertEq( 
+            validatePattern(~text="$[ $[ t = r $] $] $]", ~ctx), 
+            Some("parentheses mismatch") 
+        )
+    })
+    it("parentheses mismatch (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$[ $[ t = r $] $]", ~ctx), 
+            None
+        )
+    })
+
+    it("when multiple patterns are specified, each pattern must begin with $", () => {
+        assertEq( 
+            validatePattern(~text="t = r $a r = s", ~ctx), 
+            Some("when multiple patterns are specified, each pattern must begin with $") 
+        )
+    })
+    it("when multiple patterns are specified, each pattern must begin with $ (negative)", () => {
+        assertEq( 
+            validatePattern(~text="  $ t = r $a r = s ", ~ctx), 
+            None
+        )
+    })
+})

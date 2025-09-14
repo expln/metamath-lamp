@@ -450,8 +450,7 @@ let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<c
 let checkControlToken = (tok:string, errors:array<string>):unit => {
     if (!(tok->String.startsWith("$"))) {
         errors->Array.push(`'${tok}' - all control tokens must start with '$'`)
-    }
-    if (!(
+    } else if (!(
         tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.openParenthesis || tok == P.closeParenthesis
     )) {
         let flags = tok->String.substringToEnd(~start=tok->String.startsWith(P.openParenthesis)?2:1)
