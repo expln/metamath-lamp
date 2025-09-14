@@ -156,7 +156,7 @@ let rndSymbol = (
             }
             let style = ReactDOM.Style.make( 
                 ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, 
-                ~boxShadow=?(isHighlighted?Some("0 0 2px 2px rgb(255, 179, 0)"):None),
+                ~boxShadow=?(isHighlighted?Some("0 0 2px 1px orange"):None),
                 () 
             ) 
             if (longClickEnabled) {
