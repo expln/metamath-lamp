@@ -437,13 +437,111 @@ let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<c
                     }))
                 }
             }
-            | Some(F) | Some(E) | Some(A) | Some(P) | None => errors->Array.push(`$'{sym}' is not a math symbol`)
+            | Some(F) | Some(E) | Some(A) | Some(P) | None => errors->Array.push(`'${sym}' is not a math symbol`)
         }
     })
     if (errors->Array.length == 0) {
         Ok(symMap)
     } else {
         Error(errors->Array.join("; "))
+    }
+}
+
+let checkControlToken = (tok:string, errors:array<string>):unit => {
+    if (!(tok->String.startsWith("$"))) {
+        errors->Array.push(`'${tok}' - all control tokens must start with '$'`)
+    }
+    if (!(
+        tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.openParenthesis || tok == P.closeParenthesis
+    )) {
+        let flags = tok->String.substringToEnd(~start=tok->String.startsWith(P.openParenthesis)?2:1)
+        if (flags->String.length > 0) {
+            let flagH = ref(false)
+            let flagA = ref(false)
+            let flagP = ref(false)
+            let flagM = ref(false)
+            for i in 0 to flags->String.length-1 {
+                let flag = flags->String.charAt(i)
+                if (flag == "h") {flagH := true}
+                else if (flag == "a") {flagA := true}
+                else if (flag == "+") {flagP := true}
+                else if (flag == "-") {flagM := true}
+                else {
+                    errors->Array.push(`'${tok}' - invalid flag '${flag}'`)
+                }
+            }
+            if (flagH.contents && flagA.contents) {
+                errors->Array.push(`'${tok}' - flags 'h' and 'a' cannot be used together`)
+            }
+            if (flagP.contents && flagM.contents) {
+                errors->Array.push(`'${tok}' - flags '+' and '-' cannot be used together`)
+            }
+        }
+    }
+}
+
+let checkParenthesesMatch = (tokens:array<string>):bool => {
+    let parenCnt = ref(0)
+    let i = ref(0)
+    let maxI = tokens->Array.length-1
+    let mismatchFound = ref(false)
+    while (i.contents <= maxI && !mismatchFound.contents) {
+        let tok = tokens->Array.getUnsafe(i.contents)
+        if (tok->String.startsWith(P.openParenthesis)) {
+            parenCnt := parenCnt.contents + 1
+        } else if (tok == P.closeParenthesis) {
+            parenCnt := parenCnt.contents - 1
+            if (parenCnt.contents < 0) {
+                mismatchFound := true
+            }
+        }
+        i := i.contents + 1
+    }
+    !mismatchFound.contents && parenCnt.contents == 0
+}
+
+let validatePattern = (
+    ~text:string, 
+    ~ctx:MC.mmContext,
+):option<string> => {
+    let tokens = text->String.trim->Common.getSpaceSeparatedValuesAsArray
+    let errors = []
+    tokens->Array.forEach(tok => {
+        if (tok->String.includes("$")) {
+            checkControlToken(tok, errors)
+        } else {
+            switch ctx->MC.getTokenType(tok) {
+                | Some(C) | Some(V) => ()
+                | Some(F) | Some(E) | Some(A) | Some(P) | None => {
+                    errors->Array.push(`'${tok}' - is not a contant or variable`)
+                }
+            }
+        }
+    })
+    if (!checkParenthesesMatch(tokens)) {
+        errors->Array.push(`parentheses mismatch`)
+    }
+    if (tokens->Array.length > 0) {
+        switch P.isPatternBegin(tokens->Array.getUnsafe(0)) {
+            | Some(_) => ()
+            | None => {
+                tokens->Array.reduceWithIndex(None, (found,tok,i) => {
+                    switch found {
+                        | Some(_) => found
+                        | None => {
+                            if (i == 0) {found} else {P.isPatternBegin(tok)}
+                        }
+                    }
+                })->Option.forEach(_=>{
+                    errors->Array.push(`when multiple patterns are specified, each pattern must begin with $`)
+                })
+            }
+        }
+    }
+    if (errors->Array.length == 0) {
+        None
+    } else {
+        Some(errors->Array.join("\n"))
     }
 }
 

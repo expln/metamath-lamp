@@ -177,7 +177,7 @@ let rndSymbol = (
                     | Right => "2px 2px 2px 0px"
                 }
             })
-            let style = ReactDOM.Style.make( 
+            let style = ReactDOM.Style.make(
                 ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, 
                 ~borderColor, ~borderStyle=?borderStyle, ~borderWidth=?borderWidth,
                 () 

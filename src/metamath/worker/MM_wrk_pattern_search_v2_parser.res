@@ -37,10 +37,10 @@ let isPatternBegin = (str:string):option<pattern> => {
     if (
         str->String.startsWith("$")
         && !(
-            str->String.startsWith(operatorOrdered)
-            || str->String.startsWith(operatorUnordered)
+            str == operatorOrdered
+            || str == operatorUnordered
             || str->String.startsWith(openParenthesis)
-            || str->String.startsWith(closeParenthesis)
+            || str == closeParenthesis
         )
     ) {
         Some({

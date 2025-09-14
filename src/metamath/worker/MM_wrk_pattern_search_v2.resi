@@ -42,6 +42,8 @@ let frameMatchesPatterns: (MM_context.frame, array<pattern>) => matchResult
 
 //FOR TESTING
 
+let validatePattern: (~text:string, ~ctx:MM_context.mmContext) => option<string>
+
 let countMinLen: array<symSeq> => int
 
 let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>

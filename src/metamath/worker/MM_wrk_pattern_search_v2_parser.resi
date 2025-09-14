@@ -23,3 +23,10 @@ let parseFlags: string => flags
 let passFlagsFromParentToChild: (flags, flags) => flags
 
 let parsePattern: string => option<array<pattern>>
+
+let operatorOrdered:string
+let operatorUnordered:string
+let openParenthesis:string
+let closeParenthesis:string
+
+let isPatternBegin: string => option<pattern>
