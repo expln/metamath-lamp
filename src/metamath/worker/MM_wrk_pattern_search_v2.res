@@ -549,43 +549,51 @@ let parsePattern = (
     ~symMap:option<Belt_HashMapString.t<constOrVar>>=?, //symMap may be passed as a parameter only for testing
     ~ctx:option<MC.mmContext>=?,
 ):result<array<pattern>,string> => {
-    if (text->String.trim->String.length == 0) {
+    let text = text->String.trim
+    if (text->String.length == 0) {
         Ok([])
     } else {
-        switch P.parsePattern(text) {
-            | None => Error(`Cannot parse the pattern '${text}'`)
-            | Some(asts) => {
-                let subpatterns:array<result<pattern,string>> = asts->Array.map(ast => {
-                    let symMap:result<Belt_HashMapString.t<constOrVar>, string> = switch symMap {
-                        | Some(symMap) => Ok(symMap)
-                        | None => {
-                            makeSymMap(
-                                ast, 
-                                ctx->Option.getExn(~message="parsePattern: either symMap or ctx must be provided.")
-                            )
-                        }
-                    }
-                    symMap->Result.map(astToPattern(ast, _))
-                })
-                subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
-                    switch acc {
-                        | Ok(subpatArr) => {
-                            switch subpatRes {
-                                | Ok(subpat) => {
-                                    subpatArr->Array.push(subpat)
-                                    Ok(subpatArr)
+        switch ctx->Option.flatMap(ctx => validatePattern(~text, ~ctx)) {
+            | Some(errors) => Error(errors)
+            | None => {
+                switch P.parsePattern(text) {
+                    | None => Error(`Cannot parse the pattern '${text}'`)
+                    | Some(asts) => {
+                        let subpatterns:array<result<pattern,string>> = asts->Array.map(ast => {
+                            let symMap:result<Belt_HashMapString.t<constOrVar>, string> = switch symMap {
+                                | Some(symMap) => Ok(symMap)
+                                | None => {
+                                    makeSymMap(
+                                        ast, 
+                                        ctx->Option.getExn(
+                                            ~message="parsePattern: either symMap or ctx must be provided."
+                                        )
+                                    )
                                 }
-                                | Error(msg) => Error(msg)
                             }
-                        }
-                        | Error(prevMsg) => {
-                            switch subpatRes {
-                                | Ok(_) => Error(prevMsg)
-                                | Error(msg) => Error(prevMsg ++ "; " ++ msg)
+                            symMap->Result.map(astToPattern(ast, _))
+                        })
+                        subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
+                            switch acc {
+                                | Ok(subpatArr) => {
+                                    switch subpatRes {
+                                        | Ok(subpat) => {
+                                            subpatArr->Array.push(subpat)
+                                            Ok(subpatArr)
+                                        }
+                                        | Error(msg) => Error(msg)
+                                    }
+                                }
+                                | Error(prevMsg) => {
+                                    switch subpatRes {
+                                        | Ok(_) => Error(prevMsg)
+                                        | Error(msg) => Error(prevMsg ++ "; " ++ msg)
+                                    }
+                                }
                             }
-                        }
+                        })
                     }
-                })
+                }
             }
         }
     }

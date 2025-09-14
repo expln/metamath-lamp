@@ -920,3 +920,39 @@ describe("validatePattern", () => {
         )
     })
 })
+
+describe("parsePattern", () => {
+    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
+    let (ast, _) = MM_parser.parseMmFile(~mmFileContent=mmFileText)
+    let ctx = MM_context.loadContext(ast)
+    it("returns an error message if it cannot parse the pattern", () => {
+        assertEq( 
+            parsePattern("P -> Q $a Q", ~ctx), 
+            Error("when multiple patterns are specified, each pattern must begin with $")
+        )
+    })
+})
+
+describe("frameMatchesPatterns", () => {
+    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
+    let (ast, _) = MM_parser.parseMmFile(~mmFileContent=mmFileText)
+    let ctx = MM_context.loadContext(ast)
+    it("returns matched indices for a single pattern", () => {
+        assertEq( 
+            frameMatchesPatterns(
+                ctx->MM_context.getFrameExn("a1"),
+                parsePattern("$+ t = r $** -> $** t = s $** -> $** r = s", ~ctx)->Result.getExn
+            ), 
+            Matched(Some([[2,3,4,5,7,8,9,10,11,12,13]])) 
+        )
+    })
+    it("returns matched indices for multiple patterns", () => {
+        assertEq( 
+            frameMatchesPatterns(
+                ctx->MM_context.getFrameExn("mp"),
+                parsePattern("$h P -> Q $a Q", ~ctx)->Result.getExn
+            ), 
+            Matched(Some([[1],[3,4],[1]])) 
+        )
+    })
+})
