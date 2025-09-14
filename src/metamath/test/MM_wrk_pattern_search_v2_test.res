@@ -826,7 +826,7 @@ describe("validatePattern", () => {
     it("is not a contant or variable", () => {
         assertEq( 
             validatePattern(~text="t = rr", ~ctx), 
-            Some("'rr' - is not a contant or variable") 
+            Some("'rr' - is not a constant or variable") 
         )
     })
     it("is not a contant or variable (negative)", () => {

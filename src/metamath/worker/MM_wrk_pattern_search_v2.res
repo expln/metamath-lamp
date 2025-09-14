@@ -512,7 +512,7 @@ let validatePattern = (
             switch ctx->MC.getTokenType(tok) {
                 | Some(C) | Some(V) => ()
                 | Some(F) | Some(E) | Some(A) | Some(P) | None => {
-                    errors->Array.push(`'${tok}' - is not a contant or variable`)
+                    errors->Array.push(`'${tok}' - is not a constant or variable`)
                 }
             }
         }
