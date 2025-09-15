@@ -475,6 +475,12 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
             if (flagP.contents && flagM.contents) {
                 errors->Array.push(`'${tok}' - flags '+' and '-' cannot be used together`)
             }
+            if (
+                (tok->String.startsWith(P.openParenthesis) || tok->String.startsWith(P.closeParenthesis))
+                && (flagH.contents || flagA.contents)
+            ) {
+                errors->Array.push(`'${tok}' - flags 'h' and 'a' cannot be used with parentheses`)
+            }
         }
     }
 }

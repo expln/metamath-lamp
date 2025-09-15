@@ -888,6 +888,20 @@ describe("validatePattern", () => {
         )
     })
 
+    it("flag 'h' cannot be used with parentheses", () => {
+        assertEq( 
+            validatePattern(~text="$[h t = r $]", ~ctx), 
+            Some("'$[h' - flags 'h' and 'a' cannot be used with parentheses") 
+        )
+    })
+
+    it("flag 'a' cannot be used with parentheses", () => {
+        assertEq( 
+            validatePattern(~text="$[a t = r $]", ~ctx), 
+            Some("'$[a' - flags 'h' and 'a' cannot be used with parentheses") 
+        )
+    })
+
     it("parentheses mismatch: missing parenthesis", () => {
         assertEq( 
             validatePattern(~text="$[ $[ t = r $]", ~ctx), 
