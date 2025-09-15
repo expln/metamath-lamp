@@ -15,18 +15,7 @@ open Expln_utils_promise
 
 @val external window: {..} = "window"
 
-let rndIconButton = (
-    ~icon:reElem, 
-    ~onClick:unit=>unit, 
-    ~active:bool=true, 
-    ~title:option<string>=?, 
-    ~color:option<string>=Some("primary"),
-    ~key:option<string>=?
-) => {
-    <span ?title>
-        <IconButton ?key disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
-    </span>
-}
+type highlightedPosition = Single | Left | Middle | Right
 
 type state = {
     newText: string,
@@ -86,6 +75,19 @@ let callbackOpt = (clbkOpt:option<'a=>unit>):('a=>unit) => {
     a => clbkOpt->Belt_Option.forEach(clbk => clbk(a))
 }
 
+let rndIconButton = (
+    ~icon:reElem, 
+    ~onClick:unit=>unit, 
+    ~active:bool=true, 
+    ~title:option<string>=?, 
+    ~color:option<string>=Some("primary"),
+    ~key:option<string>=?
+) => {
+    <span ?title>
+        <IconButton ?key disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
+    </span>
+}
+
 let rndSymbol = (
     ~isFirst:bool,
     ~key:string,
@@ -98,15 +100,28 @@ let rndSymbol = (
     ~onAltLeftClick:option<unit=>unit>=?,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
+    ~isHighlighted:option<highlightedPosition>=?,
     ~cursor:string="auto",
     ~title:option<string>=?
 ):reElem => {
+    let borderColor = "orange"
     <React.Fragment key>
         {
             if (isFirst) {
                 <></>
             } else {
-                let style = ReactDOM.Style.make( ~backgroundColor=?spaceBackgroundColor, ~cursor, () )
+                let borderStyle:option<string> = isHighlighted->Option.flatMap(pos => {
+                    switch pos {
+                        | Single | Left => None
+                        | Middle | Right => Some("solid")
+                    }
+                })
+                let borderWidth:option<string> = borderStyle->Option.map(_ => "2px 0px")
+                let style = ReactDOM.Style.make( 
+                    ~backgroundColor=?spaceBackgroundColor, ~cursor, 
+                    ~borderColor, ~borderStyle=?borderStyle, ~borderWidth=?borderWidth,
+                    () 
+                )
                 if (longClickEnabled) {
                     <LongClickSpan
                         longClickEnabled
@@ -153,7 +168,20 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            let style = ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
+            let borderStyle:option<string> = isHighlighted->Option.map(_ => "solid")
+            let borderWidth:option<string> = isHighlighted->Option.map(pos => {
+                switch pos {
+                    | Single => "2px"
+                    | Left => "2px 0px 2px 2px"
+                    | Middle => "2px 0px 2px 0px"
+                    | Right => "2px 2px 2px 0px"
+                }
+            })
+            let style = ReactDOM.Style.make(
+                ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, 
+                ~borderColor, ~borderStyle=?borderStyle, ~borderWidth=?borderWidth,
+                () 
+            )
             if (longClickEnabled) {
                 <LongClickSpan 
                     longClickEnabled
@@ -205,9 +233,28 @@ let rndSymbol = (
     </React.Fragment>
 }
 
+let getHighlightedPosition = (symsToHighlight:array<int>, symIdx:int):option<highlightedPosition> => {
+    if (symsToHighlight->Array.includes(symIdx)) {
+        if (symsToHighlight->Array.includes(symIdx-1)) {
+            if (symsToHighlight->Array.includes(symIdx+1)) {
+                Some(Middle)
+            } else {
+                Some(Right)
+            }
+        } else if (symsToHighlight->Array.includes(symIdx+1)) {
+            Some(Left)
+        } else {
+            Some(Single)
+        }
+    } else {
+        None
+    }
+}
+
 let rndContText = (
     ~stmtCont:stmtCont,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
+    ~symsToHighlight:option<array<int>>=?,
     ~onTextLeftClick:option<int=>unit>=?,
     ~onTextAltLeftClick:option<int=>unit>=?,
     ~onTreeLeftClick:option<int=>unit>=?,
@@ -217,7 +264,7 @@ let rndContText = (
     ~cursor:string="auto",
     ~renderSelection:bool=false,
     ~title:option<string>=?
-) => {
+):React.element => {
     switch stmtCont {
         | Text({syms}) => {
             let syms = 
@@ -240,6 +287,7 @@ let rndContText = (
                     ~longClickDelayMs,
                     ~cursor,
                     ~symRename?,
+                    ~isHighlighted=?(symsToHighlight->Option.flatMap(getHighlightedPosition(_, i))),
                     ~title?
                 )
             })->React.array
@@ -273,7 +321,8 @@ let rndContText = (
                     switch node {
                         | Subtree(_) => ()
                         | Symbol({id, sym, color}) => {
-                            let symbolIsHighlighted = selectedIds->Belt_SetInt.has(id)
+                            let symbolIsSelected = selectedIds->Belt_SetInt.has(id)
+                            let symIdx = elems->Array.length
                             elems->Array.push(
                                 rndSymbol(
                                     ~isFirst=false,
@@ -289,14 +338,14 @@ let rndContText = (
                                     ~longClickEnabled,
                                     ~longClickDelayMs,
                                     ~spaceBackgroundColor=?{
-                                        if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
+                                        if (renderSelection && symbolIsSelected && selectionIsOn.contents) {
                                             Some("#ADD6FF")
                                         } else {
                                             None
                                         } 
                                     },
                                     ~symbolBackgroundColor=?{ 
-                                        if (renderSelection && symbolIsHighlighted) {
+                                        if (renderSelection && symbolIsSelected) {
                                             if (id == clickedId) {
                                                 Some("#99bce0")
                                             } else {
@@ -308,10 +357,13 @@ let rndContText = (
                                     },
                                     ~cursor,
                                     ~symRename?,
+                                    ~isHighlighted=?(
+                                        symsToHighlight->Option.flatMap(getHighlightedPosition(_, symIdx))
+                                    ),
                                     ~title?
                                 )
                             )
-                            selectionIsOn := symbolIsHighlighted
+                            selectionIsOn := symbolIsSelected
                         }
                     }
                     None

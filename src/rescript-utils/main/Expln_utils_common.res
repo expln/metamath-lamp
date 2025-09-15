@@ -54,20 +54,9 @@ let toIntCmp: 'a. comparator<'a> => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
 let strCmpI: comparator<string> = (s1,s2) => String.compare(s1->String.toLocaleUpperCase, s2->String.toLocaleUpperCase)
 let cmpRev: 'a. comparator<'a> => comparator<'a> = cmp => (a,b) => cmp(a,b)->Ordering.invert
 
-let stringify = (a:'a):string => switch JSON.stringifyAny(a) {
-    | Some(str) => str
-    | None => "undefined"
-}
-
-type explnUtilsException = {
-    msg:string,
-}
-exception ExplnUtilsException(explnUtilsException)
-
-
+let comparatorBy = (prop:'a=>'b, cmp:comparator<'b>):comparator<'a> => (a,b) => cmp(prop(a),prop(b))
 let comparatorByInt = (prop:'a=>int):comparator<'a> => (a,b) => Int.compare(prop(a),prop(b))
 let comparatorByStr = (prop:'a=>string):comparator<'a> => (a,b) => String.compare(prop(a),prop(b))
-
 
 let comparatorAndThen = (cmp1:comparator<'a>, cmp2:comparator<'a>):comparator<'a> => {
     (x,y) => {
@@ -79,6 +68,16 @@ let comparatorAndThen = (cmp1:comparator<'a>, cmp2:comparator<'a>):comparator<'a
         }
     }
 }
+
+let stringify = (a:'a):string => switch JSON.stringifyAny(a) {
+    | Some(str) => str
+    | None => "undefined"
+}
+
+type explnUtilsException = {
+    msg:string,
+}
+exception ExplnUtilsException(explnUtilsException)
 
 //https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
 //https://stackoverflow.com/questions/194846/is-there-hash-code-function-accepting-any-object-type

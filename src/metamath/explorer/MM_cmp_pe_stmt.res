@@ -37,6 +37,7 @@ type props = {
     stmt:expr,
     symColors:Belt_HashMapString.t<string>,
     symRename:option<Belt_HashMapString.t<string>>,
+    symsToHighlight:option<array<int>>,
     editStmtsByLeftClick:bool,
     openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
 }
@@ -46,6 +47,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.stmt === b.stmt
     && a.symColors === b.symColors
     && a.symRename === b.symRename
+    && a.symsToHighlight === b.symsToHighlight
     && a.editStmtsByLeftClick === b.editStmtsByLeftClick
 }
 
@@ -59,6 +61,7 @@ let make = React.memoCustomCompareProps( ({
     stmt,
     symColors,
     symRename,
+    symsToHighlight,
     editStmtsByLeftClick,
     openExplorer,
 }:props) =>  {
@@ -253,7 +256,8 @@ let make = React.memoCustomCompareProps( ({
                         ~onTreeAltLeftClick=actTreeNodeClicked,
                         ~cursor="pointer",
                         ~renderSelection=true,
-                        ~symRename?
+                        ~symRename?,
+                        ~symsToHighlight?,
                     )
                 }
             </span>

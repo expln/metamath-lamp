@@ -87,6 +87,7 @@ let make: props => React.element
 let rndContText: (
     ~stmtCont:stmtCont,
     ~symRename:Belt_HashMapString.t<string>=?,
+    ~symsToHighlight:array<int>=?,
     ~onTextLeftClick:int=>unit=?,
     ~onTextAltLeftClick:int=>unit=?,
     ~onTreeLeftClick:int=>unit=?,

@@ -24,7 +24,8 @@ type props = {
     syntaxTypes:array<int>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
 
-    labels:array<string>,
+    labels:array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,
+    highlightMatchedSymbols:bool,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     asrtsPerPage:int,
@@ -38,6 +39,7 @@ let propsAreSame = (a:props, b:props):bool => {
     && a.preCtx === b.preCtx
     && a.symColors === b.symColors
     && a.labels === b.labels
+    && a.highlightMatchedSymbols === b.highlightMatchedSymbols
     && a.asrtsPerPage === b.asrtsPerPage
 }
 
@@ -53,6 +55,7 @@ let make = React.memoCustomCompareProps(({
     frms,
     parenCnt,
     labels,
+    highlightMatchedSymbols,
     openFrameExplorer,
     openExplorer,
     asrtsPerPage,
@@ -110,7 +113,7 @@ let make = React.memoCustomCompareProps(({
         </Row>
     }
 
-    let rndFrameSummary = (label) => {
+    let rndFrameSummary = ((label,matchedIdxs):(string,option<MM_wrk_pattern_search.matchedIndices>)) => {
         switch preCtx->getFrame(label) {
             | None => React.null
             | Some(frame) => {
@@ -126,6 +129,7 @@ let make = React.memoCustomCompareProps(({
                     parenCnt
                     frame
                     order=Some(order)
+                    matchedIdxs={highlightMatchedSymbols?matchedIdxs:None}
                     typeColors
                     typeOrderInDisj
                     editStmtsByLeftClick
