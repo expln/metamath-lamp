@@ -20,8 +20,8 @@ type pattern = {
 
 let logParsers = false
 
-let operatorOrdered = "$**"
-let operatorUnordered = "$||"
+let operatorOrdered = "$*"
+let operatorUnordered = "$/"
 let openParenthesis = "$["
 let closeParenthesis = "$]"
 

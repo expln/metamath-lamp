@@ -23,48 +23,48 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             Some([pat(sym(["x","y"]))])
         )
         testPatternParser(
-            "x $** y",
+            "x $* y",
             Some([pat(ord([sym(["x"]), sym(["y"])]))])
         )
         testPatternParser(
-            "x $|| y",
+            "x $/ y",
             Some([pat(unord([sym(["x"]), sym(["y"])]))])
         )
         testPatternParser(
-            "a b $** c d",
+            "a b $* c d",
             Some([pat(ord([sym(["a","b"]), sym(["c","d"])]))])
         )
         testPatternParser(
-            "a b $** c d $** e f",
+            "a b $* c d $* e f",
             Some([pat(ord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))])
         )
         testPatternParser(
-            "a b $|| c d $|| e f",
+            "a b $/ c d $/ e f",
             Some([pat(unord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))])
         )
         testPatternParser(
-            "a b $** c d $|| e f",
+            "a b $* c d $/ e f",
             Some([pat(unord([
                 ord([sym(["a","b"]), sym(["c","d"])]), 
                 sym(["e","f"])
             ]))])
         )
         testPatternParser(
-            "a b $|| c d $** e f",
+            "a b $/ c d $* e f",
             Some([pat(unord([
                 sym(["a","b"]),
                 ord([sym(["c","d"]), sym(["e","f"])]),
             ]))])
         )
         testPatternParser(
-            "a b $** c d $|| e f $** g h",
+            "a b $* c d $/ e f $* g h",
             Some([pat(unord([
                 ord([sym(["a","b"]), sym(["c","d"])]),
                 ord([sym(["e","f"]), sym(["g","h"])]),
             ]))])
         )
         testPatternParser(
-            "a b $** c d $|| e f $** g h $|| i j $** k l",
+            "a b $* c d $/ e f $* g h $/ i j $* k l",
             Some([pat(unord([
                 ord([sym(["a","b"]), sym(["c","d"])]),
                 ord([sym(["e","f"]), sym(["g","h"])]),
@@ -72,7 +72,7 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             ]))])
         )
         testPatternParser(
-            "a b $** $[ c d $|| e f $] $** g h",
+            "a b $* $[ c d $/ e f $] $* g h",
             Some([pat(ord([
                 sym(["a","b"]),
                 unord([sym(["c","d"]), sym(["e","f"])]),
@@ -80,42 +80,42 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             ]))])
         )
         testPatternParser(
-            "$[ a b $|| c d $] $** e f",
+            "$[ a b $/ c d $] $* e f",
             Some([pat(ord([
                 unord([sym(["a","b"]), sym(["c","d"])]),
                 sym(["e","f"]),
             ]))])
         )
         testPatternParser(
-            "$[ a b $] $|| c d",
+            "$[ a b $] $/ c d",
             Some([pat(unord([
                 sym(["a","b"]),
                 sym(["c","d"]),
             ]))])
         )
         testPatternParser(
-            "$[ a b $] $|| $[ c d $]",
+            "$[ a b $] $/ $[ c d $]",
             Some([pat(unord([
                 sym(["a", "b"]),
                 sym(["c", "d"]),
             ]))])
         )
         testPatternParser(
-            "$[ $[ a b $] $|| $[ c d $] $]",
+            "$[ $[ a b $] $/ $[ c d $] $]",
             Some([pat(unord([
                 sym(["a", "b"]),
                 sym(["c", "d"]),
             ]))])
         )
         testPatternParser(
-            "$[ a b $|| $[ c d $] $]",
+            "$[ a b $/ $[ c d $] $]",
             Some([pat(unord([
                 sym(["a", "b"]),
                 sym(["c", "d"]),
             ]))])
         )
         testPatternParser(
-            "$[ $[ a b $] $** $[ c d $] $] $** $[ e f $]",
+            "$[ $[ a b $] $* $[ c d $] $] $* $[ e f $]",
             Some([pat(ord([
                 ord([
                     sym(["a", "b"]),
@@ -128,14 +128,14 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             "
             $[ 
                 a b 
-                $** 
+                $* 
                 $[ 
                     $[ c d $]
-                    $||
+                    $/
                     $[ e f $]
                 $] 
             $] 
-            $|| 
+            $/
             g h
             ",
             Some([pat(unord([
@@ -162,36 +162,36 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
             Some([pat(sym(["a", "b", "c"], ~flags="-"))])
         )
         testPatternParser(
-            "$[+ a b c $|| d $]",
+            "$[+ a b c $/ d $]",
             Some([pat(unord([sym(["a", "b", "c"]), sym(["d"])], ~flags="+"))])
         )
         testPatternParser(
-            "$[+ $[ a b c $] $|| d $]",
+            "$[+ $[ a b c $] $/ d $]",
             Some([pat(unord([sym(["a", "b", "c"]), sym(["d"])], ~flags="+"))])
         )
         testPatternParser(
-            "$[+ $[- a b c $] $|| d $]",
+            "$[+ $[- a b c $] $/ d $]",
             Some([pat(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d"])], ~flags="+"))])
         )
         testPatternParser(
-            "$[+ $[- a b c $] $|| $[ $[ $[ d e $] $] $] $]",
+            "$[+ $[- a b c $] $/ $[ $[ $[ d e $] $] $] $]",
             Some([pat(unord([sym(["a", "b", "c"], ~flags="-"), sym(["d", "e"])], ~flags="+"))])
         )
     })
     
     it("parsePattern doesn't parse invalid patterns", _ => {
         let assertIsNotParsed = (text:string):unit => testPatternParser( text, None )
-        assertIsNotParsed("x $**")
-        assertIsNotParsed("x $** y $**")
-        assertIsNotParsed("$** y $**")
-        assertIsNotParsed("$** y")
-        assertIsNotParsed("$**")
-        assertIsNotParsed("x $||")
-        assertIsNotParsed("x $|| y $||")
-        assertIsNotParsed("$|| y $||")
-        assertIsNotParsed("$|| y")
-        assertIsNotParsed("$||")
-        assertIsNotParsed("$[ a b $] $|| $[ c d")
+        assertIsNotParsed("x $*")
+        assertIsNotParsed("x $* y $*")
+        assertIsNotParsed("$* y $*")
+        assertIsNotParsed("$* y")
+        assertIsNotParsed("$*")
+        assertIsNotParsed("x $/")
+        assertIsNotParsed("x $/ y $/")
+        assertIsNotParsed("$/ y $/")
+        assertIsNotParsed("$/ y")
+        assertIsNotParsed("$/")
+        assertIsNotParsed("$[ a b $] $/ $[ c d")
         assertIsNotParsed("$[ a b $] $]")
         assertIsNotParsed("$[ $[ a b $]")
         assertIsNotParsed("$[ a b c")
@@ -200,11 +200,11 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
     
     it("parsePattern: multiple subpatterns should begin with $", _ => {
         testPatternParser(
-            "$[ a $** b $] $[ c $|| d $]",
+            "$[ a $* b $] $[ c $/ d $]",
             None
         )
         testPatternParser(
-            "$ $[ a $** b $] $ $[ c $|| d $]",
+            "$ $[ a $* b $] $ $[ c $/ d $]",
             Some([
                 pat(ord([sym(["a"]),sym(["b"])])),
                 pat(unord([sym(["c"]),sym(["d"])])),

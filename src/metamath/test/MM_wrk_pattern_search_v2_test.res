@@ -575,7 +575,7 @@ describe("parsePattern", _ => {
     ])
 
     it("passes flags from parent to child", _ => {
-        assertParsePattern(~pattern="a b $** c d", ~syms, 
+        assertParsePattern(~pattern="a b $* c d", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 ord([
@@ -584,7 +584,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="a b $|| c d", ~syms, 
+        assertParsePattern(~pattern="a b $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 unord([
@@ -593,7 +593,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="$+ a b $|| c d", ~syms, 
+        assertParsePattern(~pattern="$+ a b $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 unord([
@@ -602,7 +602,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="$+ $[- a b $] $|| c d", ~syms, 
+        assertParsePattern(~pattern="$+ $[- a b $] $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 unord([
@@ -611,7 +611,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="$+ $[- a b $] $|| $[+ c d $]", ~syms, 
+        assertParsePattern(~pattern="$+ $[- a b $] $/ $[+ c d $]", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 unord([
@@ -620,7 +620,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="$[- a b $] $|| $[+ c d $]", ~syms, 
+        assertParsePattern(~pattern="$[- a b $] $/ $[+ c d $]", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 unord([
@@ -629,7 +629,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="a b $|| $[+ c d $** $[- a b $] $]", ~syms, 
+        assertParsePattern(~pattern="a b $/ $[+ c d $* $[- a b $] $]", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 unord([
@@ -641,7 +641,7 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
-        assertParsePattern(~pattern="$+ a b $** $[- c d $|| $[+ a b $] $]", ~syms, 
+        assertParsePattern(~pattern="$+ a b $* $[- c d $/ $[+ a b $] $]", ~syms, 
             ~expectedResult=Ok([pat(
                 Frm,
                 ord([
@@ -941,7 +941,7 @@ describe("frameMatchesPatterns", () => {
         assertEq( 
             frameMatchesPatterns(
                 ctx->MM_context.getFrameExn("a1"),
-                parsePattern("$+ t = r $** -> $** t = s $** -> $** r = s", ~ctx)->Result.getExn
+                parsePattern("$+ t = r $* -> $* t = s $* -> $* r = s", ~ctx)->Result.getExn
             ), 
             Matched(Some([[2,3,4,5,7,8,9,10,11,12,13]])) 
         )
