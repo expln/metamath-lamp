@@ -147,7 +147,7 @@ let make = (
     let actSearch = () => {
         onTypChange(state.typ)
         let patternStr = state.patternStr->String.trim
-        let patternVersion = 1
+        let patternVersion = 2
         let ctx = wrkCtx
         switch MM_wrk_pattern_search.parsePattern( ~patternStr, ~patternVersion, ~ctx ) {
             | Error(msg) => {
