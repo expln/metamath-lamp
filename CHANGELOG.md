@@ -1,4 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+* Make the search by pattern more flexible. https://github.com/expln/metamath-lamp/issues/237
 ### [Version 30](https://expln.github.io/lamp/v30/index.html)
 * Sort assertions on the Explorer tab. https://github.com/expln/metamath-lamp/issues/235
 * Bug fix: Crash when adding statements with "use". https://github.com/expln/metamath-lamp/issues/239
