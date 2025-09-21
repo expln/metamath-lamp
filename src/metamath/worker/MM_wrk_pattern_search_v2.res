@@ -50,9 +50,11 @@ let exprSymMatchesSeqConst = (~exprSym:int, ~seqConst:int, ~varTypes: array<int>
 
 let countMinLen = (seq:array<symSeq>):int => seq->Array.reduce(0,(sum,seq)=>sum+seq.minLen)
 
-let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>):int => {
+let exprIncludesConstAdjSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:array<sym>, ~varTypes: array<int>
+):int => {
     let begin = ref(startIdx)
-    let maxBegin = expr->Array.length - seq->Array.length
+    let maxBegin = maxIdx + 1 - seq->Array.length
     let matched = ref(false)
     let maxSeqI = seq->Array.length - 1
     while (begin.contents <= maxBegin && !matched.contents) {
@@ -80,15 +82,17 @@ let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>,
     }
 }
 
-let rec exprIncludesConstSeq = (~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~varTypes: array<int>):int => {
-    if (expr->Array.length <= startIdx || seq.minConstMismatchIdx <= startIdx) {
+let rec exprIncludesConstSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>
+):int => {
+    if (maxIdx < startIdx || seq.minConstMismatchIdx <= startIdx) {
         -1
     } else {
         let res = switch seq.elems {
-            | Adjacent(seq) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~seq, ~varTypes)
-            | Ordered(childElems) => exprIncludesConstOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes)
+            | Adjacent(seq) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes)
+            | Ordered(childElems) => exprIncludesConstOrderedSeq(~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes)
             | Unordered(childElems) => {
-                exprIncludesConstUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
+                exprIncludesConstUnorderedSeq(~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
             }
         }
         if (res < 0) {
@@ -99,7 +103,7 @@ let rec exprIncludesConstSeq = (~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~v
 }
 
 and let exprIncludesConstOrderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>
 ):int => {
     let lastMatchedIdx = ref(startIdx-1)
     let matched = ref(true)
@@ -107,9 +111,10 @@ and let exprIncludesConstOrderedSeq = (
     let maxI = childElems->Array.length - 1
     while (i.contents <= maxI && matched.contents) {
         lastMatchedIdx := exprIncludesConstSeq(
-            ~expr, ~startIdx=lastMatchedIdx.contents+1, ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes
+            ~expr, ~startIdx=lastMatchedIdx.contents+1, ~maxIdx, 
+            ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes
         )
-        matched := lastMatchedIdx.contents >= 0
+        matched := 0 <= lastMatchedIdx.contents && lastMatchedIdx.contents <= maxIdx
         i := i.contents + 1
     }
     if (matched.contents) {
@@ -120,7 +125,8 @@ and let exprIncludesConstOrderedSeq = (
 }
 
 and let exprIncludesConstUnorderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
+    ~passedSeqIdxs:array<int>
 ):int => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         startIdx-1
@@ -132,11 +138,11 @@ and let exprIncludesConstUnorderedSeq = (
             if !(passedSeqIdxs->Array.includes(i.contents)) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
                 if (startIdx < curSeq.minConstMismatchIdx) {
-                    let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~seq=curSeq, ~varTypes)
-                    if (lastMatchedIdx >= 0) {
+                    let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes)
+                    if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
                         passedSeqIdxs->Array.push(i.contents)
                         res := exprIncludesConstUnorderedSeq(
-                            ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs
+                            ~expr, ~startIdx=lastMatchedIdx+1, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs
                         )
                         passedSeqIdxs->Array.pop->ignore
                     }
@@ -315,7 +321,7 @@ let exprIncludesSeq = (
     ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>
 ):option<array<int>> => {
     let res = ref(None)
-    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~seq, ~varTypes) >= 0) {
+    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~maxIdx=expr->Array.length-1, ~seq, ~varTypes) >= 0) {
         let stop = ref(false)
         exprIncludesVarSeq(
             ~expr, ~startIdx=0, ~seq, ~varTypes, 
