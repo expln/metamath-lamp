@@ -666,7 +666,7 @@ let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
 let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int>>> => {
     let expr = switch pattern.target {
         | Frm => MC.frmGetPatternSearchData(frm).allHypsAsrt
-        | Hyps => MC.frmGetPatternSearchData(frm).allHyps
+        | Hyps => MC.frmGetPatternSearchData(frm).allHypsAsrt
         | Asrt => frm.asrt
     }
     let exprLen = expr->Array.length

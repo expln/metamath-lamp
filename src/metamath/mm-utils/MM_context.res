@@ -66,11 +66,9 @@ type frameDbg = {
 }
 
 type patternSearchData = {
-    allHyps:array<int>, //concatenation of all essential hyps, used for the pattern search
     allHypsAsrt:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
     numOfHyps:int, //number of essential hypotheses
     stmtBnds:array<int>, //statement boundaries (beginning indices of statements in allHypsAsrt)
-    maxHypIdx:int, //len(allHyps) - 1
 }
 
 type frame = {
@@ -592,16 +590,13 @@ let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
 let frmGetPatternSearchData = (frm:frame):patternSearchData => {
     let eHyps = frm.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr)
     let allHyps = Array.concatMany([], eHyps)
-    let stmtBnds = eHyps->Array.reduce([0], (bnds,eHyp) => {
-        bnds->Array.push(eHyp->Array.length)
-        bnds
-    })
     {
-        allHyps,
         allHypsAsrt: allHyps->Array.concat(frm.asrt),
         numOfHyps: eHyps->Array.length,
-        stmtBnds,
-        maxHypIdx: allHyps->Array.length - 1,
+        stmtBnds: eHyps->Array.reduce([0], (bnds,eHyp) => {
+            bnds->Array.push(bnds->Array.last->Option.getExn + eHyp->Array.length)
+            bnds
+        }),
     }
 }
 

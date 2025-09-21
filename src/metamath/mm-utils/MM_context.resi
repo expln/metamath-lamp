@@ -24,11 +24,9 @@ type frameDbg = {
 }
 
 type patternSearchData = {
-    allHyps:array<int>, //concatenation of all essential hyps, used for the pattern search
     allHypsAsrt:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
     numOfHyps:int, //number of essential hypotheses
     stmtBnds:array<int>, //statement boundaries (beginning indices of statements in allHypsAsrt)
-    maxHypIdx:int, //len(allHyps) - 1
 }
 
 type frame = {
