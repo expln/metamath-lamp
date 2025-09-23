@@ -16,6 +16,8 @@ and constOrVar = Const(int) | Var(variable)
 
 type rec symSeq = {
     elems: seqGrp,
+    target: patternTarget,
+    singleStmt: bool,
     minLen:int,
     mutable minConstMismatchIdx:int,
 }
@@ -23,8 +25,7 @@ and seqGrp =
     | Adjacent(array<sym>)
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
     target: patternTarget,

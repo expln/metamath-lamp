@@ -19,6 +19,8 @@ and constOrVar = Const(int) | Var(variable)
 
 type rec symSeq = {
     elems: seqGrp,
+    target: patternTarget,
+    singleStmt: bool,
     minLen:int,
     mutable minConstMismatchIdx:int,
 }
@@ -26,11 +28,9 @@ and seqGrp =
     | Adjacent(array<sym>)
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
-    target: patternTarget,
     symSeq: symSeq,
     allSeq: array<symSeq>,
 }
@@ -82,17 +82,129 @@ let exprIncludesConstAdjSeq = (
     }
 }
 
-let rec exprIncludesConstSeq = (
-    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>
+let getMinIdxForSingleStmt = (
+    ~stmtI:int, ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => frmData.stmtBnds->Array.getUnsafe(stmtI)
+        | Hyps => {
+            if (stmtI == frmData.numOfHyps) {
+                exprLen
+            } else {
+                frmData.stmtBnds->Array.getUnsafe(stmtI)
+            }
+        }
+        | Asrt => {
+            if (stmtI == frmData.numOfHyps) {
+                frmData.stmtBnds->Array.getUnsafe(stmtI)
+            } else {
+                exprLen
+            }
+        }
+    }
+}
+
+let getMaxIdxForSingleStmt = (
+    ~stmtI:int, ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => frmData.stmtBnds[stmtI+1]->Option.mapOr(exprLen-1, nextStmtStart => nextStmtStart - 1)
+        | Hyps => {
+            if (stmtI == frmData.numOfHyps) {
+                -1
+            } else {
+                frmData.stmtBnds->Array.getUnsafe(stmtI+1) - 1
+            }
+        }
+        | Asrt => {
+            if (stmtI == frmData.numOfHyps) {
+                exprLen-1
+            } else {
+                -1
+            }
+        }
+    }
+}
+
+let getMinIdxForNonSingleStmt = (
+    ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => 0
+        | Hyps => if (frmData.numOfHyps > 0) { 0 } else { exprLen }
+        | Asrt => frmData.stmtBnds->Array.getUnsafe(frmData.numOfHyps)
+    }
+}
+
+let getMaxIdxForNonSingleStmt = (
+    ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => exprLen - 1
+        | Hyps => if (frmData.numOfHyps > 0) { frmData.stmtBnds->Array.getUnsafe(frmData.numOfHyps) - 1 } else { -1 }
+        | Asrt => exprLen - 1
+    }
+}
+
+let rec exprIncludesConstSeqWithTarget = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>, ~frmData:MC.patternSearchData
+):int => {
+    let exprLen = expr->Array.length
+    if (seq.singleStmt) {
+        let stmtI = ref(frmData.numOfHyps)
+        let lastMatchedIdx = ref(-1)
+        //counting downwards for the minConstMismatchIdx to work correctly
+        while (0 <= stmtI.contents && lastMatchedIdx.contents < 0) {
+            let newStartIdx = Math.Int.max(
+                startIdx,
+                getMinIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target=seq.target, ~frmData)
+            )
+            let newMaxIdx = Math.Int.min(
+                maxIdx,
+                getMaxIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target=seq.target, ~frmData)
+            )
+            if (newStartIdx <= newMaxIdx) {
+                lastMatchedIdx := exprIncludesConstSeq(
+                    ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~frmData
+                )
+            }
+            stmtI := stmtI.contents - 1
+        }
+        lastMatchedIdx.contents
+    } else {
+        let newStartIdx = Math.Int.max(
+            startIdx,
+            getMinIdxForNonSingleStmt(~exprLen, ~target=seq.target, ~frmData)
+        )
+        let newMaxIdx = Math.Int.min(
+            maxIdx,
+            getMaxIdxForNonSingleStmt(~exprLen, ~target=seq.target, ~frmData)
+        )
+        if (newStartIdx <= newMaxIdx) {
+            exprIncludesConstSeq(
+                ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~frmData
+            )
+        } else {
+            -1
+        }
+    }
+}
+
+and exprIncludesConstSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>, ~frmData:MC.patternSearchData
 ):int => {
     if (maxIdx < startIdx || seq.minConstMismatchIdx <= startIdx) {
         -1
     } else {
         let res = switch seq.elems {
             | Adjacent(seq) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes)
-            | Ordered(childElems) => exprIncludesConstOrderedSeq(~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes)
+            | Ordered(childElems) => {
+                exprIncludesConstOrderedSeq(~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~frmData)
+            }
             | Unordered(childElems) => {
-                exprIncludesConstUnorderedSeq(~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
+                exprIncludesConstUnorderedSeq(
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~frmData
+                )
             }
         }
         if (res < 0) {
@@ -103,16 +215,17 @@ let rec exprIncludesConstSeq = (
 }
 
 and let exprIncludesConstOrderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
+    ~frmData:MC.patternSearchData
 ):int => {
     let lastMatchedIdx = ref(startIdx-1)
     let matched = ref(true)
     let i = ref(0)
     let maxI = childElems->Array.length - 1
     while (i.contents <= maxI && matched.contents) {
-        lastMatchedIdx := exprIncludesConstSeq(
+        lastMatchedIdx := exprIncludesConstSeqWithTarget(
             ~expr, ~startIdx=lastMatchedIdx.contents+1, ~maxIdx, 
-            ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes
+            ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes, ~frmData
         )
         matched := 0 <= lastMatchedIdx.contents && lastMatchedIdx.contents <= maxIdx
         i := i.contents + 1
@@ -126,7 +239,7 @@ and let exprIncludesConstOrderedSeq = (
 
 and let exprIncludesConstUnorderedSeq = (
     ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
-    ~passedSeqIdxs:array<int>
+    ~passedSeqIdxs:array<int>, ~frmData:MC.patternSearchData
 ):int => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         startIdx-1
@@ -138,11 +251,13 @@ and let exprIncludesConstUnorderedSeq = (
             if !(passedSeqIdxs->Array.includes(i.contents)) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
                 if (startIdx < curSeq.minConstMismatchIdx) {
-                    let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes)
+                    let lastMatchedIdx = exprIncludesConstSeqWithTarget(
+                        ~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes, ~frmData
+                    )
                     if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
                         passedSeqIdxs->Array.push(i.contents)
                         res := exprIncludesConstUnorderedSeq(
-                            ~expr, ~startIdx=lastMatchedIdx+1, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs
+                            ~expr, ~startIdx=lastMatchedIdx+1, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs, ~frmData
                         )
                         passedSeqIdxs->Array.pop->ignore
                     }
@@ -323,11 +438,11 @@ let getMatchedIndices = (seq:symSeq):array<int> => {
 }
 
 let exprIncludesSeq = (
-    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>
+    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>, ~frmData:MC.patternSearchData
 ):option<array<int>> => {
     let res = ref(None)
     let maxIdx = expr->Array.length-1
-    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes) >= 0) {
+    if (exprIncludesConstSeqWithTarget(~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes, ~frmData) >= 0) {
         let stop = ref(false)
         exprIncludesVarSeq(
             ~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes,
