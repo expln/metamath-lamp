@@ -471,13 +471,19 @@ let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
     }
 }
 
-let rec astToSymSeq = (ast:P.symSeq, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
-    let elems = astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(flags, ast.flags), symMap)
+let rec astToSymSeq = (ast:P.symSeq, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
+    let elems = astToSeqGrp(ast.elems, ast.flags, symMap)
     let minLen = switch elems {
         | Adjacent(syms) => syms->Array.length
         | Ordered(symSeq) | Unordered(symSeq) => countMinLen(symSeq)
     }
-    { elems, minLen, minConstMismatchIdx: -1, }
+    { 
+        elems, 
+        minLen, 
+        minConstMismatchIdx: -1, 
+        target: switch ast.flags.target {|Frm=>Frm |Hyps=>Hyps |Asrt=>Asrt},
+        singleStmt: ast.flags.singleStmt
+    }
 }
 and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):seqGrp => {
     switch ast {
@@ -485,17 +491,21 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<cons
             if (isAdj(flags)) {
                 Adjacent(syms->Array.map(makeSym(_,symMap)))
             } else {
+                let target = switch flags.target {|Frm=>Frm |Hyps=>Hyps |Asrt=>Asrt}
+                let singleStmt = flags.singleStmt
                 Ordered(syms->Array.map(symStr => {
                     {
                         elems:Adjacent([makeSym(symStr,symMap)]),
                         minLen:1,
                         minConstMismatchIdx:-1,
+                        target,
+                        singleStmt,
                     }
                 }))
             }
         }
-        | Ordered(syms) => Ordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
-        | Unordered(syms) => Unordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
+        | Ordered(syms) => Ordered(syms->Array.map(astToSymSeq(_, symMap)))
+        | Unordered(syms) => Unordered(syms->Array.map(astToSymSeq(_, symMap)))
     }
 }
 
@@ -537,8 +547,7 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
 
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):pattern => {
     let res = {
-        target: switch ast.target {|Frm => Frm |Hyps => Hyps |Asrt => Asrt},
-        symSeq: astToSymSeq(ast.symSeq, {adj:None}, symMap),
+        symSeq: astToSymSeq(ast.symSeq, symMap),
         allSeq: []
     }
     collectAllSeq(res.symSeq, res.allSeq)
@@ -736,46 +745,34 @@ let makeEmptyMatchedIdxs = (numOfStmts:int):array<array<int>> => {
     Array.fromInitializer(~length=numOfStmts, _=>[])
 }
 
-let convertMatchedIndices = (frm:MC.frame, idxs:array<int>, target:patternTarget):array<array<int>> => {
+let convertMatchedIndices = (frm:MC.frame, idxs:array<int>):array<array<int>> => {
     let hyps = frm.hyps->Array.filter(hyp => hyp.typ == E)
     let numOfHyps = hyps->Array.length
     let res = makeEmptyMatchedIdxs(numOfHyps+1)
     let idxI = ref(0)
     let maxIdxI = idxs->Array.length-1
-    switch target {
-        | Frm | Hyps => {
-            let hypI = ref(0)
-            let maxHypI = numOfHyps-1
-            let hypLenSum = ref(0)
-            while (hypI.contents <= maxHypI) {
-                let curHypLen = (hyps->Array.getUnsafe(hypI.contents)).expr->Array.length
-                let maxIdx = hypLenSum.contents + curHypLen - 1
-                let curResArr = res->Array.getUnsafe(hypI.contents)
-                let curIdx = ref(idxs[idxI.contents])
-                while (curIdx.contents->Option.mapOr(false, curIdx => curIdx <= maxIdx) && idxI.contents <= maxIdxI) {
-                    curResArr->Array.push(curIdx.contents->Option.getExn - hypLenSum.contents)
-                    idxI := idxI.contents + 1
-                    curIdx := idxs[idxI.contents]
-                }
-                hypLenSum := hypLenSum.contents + curHypLen
-                hypI := hypI.contents + 1
-            }
-            let curResArr = res->Array.getUnsafe(hypI.contents)
-            while (idxI.contents <= maxIdxI) {
-                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum.contents)
-                idxI := idxI.contents + 1
-            }
-            res
+    let hypI = ref(0)
+    let maxHypI = numOfHyps-1
+    let hypLenSum = ref(0)
+    while (hypI.contents <= maxHypI) {
+        let curHypLen = (hyps->Array.getUnsafe(hypI.contents)).expr->Array.length
+        let maxIdx = hypLenSum.contents + curHypLen - 1
+        let curResArr = res->Array.getUnsafe(hypI.contents)
+        let curIdx = ref(idxs[idxI.contents])
+        while (curIdx.contents->Option.mapOr(false, curIdx => curIdx <= maxIdx) && idxI.contents <= maxIdxI) {
+            curResArr->Array.push(curIdx.contents->Option.getExn - hypLenSum.contents)
+            idxI := idxI.contents + 1
+            curIdx := idxs[idxI.contents]
         }
-        | Asrt => {
-            let curResArr = res->Array.getUnsafe(numOfHyps)
-            while (idxI.contents <= maxIdxI) {
-                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents))
-                idxI := idxI.contents + 1
-            }
-            res
-        }
+        hypLenSum := hypLenSum.contents + curHypLen
+        hypI := hypI.contents + 1
     }
+    let curResArr = res->Array.getUnsafe(hypI.contents)
+    while (idxI.contents <= maxIdxI) {
+        curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum.contents)
+        idxI := idxI.contents + 1
+    }
+    res
 }
 
 let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
@@ -791,15 +788,12 @@ let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
 }
 
 let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int>>> => {
-    let expr = switch pattern.target {
-        | Frm => MC.frmGetPatternSearchData(frm).allHypsAsrt
-        | Hyps => MC.frmGetPatternSearchData(frm).allHypsAsrt
-        | Asrt => frm.asrt
-    }
+    let frmData = MC.frmGetPatternSearchData(frm)
+    let expr = frmData.allHypsAsrt
     let exprLen = expr->Array.length
     pattern.allSeq->Array.forEach(seq => seq.minConstMismatchIdx = exprLen)
-    exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes)
-        ->Option.map(convertMatchedIndices(frm, _, pattern.target))
+    exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
+        ->Option.map(convertMatchedIndices(frm, _))
 }
 
 let frameMatchesPatterns = (frm:MC.frame, patterns:array<pattern>):matchResult => {

@@ -1,7 +1,3 @@
-type flags = {
-    adj:option<bool>
-}
-
 type rec symSeq = {
     flags: flags, 
     elems: seqGrp
@@ -10,11 +6,14 @@ and seqGrp =
     | Symbols(array<string>) 
     | Ordered(array<symSeq>) 
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+and patternTarget = Frm | Hyps | Asrt
+and flags = {
+    adj:option<bool>,
+    target:patternTarget,
+    singleStmt:bool,
+}
 
 type pattern = {
-    target: patternTarget, 
     symSeq: symSeq
 }
 

@@ -28,7 +28,6 @@ and seqGrp =
 and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
-    target: patternTarget,
     symSeq: symSeq,
     allSeq: array<symSeq>,
 }
@@ -47,8 +46,10 @@ let validatePattern: (~text:string, ~ctx:MM_context.mmContext) => option<string>
 
 let countMinLen: array<symSeq> => int
 
-let exprIncludesSeq: (~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>) => option<array<int>>
+let exprIncludesSeq: (
+    ~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>, ~frmData:MM_context.patternSearchData
+) => option<array<int>>
 
-let convertMatchedIndices: (MM_context.frame, array<int>, patternTarget) => array<array<int>>
+let convertMatchedIndices: (MM_context.frame, array<int>) => array<array<int>>
 
 let mergeMatchedIndices: array<array<array<int>>> => array<array<int>>

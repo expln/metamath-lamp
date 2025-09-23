@@ -1,21 +1,20 @@
-type flags = {
-    adj:option<bool>
-}
-
 type rec symSeq = {
-    flags:flags,
-    elems:seqGrp
+    flags: flags, 
+    elems: seqGrp
 }
-and seqGrp =
-    | Symbols(array<string>)
-    | Ordered(array<symSeq>)
+and seqGrp = 
+    | Symbols(array<string>) 
+    | Ordered(array<symSeq>) 
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+and patternTarget = Frm | Hyps | Asrt
+and flags = {
+    adj:option<bool>,
+    target:patternTarget,
+    singleStmt:bool,
+}
 
 type pattern = {
-    target: patternTarget,
-    symSeq: symSeq,
+    symSeq: symSeq
 }
 
 let logParsers = false
@@ -25,11 +24,13 @@ let operatorUnordered = "$/"
 let openParenthesis = "$["
 let closeParenthesis = "$]"
 
-let toSymSeq = (elems:seqGrp, ~flags:flags={adj:None}):symSeq => { flags, elems }
+let toSymSeq = (elems:seqGrp, ~flags:flags={adj:None, target:Frm, singleStmt:false}):symSeq => { flags, elems }
 
 let parseFlags = (str:string):flags => {
     {
-        adj: str->String.includes("+") ? Some(true) : str->String.includes("-") ? Some(false) : None
+        adj: str->String.includes("+") ? Some(true) : str->String.includes("-") ? Some(false) : None,
+        target: str->String.includes("a") ? Asrt : str->String.includes("h") ? Hyps : Frm,
+        singleStmt: str->String.includes("s"),
     }
 }
 
@@ -44,17 +45,9 @@ let isPatternBegin = (str:string):option<pattern> => {
         )
     ) {
         Some({
-            target: 
-                if (str->String.includes("h")) {
-                    Hyps
-                } else if (str->String.includes("a")) {
-                    Asrt
-                } else {
-                    Frm
-                },
             symSeq: {
                 flags: parseFlags(str),
-                elems: Symbols([])
+                elems: Symbols([]),
             },
         })
     } else {
@@ -68,16 +61,17 @@ let mergeOpt = (parent:option<'a>, child:option<'a>):option<'a> => {
 
 let passFlagsFromParentToChild = (parentFlags:flags, childFlags:flags):flags => {
     {
-        adj: mergeOpt(parentFlags.adj, childFlags.adj)
+        adj: mergeOpt(parentFlags.adj, childFlags.adj),
+        target: switch parentFlags.target {| Frm => childFlags.target | Asrt | Hyps => parentFlags.target},
+        singleStmt: parentFlags.singleStmt || childFlags.singleStmt,
     }
 }
 
 let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
     switch beginOpt {
-        | None => { target: Frm, symSeq: seq }
+        | None => { symSeq: seq }
         | Some(stmtPat) => {
             { 
-                target: stmtPat.target, 
                 symSeq: {
                     ...seq,
                     flags: passFlagsFromParentToChild(stmtPat.symSeq.flags, seq.flags)
