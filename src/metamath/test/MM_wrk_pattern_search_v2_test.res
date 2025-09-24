@@ -106,16 +106,16 @@ let baseSymSeq = {
     elems:Adjacent([]), minLen:0, minConstMismatchIdx:-1, target: Frm, singleStmt:false, 
     minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
 }
-let adj = (syms:array<sym>):symSeq => {
-    ...baseSymSeq, elems: Adjacent(syms), minLen:syms->Array.length, minConstMismatchIdx: -1 
+let adj = (syms:array<sym>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, elems: Adjacent(syms), minLen:syms->Array.length, target, singleStmt 
 }
-let ord = (seq:array<symSeq>):symSeq => {
-    ...baseSymSeq, elems: Ordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 
+let ord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, elems: Ordered(seq), minLen:countMinLen(seq), target, singleStmt 
 }
-let unord = (seq:array<symSeq>):symSeq => {
-    ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 
+let unord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), target, singleStmt 
 }
-let pat = (target:patternTarget, symSeq:symSeq):pattern => { symSeq:{...symSeq, target}, allSeq:[] }
+let pat = (symSeq:symSeq):pattern => { symSeq, allSeq:[] }
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
@@ -603,7 +603,6 @@ describe("parsePattern", _ => {
     it("passes flags from parent to child", _ => {
         assertParsePattern(~pattern="a b $* c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([
                     ord([adj([a]), adj([b])]),
                     ord([adj([c]), adj([d])]),
@@ -612,7 +611,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="a b $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     ord([adj([c]), adj([d])]),
@@ -621,7 +619,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ a b $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     adj([a, b]),
                     adj([c, d]),
@@ -630,7 +627,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ $[- a b $] $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
@@ -639,7 +635,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ $[- a b $] $/ $[+ c d $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
@@ -648,7 +643,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$[- a b $] $/ $[+ c d $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
@@ -657,7 +651,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="a b $/ $[+ c d $* $[- a b $] $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     ord([
@@ -669,7 +662,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ a b $* $[- c d $/ $[+ a b $] $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([
                     adj([a, b]), 
                     unord([
@@ -683,50 +675,44 @@ describe("parsePattern", _ => {
     it("sets pattern targets", _ => {
         assertParsePattern(~pattern="a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([adj([a]), adj([b])])
             )])
         )
         assertParsePattern(~pattern="$ a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([adj([a]), adj([b])])
             )])
         )
         assertParsePattern(~pattern="$h a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Hyps,
-                ord([adj([a]), adj([b])])
+                ord([adj([a], ~target=Hyps), adj([b], ~target=Hyps)], ~target=Hyps)
             )])
         )
         assertParsePattern(~pattern="$a a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Asrt,
-                ord([adj([a]), adj([b])])
+                ord([adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt)
             )])
         )
         assertParsePattern(~pattern="$h+ a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Hyps,
-                adj([a,b])
+                adj([a,b], ~target=Hyps)
             )])
         )
         assertParsePattern(~pattern="$a+ a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Asrt,
-                adj([a,b])
+                adj([a,b], ~target=Asrt)
             )])
         )
     })
     it("can parse multiple patterns", _ => {
         assertParsePattern(~pattern="$ a b $h c d $a a b $+ c d $h+ a b $a+ c d", ~syms, 
             ~expectedResult=Ok([
-                pat(Frm, ord([adj([a]), adj([b])])),
-                pat(Hyps, ord([adj([c]), adj([d])])),
-                pat(Asrt, ord([adj([a]), adj([b])])),
-                pat(Frm, adj([c,d])),
-                pat(Hyps, adj([a,b])),
-                pat(Asrt, adj([c,d])),
+                pat(ord([adj([a]), adj([b])])),
+                pat(ord([adj([c], ~target=Hyps), adj([d], ~target=Hyps)], ~target=Hyps)),
+                pat(ord([adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt)),
+                pat(adj([c,d])),
+                pat(adj([a,b], ~target=Hyps)),
+                pat(adj([c,d], ~target=Asrt)),
             ])
         )
     })
@@ -772,12 +758,12 @@ describe("convertMatchedIndices", () => {
         )
     })
     it("converts indices for Asrt target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0]), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2]), [[],[],[0]], "case 4" )
         assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0]), [[0]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [0,1], 
+                [15,16], 
             ),
             [[],[],[],[0,1]],
             "case 6"
@@ -785,7 +771,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [0,1,2], 
+                [15,16,17], 
             ),
             [[],[],[],[0,1,2]],
             "case 7"
@@ -793,7 +779,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [1,2,3], 
+                [16,17,18], 
             ),
             [[],[],[],[1,2,3]],
             "case 8"
@@ -801,7 +787,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [2,3,4], 
+                [17,18,19], 
             ),
             [[],[],[],[2,3,4]],
             "case 9"
@@ -809,7 +795,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [1,3], 
+                [16,18], 
             ),
             [[],[],[],[1,3]],
             "case 10"

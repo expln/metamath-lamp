@@ -521,8 +521,8 @@ let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
     }
 }
 
-let rec astToSymSeq = (ast:P.symSeq, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
-    let elems = astToSeqGrp(ast.elems, ast.flags, symMap)
+let rec astToSymSeq = (ast:P.symSeq, parentFlags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
+    let elems = astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(parentFlags, ast.flags), symMap)
     let minLen = switch elems {
         | Adjacent(syms) => syms->Array.length
         | Ordered(symSeq) | Unordered(symSeq) => countMinLen(symSeq)
@@ -556,8 +556,8 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<cons
                 }))
             }
         }
-        | Ordered(syms) => Ordered(syms->Array.map(astToSymSeq(_, symMap)))
-        | Unordered(syms) => Unordered(syms->Array.map(astToSymSeq(_, symMap)))
+        | Ordered(syms) => Ordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
+        | Unordered(syms) => Unordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
     }
 }
 
@@ -599,7 +599,7 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
 
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):pattern => {
     let res = {
-        symSeq: astToSymSeq(ast.symSeq, symMap),
+        symSeq: astToSymSeq(ast.symSeq, P.parseFlags(""), symMap),
         allSeq: []
     }
     collectAllSeq(res.symSeq, res.allSeq)
