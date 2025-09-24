@@ -328,21 +328,66 @@ let exprIncludesVarAdjSeq = (
     }
 }
 
-let rec exprIncludesVarSeq = (
-    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes:array<int>,
+let rec exprIncludesVarSeqWithTarget = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>, ~frmData:MC.patternSearchData,
     ~next:subSeqMatchRes=>unit, ~stop:ref<bool>
+):unit => {
+    let exprLen = expr->Array.length
+    if (seq.singleStmt) {
+        let stmtI = ref(0)
+        while (stmtI.contents <= frmData.numOfHyps && !stop.contents) {
+            let newStartIdx = Math.Int.max(
+                startIdx,
+                getMinIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target=seq.target, ~frmData)
+            )
+            let newMaxIdx = Math.Int.min(
+                maxIdx,
+                getMaxIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target=seq.target, ~frmData)
+            )
+            if (newStartIdx <= newMaxIdx) {
+                seq.minConstMismatchIdx = seq.minConstMismatchIdxs->Belt_HashMapInt.get(stmtI.contents)
+                    ->Option.getOr(exprLen)
+                exprIncludesVarSeq(
+                    ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~next, ~stop, ~frmData
+                )
+                seq.minConstMismatchIdxs->Belt_HashMapInt.set(stmtI.contents, seq.minConstMismatchIdx)
+            }
+            stmtI := stmtI.contents + 1
+        }
+    } else {
+        let newStartIdx = Math.Int.max(
+            startIdx,
+            getMinIdxForNonSingleStmt(~exprLen, ~target=seq.target, ~frmData)
+        )
+        let newMaxIdx = Math.Int.min(
+            maxIdx,
+            getMaxIdxForNonSingleStmt(~exprLen, ~target=seq.target, ~frmData)
+        )
+        if (newStartIdx <= newMaxIdx) {
+            exprIncludesVarSeq(
+                ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~next, ~stop, ~frmData
+            )
+        }
+    }
+}
+
+and let exprIncludesVarSeq = ( 
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes:array<int>,
+    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>, ~frmData:MC.patternSearchData,
 ):unit => {
     if (startIdx <= maxIdx && startIdx < seq.minConstMismatchIdx) {
         switch seq.elems {
             | Adjacent(seq) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes, ~next)
             | Ordered(childElems) => {
                 exprIncludesVarOrderedSeq(
-                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~next, ~res=None, ~childElemIdx=0, ~stop
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~next, ~res=None, ~childElemIdx=0, ~stop, 
+                    ~frmData
                 )
             }
             | Unordered(childElems) => {
                 exprIncludesVarUnorderedSeq(
-                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next, ~res=None, ~stop
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next, ~res=None, ~stop, 
+                    ~frmData
                 )
             }
         }
@@ -351,7 +396,8 @@ let rec exprIncludesVarSeq = (
 
 and let exprIncludesVarOrderedSeq = (
     ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
-    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~childElemIdx:int, ~stop:ref<bool>
+    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~childElemIdx:int, ~stop:ref<bool>, 
+    ~frmData:MC.patternSearchData
 ):unit => {
     if (childElems->Array.length <= childElemIdx) {
         switch res {
@@ -365,27 +411,28 @@ and let exprIncludesVarOrderedSeq = (
         while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
             let beginCopy = begin.contents
             begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
-            exprIncludesVarSeq(
+            exprIncludesVarSeqWithTarget(
                 ~expr, ~startIdx=beginCopy, ~maxIdx, ~seq=curSeq, ~varTypes,
                 ~next = curSeqRes => {
                     if (curSeqRes.matchEnd <= maxIdx) {
                         exprIncludesVarOrderedSeq(
                             ~expr, ~startIdx=curSeqRes.matchEnd+1, ~maxIdx, ~childElems, ~varTypes, ~next,
                             ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
-                            ~childElemIdx=childElemIdx+1, ~stop
+                            ~childElemIdx=childElemIdx+1, ~stop, ~frmData
                         )
                         begin := curSeqRes.matchBegin + 1
                     }
                 }, 
-                ~stop
+                ~stop, ~frmData
             )
         }
     }
 }
 
 and let exprIncludesVarUnorderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>,
-    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~stop:ref<bool>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
+    ~passedSeqIdxs:array<int>, ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~stop:ref<bool>, 
+    ~frmData:MC.patternSearchData
 ):unit => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         switch res {
@@ -403,7 +450,7 @@ and let exprIncludesVarUnorderedSeq = (
                 while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
                     let beginCopy = begin.contents
                     begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
-                    exprIncludesVarSeq(
+                    exprIncludesVarSeqWithTarget(
                         ~expr, ~startIdx=beginCopy, ~maxIdx, ~seq=curSeq, ~varTypes,
                         ~next = curSeqRes => {
                             if (curSeqRes.matchEnd <= maxIdx) {
@@ -412,13 +459,13 @@ and let exprIncludesVarUnorderedSeq = (
                                     ~expr, ~startIdx=curSeqRes.matchEnd+1, ~maxIdx, 
                                     ~childElems, ~varTypes, ~passedSeqIdxs, ~next,
                                     ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
-                                    ~stop
+                                    ~stop, ~frmData
                                 )
                                 passedSeqIdxs->Array.pop->ignore
                                 begin := curSeqRes.matchBegin + 1
                             }
                         },
-                        ~stop
+                        ~stop, ~frmData
                     )
                 }
             }
@@ -447,7 +494,7 @@ let exprIncludesSeq = (
     let maxIdx = expr->Array.length-1
     if (exprIncludesConstSeqWithTarget(~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes, ~frmData) >= 0) {
         let stop = ref(false)
-        exprIncludesVarSeq(
+        exprIncludesVarSeqWithTarget(
             ~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes,
             ~next = _ => {
                 stop := true
@@ -456,7 +503,7 @@ let exprIncludesSeq = (
                     | Some(_) => Exn.raiseError("next() is called twice in exprIncludesSeq.")
                 }
             },
-            ~stop
+            ~stop, ~frmData
         )
     }
     res.contents
