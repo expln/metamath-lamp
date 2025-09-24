@@ -36,7 +36,10 @@ let rec makeSymSeq = (
                 {
                     elems: Adjacent(makeArrayOfSymbols([i], symMap)),
                     minLen: 1,
+                    target: Frm,
+                    singleStmt:false,
                     minConstMismatchIdx,
+                    minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
                 }
             }))
             (seqGrp, seq->Array.length)
@@ -50,7 +53,10 @@ let rec makeSymSeq = (
             (Unordered(childSeq), countMinLen(childSeq))
         }
     }
-    { elems, minLen, minConstMismatchIdx, }
+    { 
+        elems, minLen, minConstMismatchIdx, target: Frm, singleStmt:false, 
+        minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
+    }
 }
 
 let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_HashMapInt.t<constOrVar> => {
@@ -76,20 +82,40 @@ let assertMatches = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
 ):unit => {
     let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), Some(expectedIndices))
+    let frmData:MM_context.patternSearchData = {
+        allHypsAsrt:expr,
+        numOfHyps:0,
+        stmtBnds:[0]
+    }
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData ), Some(expectedIndices))
 }
 
 let assertDoesntMatch = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
 ):unit => {
     let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), None)
+    let frmData:MM_context.patternSearchData = {
+        allHypsAsrt:expr,
+        numOfHyps:0,
+        stmtBnds:[0]
+    }
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData ), None)
 }
 
-let adj = (syms:array<sym>):symSeq => { elems: Adjacent(syms), minLen:syms->Array.length, minConstMismatchIdx: -1 }
-let ord = (seq:array<symSeq>):symSeq => { elems: Ordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 }
-let unord = (seq:array<symSeq>):symSeq => { elems: Unordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 }
-let pat = (target:patternTarget, symSeq:symSeq):pattern => { target, symSeq, allSeq:[] }
+let baseSymSeq = { 
+    elems:Adjacent([]), minLen:0, minConstMismatchIdx:-1, target: Frm, singleStmt:false, 
+    minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
+}
+let adj = (syms:array<sym>):symSeq => {
+    ...baseSymSeq, elems: Adjacent(syms), minLen:syms->Array.length, minConstMismatchIdx: -1 
+}
+let ord = (seq:array<symSeq>):symSeq => {
+    ...baseSymSeq, elems: Ordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 
+}
+let unord = (seq:array<symSeq>):symSeq => {
+    ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 
+}
+let pat = (target:patternTarget, symSeq:symSeq):pattern => { symSeq:{...symSeq, target}, allSeq:[] }
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
@@ -717,44 +743,41 @@ describe("convertMatchedIndices", () => {
         }
     }
     it("converts indices for Frm target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2], Frm), [[0],[0],[0]], "case 1" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Frm), [[0],[],[]], "case 2" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1], Frm), [[],[0],[]], "case 3" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2], Frm), [[],[],[0]], "case 4" )
-        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Frm), [[0]], "case 5" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2]), [[0],[0],[0]], "case 1" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0]), [[0],[],[]], "case 2" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1]), [[],[0],[]], "case 3" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2]), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0]), [[0]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [0,1,2,6,7,8,12,13,14,15,19], 
-                Frm
             ),
             [[0,1,2],[1,2,3],[2,3,4],[0,4]],
             "case 6"
         )
     })
     it("converts indices for Hyps target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1], Hyps), [[0],[0],[]], "case 1" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Hyps), [[0],[],[]], "case 2" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1], Hyps), [[],[0],[]], "case 3" )
-        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [], Hyps), [[]], "case 5" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1]), [[0],[0],[]], "case 1" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0]), [[0],[],[]], "case 2" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1]), [[],[0],[]], "case 3" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), []), [[]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [0,1,2,6,7,8,12,13,14], 
-                Hyps
             ),
             [[0,1,2],[1,2,3],[2,3,4],[]],
             "case 6"
         )
     })
     it("converts indices for Asrt target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Asrt), [[],[],[0]], "case 4" )
-        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Asrt), [[0]], "case 5" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0]), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0]), [[0]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [0,1], 
-                Asrt
             ),
             [[],[],[],[0,1]],
             "case 6"
@@ -763,7 +786,6 @@ describe("convertMatchedIndices", () => {
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [0,1,2], 
-                Asrt
             ),
             [[],[],[],[0,1,2]],
             "case 7"
@@ -772,7 +794,6 @@ describe("convertMatchedIndices", () => {
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [1,2,3], 
-                Asrt
             ),
             [[],[],[],[1,2,3]],
             "case 8"
@@ -781,7 +802,6 @@ describe("convertMatchedIndices", () => {
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [2,3,4], 
-                Asrt
             ),
             [[],[],[],[2,3,4]],
             "case 9"
@@ -790,7 +810,6 @@ describe("convertMatchedIndices", () => {
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [1,3], 
-                Asrt
             ),
             [[],[],[],[1,3]],
             "case 10"
