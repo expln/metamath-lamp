@@ -23,6 +23,7 @@ type rec symSeq = {
     singleStmt: bool,
     minLen:int,
     mutable minConstMismatchIdx:int,
+    minConstMismatchIdxs:Belt_HashMapInt.t<int>,
 }
 and seqGrp = 
     | Adjacent(array<sym>)
@@ -151,10 +152,9 @@ let rec exprIncludesConstSeqWithTarget = (
 ):int => {
     let exprLen = expr->Array.length
     if (seq.singleStmt) {
-        let stmtI = ref(frmData.numOfHyps)
+        let stmtI = ref(0)
         let lastMatchedIdx = ref(-1)
-        //counting downwards for the minConstMismatchIdx to work correctly
-        while (0 <= stmtI.contents && lastMatchedIdx.contents < 0) {
+        while (stmtI.contents <= frmData.numOfHyps && lastMatchedIdx.contents < 0) {
             let newStartIdx = Math.Int.max(
                 startIdx,
                 getMinIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target=seq.target, ~frmData)
@@ -164,11 +164,14 @@ let rec exprIncludesConstSeqWithTarget = (
                 getMaxIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target=seq.target, ~frmData)
             )
             if (newStartIdx <= newMaxIdx) {
+                seq.minConstMismatchIdx = seq.minConstMismatchIdxs->Belt_HashMapInt.get(stmtI.contents)
+                    ->Option.getOr(exprLen)
                 lastMatchedIdx := exprIncludesConstSeq(
                     ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~frmData
                 )
+                seq.minConstMismatchIdxs->Belt_HashMapInt.set(stmtI.contents, seq.minConstMismatchIdx)
             }
-            stmtI := stmtI.contents - 1
+            stmtI := stmtI.contents + 1
         }
         lastMatchedIdx.contents
     } else {
@@ -481,6 +484,7 @@ let rec astToSymSeq = (ast:P.symSeq, symMap:Belt_HashMapString.t<constOrVar>):sy
         elems, 
         minLen, 
         minConstMismatchIdx: -1, 
+        minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
         target: switch ast.flags.target {|Frm=>Frm |Hyps=>Hyps |Asrt=>Asrt},
         singleStmt: ast.flags.singleStmt
     }
@@ -498,6 +502,7 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<cons
                         elems:Adjacent([makeSym(symStr,symMap)]),
                         minLen:1,
                         minConstMismatchIdx:-1,
+                        minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
                         target,
                         singleStmt,
                     }
@@ -791,7 +796,10 @@ let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int
     let frmData = MC.frmGetPatternSearchData(frm)
     let expr = frmData.allHypsAsrt
     let exprLen = expr->Array.length
-    pattern.allSeq->Array.forEach(seq => seq.minConstMismatchIdx = exprLen)
+    pattern.allSeq->Array.forEach(seq => {
+        seq.minConstMismatchIdx = exprLen
+        seq.minConstMismatchIdxs->Belt_HashMapInt.clear
+    })
     exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
         ->Option.map(convertMatchedIndices(frm, _))
 }

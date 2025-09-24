@@ -10,7 +10,7 @@ let seq = (elems:seqGrp, ~flags:string):symSeq => { flags:parseFlags(flags), ele
 let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbols), ~flags)
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
-let pat = (symSeq:symSeq, ~target:patternTarget=Frm):pattern => {target, symSeq}
+let pat = (symSeq:symSeq):pattern => {symSeq:symSeq}
 
 describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern works as expected", _ => {
@@ -228,25 +228,25 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
         testPatternParser(
             "$ a b $h a b $a a b",
             Some([ 
-                pat(sym(["a", "b"]), ~target=Frm),
-                pat(sym(["a", "b"]), ~target=Hyps),
-                pat(sym(["a", "b"]), ~target=Asrt),
+                pat(sym(["a", "b"])),
+                pat(sym(["a", "b"], ~flags="h")),
+                pat(sym(["a", "b"], ~flags="a")),
             ])
         )
         testPatternParser(
             "$+ a b $h+ a b $a+ a b",
             Some([ 
-                pat(sym(["a", "b"], ~flags="+"), ~target=Frm),
-                pat(sym(["a", "b"], ~flags="+"), ~target=Hyps),
-                pat(sym(["a", "b"], ~flags="+"), ~target=Asrt),
+                pat(sym(["a", "b"], ~flags="+")),
+                pat(sym(["a", "b"], ~flags="+h")),
+                pat(sym(["a", "b"], ~flags="+a")),
             ])
         )
         testPatternParser(
             "$+ $[- a b $] $h+ $[- a b $] $a+ $[- a b $]",
             Some([ 
-                pat(sym(["a", "b"], ~flags="-"), ~target=Frm),
-                pat(sym(["a", "b"], ~flags="-"), ~target=Hyps),
-                pat(sym(["a", "b"], ~flags="-"), ~target=Asrt),
+                pat(sym(["a", "b"], ~flags="-")),
+                pat(sym(["a", "b"], ~flags="-h")),
+                pat(sym(["a", "b"], ~flags="-a")),
             ])
         )
     })

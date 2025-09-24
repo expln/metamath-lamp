@@ -20,6 +20,7 @@ type rec symSeq = {
     singleStmt: bool,
     minLen:int,
     mutable minConstMismatchIdx:int,
+    minConstMismatchIdxs:Belt_HashMapInt.t<int>,
 }
 and seqGrp = 
     | Adjacent(array<sym>)
