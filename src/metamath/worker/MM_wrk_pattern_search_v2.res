@@ -647,12 +647,14 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
             let flagA = ref(false)
             let flagP = ref(false)
             let flagM = ref(false)
+            let flagS = ref(false)
             for i in 0 to flags->String.length-1 {
                 let flag = flags->String.charAt(i)
                 if (flag == "h") {flagH := true}
                 else if (flag == "a") {flagA := true}
                 else if (flag == "+") {flagP := true}
                 else if (flag == "-") {flagM := true}
+                else if (flag == "s") {flagS := true}
                 else {
                     errors->Array.push(`'${tok}' - invalid flag '${flag}'`)
                 }
@@ -662,12 +664,6 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
             }
             if (flagP.contents && flagM.contents) {
                 errors->Array.push(`'${tok}' - flags '+' and '-' cannot be used together`)
-            }
-            if (
-                (tok->String.startsWith(P.openParenthesis) || tok->String.startsWith(P.closeParenthesis))
-                && (flagH.contents || flagA.contents)
-            ) {
-                errors->Array.push(`'${tok}' - flags 'h' and 'a' cannot be used with parentheses`)
             }
         }
     }
