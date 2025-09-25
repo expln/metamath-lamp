@@ -19,6 +19,8 @@ let make = (
         onCancel()
     }
 
+    let highlightMatchedSymbolsFinal = patternVersion!=1 && highlightMatchedSymbols
+
     <Col spacing=1.>
         <Row alignItems=#center>
             {React.string("Pattern version")}
@@ -31,16 +33,30 @@ let make = (
                 <FormControlLabel value="2" control={ <Radio/> } label="2" />
             </RadioGroup>
         </Row>
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked={patternVersion!=1 && highlightMatchedSymbols}
-                    onChange=evt2bool(b => setHighlightMatchedSymbols(_=>b))
-                    disabled={patternVersion==1}
-                />
+        <Row>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=highlightMatchedSymbolsFinal
+                        onChange=evt2bool(b => setHighlightMatchedSymbols(_=>b))
+                        disabled={patternVersion==1}
+                    />
+                }
+                label="Highlight matched symbols"
+            />
+            {
+                if (highlightMatchedSymbolsFinal) {
+                    MM_react_common.rndColorSelect(
+                        ~availableColors=MM_cmp_settings.allColors, 
+                        ~selectedColor="#f58231", 
+                        ~onNewColorSelected=_=>(),
+                        ~label="Color"
+                    )
+                } else {
+                    React.null
+                }
             }
-            label="Highlight matched symbols"
-        />
+        </Row>
         <Row alignItems=#center>
             <Button onClick=(_=>actOk()) variant=#contained > 
                 { React.string("Ok") }
