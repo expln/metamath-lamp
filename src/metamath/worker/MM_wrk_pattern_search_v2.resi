@@ -26,6 +26,7 @@ and seqGrp =
     | Adjacent(array<sym>)
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
+    | OneOf(array<symSeq>)
 and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {

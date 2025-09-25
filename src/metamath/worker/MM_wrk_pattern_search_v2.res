@@ -29,6 +29,7 @@ and seqGrp =
     | Adjacent(array<sym>)
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
+    | OneOf(array<symSeq>)
 and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
@@ -209,6 +210,9 @@ and exprIncludesConstSeq = (
                     ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~frmData
                 )
             }
+            | OneOf(childElems) => {
+                exprIncludesConstOneOfSeq( ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~frmData )
+            }
         }
         if (res < 0) {
             seq.minConstMismatchIdx = startIdx
@@ -270,6 +274,28 @@ and let exprIncludesConstUnorderedSeq = (
         }
         res.contents
     }
+}
+
+and let exprIncludesConstOneOfSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
+    ~frmData:MC.patternSearchData
+):int => {
+    let res = ref(-1)
+    let i = ref(0)
+    let maxI = childElems->Array.length - 1
+    while (res.contents < 0 && i.contents <= maxI) {
+        let curSeq = childElems->Array.getUnsafe(i.contents)
+        if (startIdx < curSeq.minConstMismatchIdx) {
+            let lastMatchedIdx = exprIncludesConstSeqWithTarget(
+                ~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes, ~frmData
+            )
+            if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
+                res := lastMatchedIdx
+            }
+        }
+        i := i.contents + 1
+    }
+    res.contents
 }
 
 let exprIncludesVarAdjSeq = (
@@ -390,6 +416,9 @@ and let exprIncludesVarSeq = (
                     ~frmData
                 )
             }
+            | OneOf(childElems) => {
+                exprIncludesVarOneOfSeq( ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~next, ~stop, ~frmData )
+            }
         }
     }
 }
@@ -474,12 +503,44 @@ and let exprIncludesVarUnorderedSeq = (
     }
 }
 
+and let exprIncludesVarOneOfSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
+    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>, ~frmData:MC.patternSearchData
+):unit => {
+    let i = ref(0)
+    let maxI = childElems->Array.length - 1
+    while (!stop.contents && i.contents <= maxI) {
+        let curSeq = childElems->Array.getUnsafe(i.contents)
+        let begin = ref(startIdx)
+        let beginMax = maxIdx + 1 - curSeq.minLen
+        while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
+            let beginCopy = begin.contents
+            begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
+            exprIncludesVarSeqWithTarget(
+                ~expr, ~startIdx=beginCopy, ~maxIdx, ~seq=curSeq, ~varTypes,
+                ~next = curSeqRes => {
+                    if (curSeqRes.matchEnd <= maxIdx) {
+                        next(curSeqRes)
+                        begin := curSeqRes.matchBegin + 1
+                    }
+                },
+                ~stop, ~frmData
+            )
+        }
+        i := i.contents + 1
+    }
+}
+
 let getMatchedIndices = (seq:symSeq):array<int> => {
     let indices = []
     let rec go = (seq:symSeq):unit => {
         switch seq.elems {
-            | Adjacent(syms) => syms->Array.forEach(sym => indices->Array.push(sym.matchedIdx))
-            | Ordered(childElems) | Unordered(childElems) => childElems->Array.forEach(go)
+            | Adjacent(syms) => syms->Array.forEach(sym => {
+                if (sym.matchedIdx >= 0) {
+                    indices->Array.push(sym.matchedIdx)
+                }
+            })
+            | Ordered(childElems) | Unordered(childElems) | OneOf(childElems) => childElems->Array.forEach(go)
         }
     }
     go(seq)
@@ -526,6 +587,12 @@ let rec astToSymSeq = (ast:P.symSeq, parentFlags:P.flags, symMap:Belt_HashMapStr
     let minLen = switch elems {
         | Adjacent(syms) => syms->Array.length
         | Ordered(symSeq) | Unordered(symSeq) => countMinLen(symSeq)
+        | OneOf(symSeq) => {
+            symSeq->Array.reduce(
+                symSeq[0]->Option.map(seq=>seq.minLen)->Option.getOr(0), 
+                (minLen,seq) => Math.Int.min(minLen,seq.minLen)
+            )
+        }
     }
     { 
         elems, 
@@ -558,6 +625,7 @@ and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<cons
         }
         | Ordered(syms) => Ordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
         | Unordered(syms) => Unordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
+        | OneOf(syms) => OneOf(syms->Array.map(astToSymSeq(_, flags, symMap)))
     }
 }
 
@@ -571,7 +639,7 @@ let rec traverseAst = (
     onSeqGrp(seq.elems)
     switch seq.elems {
         | Symbols(syms) => syms->Array.forEach(onSym)
-        | Ordered(childSeq) | Unordered(childSeq) => {
+        | Ordered(childSeq) | Unordered(childSeq) | OneOf(childSeq) => {
             childSeq->Array.forEach(traverseAst(_, ~onSymSeq, ~onSeqGrp, ~onSym))
         }
     }
@@ -587,7 +655,7 @@ let rec traversePattern = (
     onSeqGrp(seq.elems)
     switch seq.elems {
         | Adjacent(syms) => syms->Array.forEach(onSym)
-        | Ordered(childSeq) | Unordered(childSeq) => {
+        | Ordered(childSeq) | Unordered(childSeq) | OneOf(childSeq) => {
             childSeq->Array.forEach(traversePattern(_, ~onSymSeq, ~onSeqGrp, ~onSym))
         }
     }
@@ -639,7 +707,8 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
     if (!(tok->String.startsWith("$"))) {
         errors->Array.push(`'${tok}' - all control tokens must start with '$'`)
     } else if (!(
-        tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.openParenthesis || tok == P.closeParenthesis
+        tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.operatorOneOf 
+        || tok == P.openParenthesis || tok == P.closeParenthesis
     )) {
         let flags = tok->String.substringToEnd(~start=tok->String.startsWith(P.openParenthesis)?2:1)
         if (flags->String.length > 0) {

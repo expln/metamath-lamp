@@ -6,6 +6,7 @@ and seqGrp =
     | Symbols(array<string>) 
     | Ordered(array<symSeq>) 
     | Unordered(array<symSeq>)
+    | OneOf(array<symSeq>)
 and patternTarget = Frm | Hyps | Asrt
 and flags = {
     adj:option<bool>,
@@ -21,6 +22,7 @@ let logParsers = false
 
 let operatorOrdered = "$*"
 let operatorUnordered = "$/"
+let operatorOneOf = "$|"
 let openParenthesis = "$["
 let closeParenthesis = "$]"
 
@@ -40,6 +42,7 @@ let isPatternBegin = (str:string):option<pattern> => {
         && !(
             str->String.startsWith(operatorOrdered)
             || str->String.startsWith(operatorUnordered)
+            || str->String.startsWith(operatorOneOf)
             || str->String.startsWith(openParenthesis)
             || str->String.startsWith(closeParenthesis)
         )
@@ -123,7 +126,7 @@ module PatternParser = {
         ->log("symbols")
 
     let operator:parser<string> =
-        oneOf([operatorOrdered, operatorUnordered])
+        oneOf([operatorOrdered, operatorUnordered, operatorOneOf])
         ->log("operator")
 
     let seqOperand:Parser.parser<seqOrOperator, symSeq> =
@@ -151,8 +154,11 @@ module PatternParser = {
     let unordered:Parser.parser<seqOrOperator, symSeq> =
         seqGrpForOperator(operatorUnordered, any([ordered, seqOperand]), elems=>Unordered(elems))
 
+    let oneOf:Parser.parser<seqOrOperator, symSeq> =
+        seqGrpForOperator(operatorOneOf, any([unordered, ordered, seqOperand]), elems=>OneOf(elems))
+
     let seqGrpParser:Parser.parser<seqOrOperator, symSeq> =
-        any([unordered, ordered])
+        any([oneOf, unordered, ordered])
 
     let rec symSeq = ():parser<symSeq> =>
         anyL([seqGrp, seqWithParens, ()=>symbols])

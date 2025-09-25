@@ -588,15 +588,22 @@ let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
 }
 
 let frmGetPatternSearchData = (frm:frame):patternSearchData => {
-    let eHyps = frm.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr)
-    let allHyps = Array.concatMany([], eHyps)
-    {
-        allHypsAsrt: allHyps->Array.concat(frm.asrt),
-        numOfHyps: eHyps->Array.length,
-        stmtBnds: eHyps->Array.reduce([0], (bnds,eHyp) => {
-            bnds->Array.push(bnds->Array.last->Option.getExn + eHyp->Array.length)
-            bnds
-        }),
+    switch frm.patSearch {
+        | Some(res) => res
+        | None => {
+            let eHyps = frm.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr)
+            let allHyps = Array.concatMany([], eHyps)
+            let res = {
+                allHypsAsrt: allHyps->Array.concat(frm.asrt),
+                numOfHyps: eHyps->Array.length,
+                stmtBnds: eHyps->Array.reduce([0], (bnds,eHyp) => {
+                    bnds->Array.push(bnds->Array.last->Option.getExn + eHyp->Array.length)
+                    bnds
+                }),
+            }
+            frm.patSearch = Some(res)
+            res
+        }
     }
 }
 
