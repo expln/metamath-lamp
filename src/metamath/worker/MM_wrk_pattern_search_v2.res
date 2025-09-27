@@ -7,6 +7,7 @@ type matchResult =
 
 type variable = {
     typ: int,
+    capVars:ref<array<bool>>, //captured variables
     mutable capVar: int, //captured variable
     mutable capVarIdx: int, //index of the first occurrence of the captured variable
 }
@@ -35,6 +36,7 @@ and patternTarget = Frm | Hyps | Asrt
 type pattern = {
     symSeq: symSeq,
     allSeq: array<symSeq>,
+    capVars:ref<array<bool>>, //captured variables
 }
 
 type subSeqMatchRes = {
@@ -318,8 +320,13 @@ let exprIncludesVarAdjSeq = (
                 | Var(seqVar) => {
                     if (seqVar.capVar >= 0) {
                         matched := seqVar.capVar == exprSym
-                    } else if ( exprSym >= 0 && varTypes->getVarType(exprSym) == seqVar.typ ) {
+                    } else if ( 
+                        exprSym >= 0 
+                        && !(seqVar.capVars.contents[exprSym]->Option.getExn(~message="capVars.length is too small."))
+                        && varTypes->getVarType(exprSym) == seqVar.typ
+                    ) {
                         seqVar.capVar = exprSym
+                        seqVar.capVars.contents[seqVar.capVar] = true
                         seqVar.capVarIdx = exprI.contents
                     } else {
                         matched := false
@@ -344,6 +351,7 @@ let exprIncludesVarAdjSeq = (
                 | Var(seqVar) => {
                     let exprIdx = begin.contents + seqI.contents
                     if (exprIdx == seqVar.capVarIdx) {
+                        seqVar.capVars.contents[seqVar.capVar] = false
                         seqVar.capVar = -1
                     }
                 }
@@ -665,16 +673,19 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
     traversePattern(seq, ~onSymSeq=s=>allSeq->Array.push(s))
 }
 
-let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):pattern => {
+let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>, capVars:ref<array<bool>>):pattern => {
     let res = {
         symSeq: astToSymSeq(ast.symSeq, P.parseFlags(""), symMap),
-        allSeq: []
+        allSeq: [],
+        capVars,
     }
     collectAllSeq(res.symSeq, res.allSeq)
     res
 }
 
-let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<constOrVar>, string> => {
+let makeSymMap = (
+    ast:P.pattern, ctx:MC.mmContext, capVars:ref<array<bool>>
+):result<Belt_HashMapString.t<constOrVar>, string> => {
     let symMap = Belt_HashMapString.make(~hintSize=20)
     let errors:array<string> = []
     traverseAst(ast.symSeq, ~onSym=sym => {
@@ -688,6 +699,7 @@ let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<c
                 if (!(symMap->Belt_HashMapString.has(sym))) {
                     symMap->Belt_HashMapString.set(sym, Var({
                         typ: ctx->MC.getTypeOfVarExn(ctx->MC.ctxSymToIntExn(sym)),
+                        capVars,
                         capVar: -1,
                         capVarIdx: -1,
                     }))
@@ -826,11 +838,20 @@ let parsePattern = (
                                         ast, 
                                         ctx->Option.getExn(
                                             ~message="parsePattern: either symMap or ctx must be provided."
-                                        )
+                                        ),
+                                        ref([])
                                     )
                                 }
                             }
-                            symMap->Result.map(astToPattern(ast, _))
+                            symMap->Result.map(symMap => {
+                                let capVars = symMap->Belt_HashMapString.valuesToArray
+                                    ->Array.find(constOrVar => switch constOrVar {| Const(_)=>false | Var(_)=>true})
+                                    ->Option.mapOr(
+                                        ref([]), 
+                                        constOrVar => switch constOrVar {| Const(_)=>ref([]) | Var({capVars})=>capVars}
+                                    )
+                                astToPattern(ast, symMap, capVars)
+                            })
                         })
                         subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
                             switch acc {
@@ -912,6 +933,9 @@ let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int
         seq.minConstMismatchIdx = exprLen
         seq.minConstMismatchIdxs->Belt_HashMapInt.clear
     })
+    if (pattern.capVars.contents->Array.length < frm.varTypes->Array.length) {
+        pattern.capVars := Array.make(~length=frm.varTypes->Array.length, false)
+    }
     exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
         ->Option.map(convertMatchedIndices(frm, _))
 }

@@ -59,7 +59,9 @@ let rec makeSymSeq = (
     }
 }
 
-let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_HashMapInt.t<constOrVar> => {
+let makeSymMap = (
+    ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~capVars:ref<array<bool>>
+):Belt_HashMapInt.t<constOrVar> => {
     let allSym = Belt_HashSetInt.make(~hintSize=expr->Array.length)
     collectAllSyms(seq, allSym)
     Belt_HashMapInt.fromArray(
@@ -69,6 +71,7 @@ let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_
             } else {
                 let var = Var({
                     typ: varTypes[i]->Option.getExn(~message=`No type is defined for var ${i->Int.toString}`),
+                    capVars,
                     capVar: -1,
                     capVarIdx: -1,
                 })
@@ -81,7 +84,8 @@ let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_
 let assertMatches = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
 ):unit => {
-    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
+    let capVars = ref(Array.make(~length=varTypes->Array.length, false))
+    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes, ~capVars))
     let frmData:MM_context.patternSearchData = {
         allHypsAsrt:expr,
         numOfHyps:0,
@@ -93,7 +97,8 @@ let assertMatches = (
 let assertDoesntMatch = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
 ):unit => {
-    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
+    let capVars = ref(Array.make(~length=varTypes->Array.length, false))
+    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes, ~capVars))
     let frmData:MM_context.patternSearchData = {
         allHypsAsrt:expr,
         numOfHyps:0,
@@ -115,7 +120,7 @@ let ord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false)
 let unord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
     ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), target, singleStmt 
 }
-let pat = (symSeq:symSeq):pattern => { symSeq, allSeq:[] }
+let pat = (symSeq:symSeq):pattern => { symSeq, allSeq:[], capVars:ref([]) }
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
@@ -408,12 +413,11 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[2,5]
         )
     })
-    it("same var in expr is assigned to different vars in pattern", _ => {
-        assertMatches(
+    it("same var in expr cannot be assigned to different vars in pattern", _ => {
+        assertDoesntMatch(
             ~expr=[0,-1,0],
             ~seq=Adj([1,-1,2]),
-            ~varTypes=[-2,-2,-2],
-            ~expectedIndices=[0,1,2]
+            ~varTypes=[-2,-2,-2]
         )
     })
     it("same var in pattern is assigned to same vars in expr", _ => {

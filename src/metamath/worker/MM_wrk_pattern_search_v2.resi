@@ -4,6 +4,7 @@ type matchResult =
 
 type variable = {
     typ: int,
+    capVars:ref<array<bool>>, //captured variables
     mutable capVar: int, //captured variable
     mutable capVarIdx: int, //index of the first occurrence of the captured variable
 }
@@ -32,6 +33,7 @@ and patternTarget = Frm | Hyps | Asrt
 type pattern = {
     symSeq: symSeq,
     allSeq: array<symSeq>,
+    capVars:ref<array<bool>>, //captured variables
 }
 
 let parsePattern: (
