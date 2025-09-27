@@ -119,6 +119,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(preCtxData.frms, initialTyp))
     let rootPaperRef = React.useRef(Nullable.null)
+    let (highlightColor, _) = MM_use_highlight_color.useHighlightColor()
 
     React.useEffect1(() => {
         switch rootPaperRef.current->Nullable.toOption {
@@ -330,6 +331,7 @@ let make = (
                     frame
                     order=None
                     matchedIdxs
+                    highlightColor
                     typeColors=preCtxData.typeColors
                     typeOrderInDisj=preCtxData.typeOrderInDisj
                     editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick

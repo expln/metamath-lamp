@@ -5,14 +5,16 @@ open Expln_React_Mui
 let make = (
     ~patternVersion:int,
     ~highlightMatchedSymbols:bool,
-    ~onOk:(~patternVersion:int, ~highlightMatchedSymbols:bool)=>unit, 
+    ~highlightColor:string,
+    ~onOk:(~patternVersion:int, ~highlightMatchedSymbols:bool, ~highlightColor:string)=>unit, 
     ~onCancel:unit=>unit,
 ) => {
     let (patternVersion, setPatternVersion) = React.useState(() => patternVersion)
     let (highlightMatchedSymbols, setHighlightMatchedSymbols) = React.useState(() => highlightMatchedSymbols)
+    let (highlightColor, setHighlightColor) = React.useState(() => highlightColor)
 
     let actOk = () => {
-        onOk(~patternVersion, ~highlightMatchedSymbols)
+        onOk(~patternVersion, ~highlightMatchedSymbols, ~highlightColor)
     }
 
     let actCancel = () => {
@@ -48,8 +50,8 @@ let make = (
                 if (highlightMatchedSymbolsFinal) {
                     MM_react_common.rndColorSelect(
                         ~availableColors=MM_cmp_settings.allColors, 
-                        ~selectedColor="#f58231", 
-                        ~onNewColorSelected=_=>(),
+                        ~selectedColor=highlightColor, 
+                        ~onNewColorSelected=newHighlightColor=>setHighlightColor(_=>newHighlightColor),
                         ~label="Color"
                     )
                 } else {

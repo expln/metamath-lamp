@@ -26,6 +26,7 @@ type props = {
 
     labels:array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,
     highlightMatchedSymbols:bool,
+    highlightColor:string,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
     asrtsPerPage:int,
@@ -40,6 +41,7 @@ let propsAreSame = (a:props, b:props):bool => {
     && a.symColors === b.symColors
     && a.labels === b.labels
     && a.highlightMatchedSymbols === b.highlightMatchedSymbols
+    && a.highlightColor === b.highlightColor
     && a.asrtsPerPage === b.asrtsPerPage
 }
 
@@ -56,6 +58,7 @@ let make = React.memoCustomCompareProps(({
     parenCnt,
     labels,
     highlightMatchedSymbols,
+    highlightColor,
     openFrameExplorer,
     openExplorer,
     asrtsPerPage,
@@ -130,6 +133,7 @@ let make = React.memoCustomCompareProps(({
                     frame
                     order=Some(order)
                     matchedIdxs={highlightMatchedSymbols?matchedIdxs:None}
+                    highlightColor
                     typeColors
                     typeOrderInDisj
                     editStmtsByLeftClick

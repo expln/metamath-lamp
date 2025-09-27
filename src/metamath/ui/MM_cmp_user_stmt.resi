@@ -88,6 +88,7 @@ let rndContText: (
     ~stmtCont:stmtCont,
     ~symRename:Belt_HashMapString.t<string>=?,
     ~symsToHighlight:array<int>=?,
+    ~highlightColor:string=?,
     ~onTextLeftClick:int=>unit=?,
     ~onTextAltLeftClick:int=>unit=?,
     ~onTreeLeftClick:int=>unit=?,

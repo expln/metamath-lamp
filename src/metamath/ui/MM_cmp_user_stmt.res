@@ -101,10 +101,11 @@ let rndSymbol = (
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~isHighlighted:option<highlightedPosition>=?,
+    ~highlightColor:option<string>=?,
     ~cursor:string="auto",
     ~title:option<string>=?
 ):reElem => {
-    let borderColor = "orange"
+    let borderColor = highlightColor->Option.getOr("none")
     <React.Fragment key>
         {
             if (isFirst) {
@@ -255,6 +256,7 @@ let rndContText = (
     ~stmtCont:stmtCont,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
     ~symsToHighlight:option<array<int>>=?,
+    ~highlightColor:option<string>=?,
     ~onTextLeftClick:option<int=>unit>=?,
     ~onTextAltLeftClick:option<int=>unit>=?,
     ~onTreeLeftClick:option<int=>unit>=?,
@@ -288,6 +290,7 @@ let rndContText = (
                     ~cursor,
                     ~symRename?,
                     ~isHighlighted=?(symsToHighlight->Option.flatMap(getHighlightedPosition(_, i))),
+                    ~highlightColor?,
                     ~title?
                 )
             })->React.array
@@ -360,6 +363,7 @@ let rndContText = (
                                     ~isHighlighted=?(
                                         symsToHighlight->Option.flatMap(getHighlightedPosition(_, symIdx))
                                     ),
+                                    ~highlightColor?,
                                     ~title?
                                 )
                             )
