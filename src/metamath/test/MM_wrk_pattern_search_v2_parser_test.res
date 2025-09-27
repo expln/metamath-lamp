@@ -10,7 +10,7 @@ let seq = (elems:seqGrp, ~flags:string):symSeq => { flags:parseFlags(flags), ele
 let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbols), ~flags)
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
-let pat = (symSeq:symSeq):pattern => {symSeq:symSeq}
+let pat = (symSeq:symSeq, ~neg:bool=false):pattern => {symSeq:symSeq, neg}
 
 describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern works as expected", _ => {

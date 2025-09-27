@@ -32,6 +32,7 @@ and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
     symSeq: symSeq,
+    neg: bool,
     allSeq: array<symSeq>,
     capVars:ref<array<bool>>, //captured variables
 }

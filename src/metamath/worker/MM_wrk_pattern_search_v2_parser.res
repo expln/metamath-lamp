@@ -15,7 +15,8 @@ and flags = {
 }
 
 type pattern = {
-    symSeq: symSeq
+    symSeq: symSeq,
+    neg:bool,
 }
 
 let logParsers = false
@@ -52,6 +53,7 @@ let isPatternBegin = (str:string):option<pattern> => {
                 flags: parseFlags(str),
                 elems: Symbols([]),
             },
+            neg:str->String.includes("!")
         })
     } else {
         None
@@ -72,13 +74,14 @@ let passFlagsFromParentToChild = (parentFlags:flags, childFlags:flags):flags => 
 
 let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
     switch beginOpt {
-        | None => { symSeq: seq }
+        | None => { symSeq: seq, neg:false }
         | Some(stmtPat) => {
             { 
                 symSeq: {
                     ...seq,
                     flags: passFlagsFromParentToChild(stmtPat.symSeq.flags, seq.flags)
                 }, 
+                neg: stmtPat.neg,
             }
         }
     }

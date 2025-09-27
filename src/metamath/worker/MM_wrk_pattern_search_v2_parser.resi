@@ -15,7 +15,8 @@ and flags = {
 }
 
 type pattern = {
-    symSeq: symSeq
+    symSeq: symSeq,
+    neg:bool,
 }
 
 let parseFlags: string => flags

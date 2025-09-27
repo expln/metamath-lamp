@@ -120,7 +120,7 @@ let ord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false)
 let unord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
     ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), target, singleStmt 
 }
-let pat = (symSeq:symSeq):pattern => { symSeq, allSeq:[], capVars:ref([]) }
+let pat = (symSeq:symSeq, ~neg:bool=false):pattern => { symSeq, neg, allSeq:[], capVars:ref([]) }
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
@@ -879,7 +879,7 @@ describe("validatePattern", () => {
     })
     it("flags 'h' and 'a' cannot be used together (negative)", () => {
         assertEq( 
-            validatePattern(~text="$h- t = r", ~ctx), 
+            validatePattern(~text="$h- t = r $a+ t = r", ~ctx), 
             None
         )
     })
@@ -893,6 +893,20 @@ describe("validatePattern", () => {
     it("flags '+' and '-' cannot be used together (negative)", () => {
         assertEq( 
             validatePattern(~text="$[+ $[- t = r $] $]", ~ctx), 
+            None
+        )
+    })
+
+    it("flag '!' cannot be used with parentheses", () => {
+        assertEq( 
+            validatePattern(~text="$[! t = r $]", ~ctx), 
+            Some("'$[!' - flag '!' cannot be used with parentheses") 
+        )
+    })
+
+    it("flag '!' cannot be used with parentheses (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$! t = r", ~ctx), 
             None
         )
     })

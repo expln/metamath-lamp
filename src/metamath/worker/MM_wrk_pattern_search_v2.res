@@ -35,6 +35,7 @@ and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
     symSeq: symSeq,
+    neg: bool,
     allSeq: array<symSeq>,
     capVars:ref<array<bool>>, //captured variables
 }
@@ -676,6 +677,7 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>, capVars:ref<array<bool>>):pattern => {
     let res = {
         symSeq: astToSymSeq(ast.symSeq, P.parseFlags(""), symMap),
+        neg: ast.neg,
         allSeq: [],
         capVars,
     }
@@ -729,6 +731,7 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
             let flagP = ref(false)
             let flagM = ref(false)
             let flagS = ref(false)
+            let flagN = ref(false)
             for i in 0 to flags->String.length-1 {
                 let flag = flags->String.charAt(i)
                 if (flag == "h") {flagH := true}
@@ -736,6 +739,7 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
                 else if (flag == "+") {flagP := true}
                 else if (flag == "-") {flagM := true}
                 else if (flag == "s") {flagS := true}
+                else if (flag == "!") {flagN := true}
                 else {
                     errors->Array.push(`'${tok}' - invalid flag '${flag}'`)
                 }
@@ -745,6 +749,12 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
             }
             if (flagP.contents && flagM.contents) {
                 errors->Array.push(`'${tok}' - flags '+' and '-' cannot be used together`)
+            }
+            if (
+                (tok->String.startsWith(P.openParenthesis) || tok->String.startsWith(P.closeParenthesis))
+                && flagN.contents
+            ) {
+                errors->Array.push(`'${tok}' - flag '!' cannot be used with parentheses`)
             }
         }
     }
@@ -936,8 +946,13 @@ let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int
     if (pattern.capVars.contents->Array.length < frm.varTypes->Array.length) {
         pattern.capVars := Array.make(~length=frm.varTypes->Array.length, false)
     }
-    exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
-        ->Option.map(convertMatchedIndices(frm, _))
+    switch (
+        exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
+            ->Option.map(convertMatchedIndices(frm, _))
+    ) {
+        | None => if (pattern.neg) {Some(convertMatchedIndices(frm, []))} else {None}
+        | Some(idxs) => if (pattern.neg) {None} else {Some(idxs)}
+    }
 }
 
 let frameMatchesPatterns = (frm:MC.frame, patterns:array<pattern>):matchResult => {
