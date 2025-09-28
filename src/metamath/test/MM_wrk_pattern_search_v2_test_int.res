@@ -79,4 +79,36 @@ describe("frameMatchesPatterns _integration test_", () => {
             ~matchedIdxs=[[],[],[],[],[],[],[],[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]]
         )
     })
+
+    it("matches the entire assertion for a frame without hypotheses when the 's' flag is used", () => {
+        assertFrameMatchesPattern(~ctx, ~label="addcomsr", 
+            ~pattern="$s |- ( A +R B ) = ( B +R A )",
+            ~matchedIdxs=[[0,1,2,3,4,5,6,7,8,9,10,11]]
+        )
+    })
+    it("matches the entire assertion for a frame without hypotheses when the 'a' flag is used", () => {
+        assertFrameMatchesPattern(~ctx, ~label="addcomsr", 
+            ~pattern="$a |- ( A +R B ) = ( B +R A )",
+            ~matchedIdxs=[[0,1,2,3,4,5,6,7,8,9,10,11]]
+        )
+    })
+    it("matches the entire assertion for a frame without hypotheses without flags", () => {
+        assertFrameMatchesPattern(~ctx, ~label="addcomsr", 
+            ~pattern="|- ( A +R B ) = ( B +R A )",
+            ~matchedIdxs=[[0,1,2,3,4,5,6,7,8,9,10,11]]
+        )
+    })
+    
+    it("returns correct indices when the first operand of the 'one of' operator matches", () => {
+        assertFrameMatchesPattern(~ctx, ~label="isum1p", 
+            ~pattern="k e. Z ) -> ( F ` k $| k e. Z ) <-> ( F ` k $| k e. Z ] -> ( F ` k",
+            ~matchedIdxs=[[],[],[5,6,7,8,9,10,11,12,13],[],[],[]]
+        )
+    })
+    // it("returns correct indices when the middle operand of the 'one of' operator matches", () => {
+    //     assertFrameMatchesPattern(~ctx, ~label="isum1p", 
+    //         ~pattern="$s k e. Z ) <-> ( F ` k $| F ` M ) + sum_ $| k e. Z ] -> ( F ` k",
+    //         ~matchedIdxs=[[],[],[],[],[],[12,13,14,15,16,17]]
+    //     )
+    // })
 })
