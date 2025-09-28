@@ -125,6 +125,10 @@ let ord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false)
 let unord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
     ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), target, singleStmt 
 }
+let oneOf = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, 
+    elems: OneOf(seq), minLen:seq->Array.reduce(100, (min,{minLen}) => Math.Int.min(min, minLen)), target, singleStmt 
+}
 let pat = (symSeq:symSeq, ~neg:bool=false):pattern => { symSeq, neg, allSeq:[], capVars:ref([]) }
 
 let assertParsePattern = (
@@ -713,6 +717,93 @@ describe("parsePattern", _ => {
                     ]),
                 ])
             )])
+        )
+        assertParsePattern(~pattern="a", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a], ~target=Frm)
+            )])
+        )
+        assertParsePattern(~pattern="a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([ adj([a], ~target=Frm), adj([b], ~target=Frm)], ~target=Frm),
+            )])
+        )
+        assertParsePattern(~pattern="$h a", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$a a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([ adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt),
+            )])
+        )
+        assertParsePattern(~pattern="$h a b $/ $[a c d $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                unord([
+                    ord([ adj([a], ~target=Hyps), adj([b], ~target=Hyps)], ~target=Hyps),
+                    ord([ adj([c], ~target=Hyps), adj([d], ~target=Hyps)], ~target=Hyps),
+                ], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$a a b $* $[h c d $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([
+                    ord([ adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt),
+                    ord([ adj([c], ~target=Asrt), adj([d], ~target=Asrt)], ~target=Asrt),
+                ], ~target=Asrt)
+            )])
+        )
+        assertParsePattern(~pattern="a $| $[h b $/ $[ c $] $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                oneOf([
+                    adj([a], ~target=Frm),
+                    unord([
+                        adj([b], ~target=Hyps),
+                        adj([c], ~target=Hyps),
+                    ], ~target=Hyps),
+                ], ~target=Frm)
+            )])
+        )
+        assertParsePattern(~pattern="a $/ $[s b $* $[ c $] $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                unord([
+                    adj([a], ~singleStmt=false),
+                    ord([
+                        adj([b], ~singleStmt=true),
+                        adj([c], ~singleStmt=true),
+                    ], ~singleStmt=true),
+                ], ~target=Frm)
+            )])
+        )
+        assertEqMsg(
+            parsePattern("a b", ~symMap=syms),
+            parsePattern("a $* b", ~symMap=syms),
+            "`a b` == `a $* b`"
+        )
+        assertEqMsg(
+            parsePattern("$[+ a b $]", ~symMap=syms),
+            parsePattern("$+ a b", ~symMap=syms),
+            "`$[+ a b $]` == `$+ a b`"
+        )
+        assertEqMsg(
+            parsePattern("$[+ $[- a b $] $]", ~symMap=syms),
+            parsePattern("a b", ~symMap=syms),
+            "`$[+ $[- a b $] $]` == `a b`"
+        )
+        assertEqMsg(
+            parsePattern("$+ $[- a b $] $| c d", ~symMap=syms),
+            parsePattern("a b $| $[+ c d $]", ~symMap=syms),
+            "`$+ $[- a b $] $| c d` == `a b $| $[+ c d $]`"
+        )
+        assertEqMsg(parsePattern("$h a b", ~symMap=syms), parsePattern("$[h a b $]", ~symMap=syms), 
+            "`$h a b` == `$[h a b $]`"
+        )
+        assertEqMsg(parsePattern("$a a b", ~symMap=syms), parsePattern("$[a a b $]", ~symMap=syms), 
+            "`$a a b` == `$[a a b $]`"
+        )
+        assertEqMsg(parsePattern("$s a b", ~symMap=syms), parsePattern("$[s a b $]", ~symMap=syms), 
+            "`$s a b` == `$[s a b $]`"
         )
     })
     it("sets pattern targets", _ => {

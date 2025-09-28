@@ -11,7 +11,7 @@ let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbol
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
 let oneOf = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(OneOf(elems), ~flags)
-let pat = (symSeq:symSeq, ~neg:bool=false):pattern => {symSeq:symSeq, neg}
+let pat = (symSeq:symSeq, ~flags:string="", ~neg:bool=false):pattern => {flags:parseFlags(flags), neg, symSeq:symSeq}
 
 describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern works as expected", _ => {
@@ -250,38 +250,38 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern parses flags correctly", _ => {
         testPatternParser(
             "$+ a b",
-            Some([ pat(sym(["a", "b"], ~flags="+"))])
+            Some([ pat(sym(["a", "b"]), ~flags="+")])
         )
         testPatternParser(
             "$+ $[ a b $]",
-            Some([ pat(sym(["a", "b"], ~flags="+"))])
+            Some([ pat(sym(["a", "b"]), ~flags="+")])
         )
         testPatternParser(
             "$+ $[- a b $]",
-            Some([ pat(sym(["a", "b"], ~flags="-"))])
+            Some([ pat(sym(["a", "b"], ~flags="-"), ~flags="+")])
         )
         testPatternParser(
             "$ a b $h a b $a a b",
             Some([ 
                 pat(sym(["a", "b"])),
-                pat(sym(["a", "b"], ~flags="h")),
-                pat(sym(["a", "b"], ~flags="a")),
+                pat(sym(["a", "b"]), ~flags="h"),
+                pat(sym(["a", "b"]), ~flags="a"),
             ])
         )
         testPatternParser(
             "$+ a b $h+ a b $a+ a b",
             Some([ 
-                pat(sym(["a", "b"], ~flags="+")),
-                pat(sym(["a", "b"], ~flags="+h")),
-                pat(sym(["a", "b"], ~flags="+a")),
+                pat(sym(["a", "b"]), ~flags="+"),
+                pat(sym(["a", "b"]), ~flags="+h"),
+                pat(sym(["a", "b"]), ~flags="+a"),
             ])
         )
         testPatternParser(
             "$+ $[- a b $] $h+ $[- a b $] $a+ $[- a b $]",
             Some([ 
-                pat(sym(["a", "b"], ~flags="-")),
-                pat(sym(["a", "b"], ~flags="-h")),
-                pat(sym(["a", "b"], ~flags="-a")),
+                pat(sym(["a", "b"], ~flags="-"), ~flags="+"),
+                pat(sym(["a", "b"], ~flags="-"), ~flags="+h"),
+                pat(sym(["a", "b"], ~flags="-"), ~flags="+a"),
             ])
         )
     })

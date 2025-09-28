@@ -592,7 +592,10 @@ let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
 }
 
 let rec astToSymSeq = (ast:P.symSeq, parentFlags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
-    let elems = astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(parentFlags, ast.flags), symMap)
+    let flags = P.passFlagsFromParentToChild(parentFlags, ast.flags)
+    let target = switch flags.target {|None|Some(Frm)=>Frm |Some(Hyps)=>Hyps |Some(Asrt)=>Asrt}
+    let singleStmt = flags.singleStmt->Option.getOr(false)
+    let elems = astToSeqGrp(ast.elems, flags, target, singleStmt, symMap)
     let minLen = switch elems {
         | Adjacent(syms) => syms->Array.length
         | Ordered(symSeq) | Unordered(symSeq) => countMinLen(symSeq)
@@ -608,18 +611,18 @@ let rec astToSymSeq = (ast:P.symSeq, parentFlags:P.flags, symMap:Belt_HashMapStr
         minLen, 
         minConstMismatchIdx: -1, 
         minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
-        target: switch ast.flags.target {|Frm=>Frm |Hyps=>Hyps |Asrt=>Asrt},
-        singleStmt: ast.flags.singleStmt
+        target,
+        singleStmt
     }
 }
-and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):seqGrp => {
+and astToSeqGrp = (
+    ast:P.seqGrp, flags:P.flags, target:patternTarget, singleStmt:bool, symMap:Belt_HashMapString.t<constOrVar>
+):seqGrp => {
     switch ast {
         | Symbols(syms) => {
-            if (isAdj(flags)) {
+            if (isAdj(flags) || syms->Array.length == 1) {
                 Adjacent(syms->Array.map(makeSym(_,symMap)))
             } else {
-                let target = switch flags.target {|Frm=>Frm |Hyps=>Hyps |Asrt=>Asrt}
-                let singleStmt = flags.singleStmt
                 Ordered(syms->Array.map(symStr => {
                     {
                         elems:Adjacent([makeSym(symStr,symMap)]),
@@ -676,7 +679,7 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
 
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>, capVars:ref<array<bool>>):pattern => {
     let res = {
-        symSeq: astToSymSeq(ast.symSeq, P.parseFlags(""), symMap),
+        symSeq: astToSymSeq(ast.symSeq, ast.flags, symMap),
         neg: ast.neg,
         allSeq: [],
         capVars,
