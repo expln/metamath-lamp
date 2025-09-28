@@ -286,3 +286,220 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
         )
     })
 })
+
+describe("passFlagsFromParentToChild", _ => {
+    it("passes empty flags", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:None, singleStmt:None},
+            ),
+            {adj:None, target:None, singleStmt:None}
+        )
+    })
+
+    it("passes adj flag", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None}, 
+                {adj:Some(false), target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None}, 
+                {adj:Some(true), target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(false), target:None, singleStmt:None}, 
+                {adj:None, target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(true), target:None, singleStmt:None}, 
+                {adj:None, target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(false), target:None, singleStmt:None}, 
+                {adj:Some(false), target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(false), target:None, singleStmt:None}, 
+                {adj:Some(true), target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(true), target:None, singleStmt:None}, 
+                {adj:Some(false), target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(true), target:None, singleStmt:None}, 
+                {adj:Some(true), target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+    })
+
+    it("passes singleStmt flag", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:None, target:None, adj:None}, 
+                {singleStmt:Some(false), target:None, adj:None},
+            ),
+            {singleStmt:Some(false), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:None, target:None, adj:None}, 
+                {singleStmt:Some(true), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(false), target:None, adj:None}, 
+                {singleStmt:None, target:None, adj:None},
+            ),
+            {singleStmt:None, target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(true), target:None, adj:None}, 
+                {singleStmt:None, target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(false), target:None, adj:None}, 
+                {singleStmt:Some(false), target:None, adj:None},
+            ),
+            {singleStmt:Some(false), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(false), target:None, adj:None}, 
+                {singleStmt:Some(true), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(true), target:None, adj:None}, 
+                {singleStmt:Some(false), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(true), target:None, adj:None}, 
+                {singleStmt:Some(true), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+    })
+
+    it("passes target flag", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Frm), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Frm), singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Frm), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Frm), singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Frm), singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Hyps), singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Hyps), singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Hyps), singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Asrt), singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Asrt), singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Asrt), singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+    })
+})
