@@ -10,6 +10,7 @@ let seq = (elems:seqGrp, ~flags:string):symSeq => { flags:parseFlags(flags), ele
 let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbols), ~flags)
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
+let oneOf = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(OneOf(elems), ~flags)
 let pat = (symSeq:symSeq, ~neg:bool=false):pattern => {symSeq:symSeq, neg}
 
 describe("MM_wrk_pattern_search_v2_parser", _ => {
@@ -41,6 +42,10 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
         testPatternParser(
             "a b $/ c d $/ e f",
             Some([pat(unord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))])
+        )
+        testPatternParser(
+            "a b $| c d $| e f",
+            Some([pat(oneOf([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))])
         )
         testPatternParser(
             "a b $* c d $/ e f",
@@ -86,6 +91,36 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
                 sym(["e","f"]),
             ]))])
         )
+
+        testPatternParser(
+            "a b $* c d $| e f $/ g h",
+            Some([pat(oneOf([
+                ord([sym(["a","b"]), sym(["c","d"])]),
+                unord([sym(["e","f"]), sym(["g","h"])]),
+            ]))])
+        )
+
+        testPatternParser(
+            "a b $* c d $* e f $| g h $/ i j $/ k l",
+            Some([pat(oneOf([
+                ord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]),
+                unord([sym(["g","h"]), sym(["i","j"]), sym(["k","l"])]),
+            ]))])
+        )
+
+        testPatternParser(
+            "a b $* c d $* $[ e f $| g h $] $/ i j $/ k l",
+            Some([pat(unord([
+                ord([
+                    sym(["a","b"]), 
+                    sym(["c","d"]), 
+                    oneOf([sym(["e","f"]), sym(["g","h"])])
+                ]),
+                sym(["i","j"]), 
+                sym(["k","l"]),
+            ]))])
+        )
+
         testPatternParser(
             "$[ a b $] $/ c d",
             Some([pat(unord([
