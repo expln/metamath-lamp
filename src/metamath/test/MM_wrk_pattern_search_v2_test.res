@@ -6,6 +6,7 @@ type rec testSeqGrp =
     | NonAdj(array<int>)
     | Ord(array<testSeqGrp>)
     | Unord(array<testSeqGrp>)
+    | OneOf(array<testSeqGrp>)
 
 let makeArrayOfSymbols = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>): array<sym> => {
     seq->Array.map(i => {
@@ -20,7 +21,7 @@ let makeArrayOfSymbols = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>):
 let rec collectAllSyms = (seq:testSeqGrp, allSyms:Belt_HashSetInt.t):unit => {
     switch seq {
         | Adj(ints) | NonAdj(ints) => ints->Array.forEach(Belt_HashSetInt.add(allSyms, _))
-        | Ord(ch) | Unord(ch) => ch->Array.forEach(collectAllSyms(_, allSyms))
+        | Ord(ch) | Unord(ch) | OneOf(ch) => ch->Array.forEach(collectAllSyms(_, allSyms))
     }
 }
 
@@ -51,6 +52,10 @@ let rec makeSymSeq = (
         | Unord(childElems) => {
             let childSeq:array<symSeq> = childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap))
             (Unordered(childSeq), countMinLen(childSeq))
+        }
+        | OneOf(childElems) => {
+            let childSeq:array<symSeq> = childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap))
+            (OneOf(childSeq), countMinLen(childSeq))
         }
     }
     { 
@@ -541,6 +546,40 @@ describe("exprIncludesSeq", _ => {
             ~seq=Unord([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
             ~varTypes=[-1,-2,-1,-2,-3,-4],
             ~expectedIndices=[2,4,6,9,11,13]
+        )
+    })
+
+    it("two oneOf groups of adj vars and consts on the left", _ => {
+        assertMatches(
+            ~expr=[1,-11,0,-11,-12,0,-10,1,-15,-16,0,-10,1,-11,-12,1,-20,0],
+            ~seq=OneOf([Adj([3,-11,2]),Adj([2,-10,3])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1,2]
+        )
+    })
+    it("two oneOf groups of adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,-11,0,-11,-12,0,-10,1,-17,-18],
+            ~seq=OneOf([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[7,8,9]
+        )
+    })
+    it("two oneOf groups of adj vars and consts on the right", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,-12,0,-11,-12,0,-11,1],
+            ~seq=OneOf([Adj([2,-10,3]),Adj([2,-11,3])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[7,8,9]
+        )
+    })
+
+    it("two oneOf groups of non-adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,0,5,-16,4,1,-11,-12,1,5,-11,5,0,-17,-18],
+            ~seq=OneOf([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3,-4],
+            ~expectedIndices=[6,7,13]
         )
     })
 
