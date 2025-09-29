@@ -39,8 +39,7 @@ let rec makeSymSeq = (
                     minLen: 1,
                     target: Frm,
                     singleStmt:false,
-                    minConstMismatchIdx,
-                    minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
+                    minConstMismatchIdx:[minConstMismatchIdx,minConstMismatchIdx,minConstMismatchIdx],
                 }
             }))
             (seqGrp, seq->Array.length)
@@ -59,8 +58,9 @@ let rec makeSymSeq = (
         }
     }
     { 
-        elems, minLen, minConstMismatchIdx, target: Frm, singleStmt:false, 
-        minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
+        elems, minLen, 
+        minConstMismatchIdx:[minConstMismatchIdx,minConstMismatchIdx,minConstMismatchIdx],
+        target: Frm, singleStmt:false, 
     }
 }
 
@@ -113,8 +113,7 @@ let assertDoesntMatch = (
 }
 
 let baseSymSeq = { 
-    elems:Adjacent([]), minLen:0, minConstMismatchIdx:-1, target: Frm, singleStmt:false, 
-    minConstMismatchIdxs: Belt_HashMapInt.make(~hintSize=20),
+    elems:Adjacent([]), minLen:0, minConstMismatchIdx:[], target: Frm, singleStmt:false, 
 }
 let adj = (syms:array<sym>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
     ...baseSymSeq, elems: Adjacent(syms), minLen:syms->Array.length, target, singleStmt 

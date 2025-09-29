@@ -9,30 +9,31 @@ type variable = {
     mutable capVarIdx: int, //index of the first occurrence of the captured variable
 }
 
-type rec sym = {
+type constOrVar = Const(int) | Var(variable)
+
+type sym = {
     constOrVar: constOrVar,
     mutable matchedIdx: int, //index of the matched symbol
 }
-and constOrVar = Const(int) | Var(variable)
+
+type patternTarget = Frm | Hyps | Asrt
 
 type rec symSeq = {
     elems: seqGrp,
     target: patternTarget,
     singleStmt: bool,
     minLen:int,
-    mutable minConstMismatchIdx:int,
-    minConstMismatchIdxs:Belt_HashMapInt.t<int>,
+    minConstMismatchIdx:array<int>,
 }
 and seqGrp = 
     | Adjacent(array<sym>)
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
     | OneOf(array<symSeq>)
-and patternTarget = Frm | Hyps | Asrt
 
 type pattern = {
-    symSeq: symSeq,
     neg: bool,
+    symSeq: symSeq,
     allSeq: array<symSeq>,
     capVars:ref<array<bool>>, //captured variables
 }

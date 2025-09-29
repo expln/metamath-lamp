@@ -99,16 +99,37 @@ describe("frameMatchesPatterns _integration test_", () => {
         )
     })
     
-    it("returns correct indices when the first operand of the 'one of' operator matches", () => {
+    it("returns correct indices when the first operand of the 'one of' operator matches middle hyp", () => {
         assertFrameMatchesPattern(~ctx, ~label="isum1p", 
             ~pattern="k e. Z ) -> ( F ` k $| k e. Z ) <-> ( F ` k $| k e. Z ] -> ( F ` k",
             ~matchedIdxs=[[],[],[5,6,7,8,9,10,11,12,13],[],[],[]]
         )
     })
-    // it("returns correct indices when the middle operand of the 'one of' operator matches", () => {
-    //     assertFrameMatchesPattern(~ctx, ~label="isum1p", 
-    //         ~pattern="$s k e. Z ) <-> ( F ` k $| F ` M ) + sum_ $| k e. Z ] -> ( F ` k",
-    //         ~matchedIdxs=[[],[],[],[],[],[12,13,14,15,16,17]]
-    //     )
-    // })
+    it("returns correct indices when the middle operand of the 'one of' operator matches asrt", () => {
+        assertFrameMatchesPattern(~ctx, ~label="isum1p", 
+            ~pattern="$s k e. Z ) <-> ( F ` k $| F ` M ) + sum_ $| k e. Z ] -> ( F ` k",
+            ~matchedIdxs=[[],[],[],[],[],[7,13,14,15,16,17]]
+        )
+    })
+
+    it("returns correct indices when the middle operand of the 'one of' operator matches (single symbol)", () => {
+        assertFrameMatchesPattern(~ctx, ~label="2eximi", 
+            ~pattern="$s <-> $| E.",
+            ~matchedIdxs=[[],[2]]
+        )
+    })
 })
+
+// describe("temp test", () => {
+//     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/set-no-proofs._mm")
+//     let (ast, _) = MM_parser.parseMmFile(~mmFileContent=mmFileText)
+//     let ctx = MM_context.loadContext(ast)
+
+    
+//     it("returns correct indices when the middle operand of the 'one of' operator matches", () => {
+//         assertFrameMatchesPattern(~ctx, ~label="2eximi", 
+//             ~pattern="$s <-> $| E.",
+//             ~matchedIdxs=[[],[],[],[],[],[12,13,14,15,16,17]]
+//         )
+//     })
+// })
