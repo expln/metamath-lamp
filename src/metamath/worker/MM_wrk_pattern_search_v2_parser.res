@@ -30,13 +30,24 @@ let operatorOneOf = "$|"
 let openParenthesis = "$["
 let closeParenthesis = "$]"
 
+let flagAdj = "+"
+let flagNonAdj = "-"
+let flagHyps = "H"
+let flagHyp = "h"
+let flagAsrt = "a"
+let flagSingleStmt = "s"
+let flagNegation = "!"
+
 let toSymSeq = (elems:seqGrp, ~flags:flags={adj:None, target:None, singleStmt:None}):symSeq => { flags, elems }
 
+let flagSingleHyp = flagHyps ++ flagSingleStmt
 let parseFlags = (str:string):flags => {
+    let str = str->String.replaceAll(flagHyp, flagSingleHyp)
     {
-        adj: str->String.includes("+") ? Some(true) : str->String.includes("-") ? Some(false) : None,
-        target: str->String.includes("a") ? Some(Asrt) : str->String.includes("h") ? Some(Hyps) : None,
-        singleStmt: str->String.includes("s") ? Some(true) : None,
+        adj: str->String.includes(flagAdj) ? Some(true) : str->String.includes(flagNonAdj) ? Some(false) : None,
+        target: str->String.includes(flagAsrt) ? Some(Asrt) 
+            : str->String.includes(flagHyps) ? Some(Hyps) : None,
+        singleStmt: str->String.includes(flagSingleStmt) ? Some(true) : None,
     }
 }
 
@@ -53,7 +64,7 @@ let isPatternBegin = (str:string):option<pattern> => {
     ) {
         Some({
             flags: parseFlags(str),
-            neg:str->String.includes("!"),
+            neg:str->String.includes(flagNegation),
             symSeq: {
                 flags: {adj:None, target:None, singleStmt:None},
                 elems: Symbols([]),

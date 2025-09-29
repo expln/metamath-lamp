@@ -34,4 +34,12 @@ let operatorOneOf:string
 let openParenthesis:string
 let closeParenthesis:string
 
+let flagAdj:string
+let flagNonAdj:string
+let flagHyps:string
+let flagHyp:string
+let flagAsrt:string
+let flagSingleStmt:string
+let flagNegation:string
+
 let isPatternBegin: string => option<pattern>

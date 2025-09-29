@@ -727,9 +727,14 @@ describe("parsePattern", _ => {
                 ord([ adj([a], ~target=Frm), adj([b], ~target=Frm)], ~target=Frm),
             )])
         )
-        assertParsePattern(~pattern="$h a", ~syms, 
+        assertParsePattern(~pattern="$H a", ~syms, 
             ~expectedResult=Ok([pat(
                 adj([a], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$h a", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a], ~target=Hyps, ~singleStmt=true)
             )])
         )
         assertParsePattern(~pattern="$a a b", ~syms, 
@@ -737,7 +742,7 @@ describe("parsePattern", _ => {
                 ord([ adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt),
             )])
         )
-        assertParsePattern(~pattern="$h a b $/ $[a c d $]", ~syms, 
+        assertParsePattern(~pattern="$H a b $/ $[a c d $]", ~syms, 
             ~expectedResult=Ok([pat(
                 unord([
                     ord([ adj([a], ~target=Hyps), adj([b], ~target=Hyps)], ~target=Hyps),
@@ -745,7 +750,7 @@ describe("parsePattern", _ => {
                 ], ~target=Hyps)
             )])
         )
-        assertParsePattern(~pattern="$a a b $* $[h c d $]", ~syms, 
+        assertParsePattern(~pattern="$a a b $* $[H c d $]", ~syms, 
             ~expectedResult=Ok([pat(
                 ord([
                     ord([ adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt),
@@ -753,7 +758,7 @@ describe("parsePattern", _ => {
                 ], ~target=Asrt)
             )])
         )
-        assertParsePattern(~pattern="a $| $[h b $/ $[ c $] $]", ~syms, 
+        assertParsePattern(~pattern="a $| $[H b $/ $[ c $] $]", ~syms, 
             ~expectedResult=Ok([pat(
                 oneOf([
                     adj([a], ~target=Frm),
@@ -798,11 +803,17 @@ describe("parsePattern", _ => {
         assertEqMsg(parsePattern("$h a b", ~symMap=syms), parsePattern("$[h a b $]", ~symMap=syms), 
             "`$h a b` == `$[h a b $]`"
         )
+        assertEqMsg(parsePattern("$H a b", ~symMap=syms), parsePattern("$[H a b $]", ~symMap=syms), 
+            "`$H a b` == `$[H a b $]`"
+        )
         assertEqMsg(parsePattern("$a a b", ~symMap=syms), parsePattern("$[a a b $]", ~symMap=syms), 
             "`$a a b` == `$[a a b $]`"
         )
         assertEqMsg(parsePattern("$s a b", ~symMap=syms), parsePattern("$[s a b $]", ~symMap=syms), 
             "`$s a b` == `$[s a b $]`"
+        )
+        assertEqMsg(parsePattern("$Hs a b", ~symMap=syms), parsePattern("$h a b", ~symMap=syms), 
+            "`$Hs a b` == `$h a b`"
         )
     })
     it("sets pattern targets", _ => {
@@ -816,9 +827,17 @@ describe("parsePattern", _ => {
                 ord([adj([a]), adj([b])])
             )])
         )
-        assertParsePattern(~pattern="$h a b", ~syms, 
+        assertParsePattern(~pattern="$H a b", ~syms, 
             ~expectedResult=Ok([pat(
                 ord([adj([a], ~target=Hyps), adj([b], ~target=Hyps)], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$h a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([
+                    adj([a], ~target=Hyps, ~singleStmt=true), 
+                    adj([b], ~target=Hyps, ~singleStmt=true)
+                ], ~target=Hyps, ~singleStmt=true )
             )])
         )
         assertParsePattern(~pattern="$a a b", ~syms, 
@@ -826,9 +845,14 @@ describe("parsePattern", _ => {
                 ord([adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt)
             )])
         )
-        assertParsePattern(~pattern="$h+ a b", ~syms, 
+        assertParsePattern(~pattern="$H+ a b", ~syms, 
             ~expectedResult=Ok([pat(
                 adj([a,b], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$h+ a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a,b], ~target=Hyps, ~singleStmt=true)
             )])
         )
         assertParsePattern(~pattern="$a+ a b", ~syms, 
@@ -838,7 +862,7 @@ describe("parsePattern", _ => {
         )
     })
     it("can parse multiple patterns", _ => {
-        assertParsePattern(~pattern="$ a b $h c d $a a b $+ c d $h+ a b $a+ c d", ~syms, 
+        assertParsePattern(~pattern="$ a b $H c d $a a b $+ c d $H+ a b $a+ c d", ~syms, 
             ~expectedResult=Ok([
                 pat(ord([adj([a]), adj([b])])),
                 pat(ord([adj([c], ~target=Hyps), adj([d], ~target=Hyps)], ~target=Hyps)),
@@ -1000,15 +1024,21 @@ describe("validatePattern", () => {
         )
     })
 
-    it("flags 'h' and 'a' cannot be used together", () => {
+    it("flags 'H', 'h', and 'a' cannot be used together (ha)", () => {
         assertEq( 
             validatePattern(~text="$ha t = r", ~ctx), 
-            Some("'$ha' - flags 'h' and 'a' cannot be used together") 
+            Some("'$ha' - flags 'H', 'h', and 'a' cannot be used together") 
         )
     })
-    it("flags 'h' and 'a' cannot be used together (negative)", () => {
+    it("flags 'H', 'h', and 'a' cannot be used together (Ha)", () => {
         assertEq( 
-            validatePattern(~text="$h- t = r $a+ t = r", ~ctx), 
+            validatePattern(~text="$Ha t = r", ~ctx), 
+            Some("'$Ha' - flags 'H', 'h', and 'a' cannot be used together") 
+        )
+    })
+    it("flags 'H', 'h', and 'a' cannot be used together (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$h- t = r $a+ t = r $H t = r", ~ctx), 
             None
         )
     })
@@ -1102,7 +1132,7 @@ describe("frameMatchesPatterns", () => {
         assertEq( 
             frameMatchesPatterns(
                 ctx->MM_context.getFrameExn("mp"),
-                parsePattern("$h P -> Q $a Q", ~ctx)->Result.getExn
+                parsePattern("$H P -> Q $a Q", ~ctx)->Result.getExn
             ), 
             Matched(Some([[1],[3,4],[1]])) 
         )

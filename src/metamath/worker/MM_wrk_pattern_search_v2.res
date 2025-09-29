@@ -758,35 +758,39 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
     )) {
         let flags = tok->String.substringToEnd(~start=tok->String.startsWith(P.openParenthesis)?2:1)
         if (flags->String.length > 0) {
-            let flagH = ref(false)
-            let flagA = ref(false)
-            let flagP = ref(false)
-            let flagM = ref(false)
-            let flagS = ref(false)
-            let flagN = ref(false)
+            let flagHyps = ref(false)
+            let flagHyp = ref(false)
+            let flagAsrt = ref(false)
+            let flagAdj = ref(false)
+            let flagNonAdj = ref(false)
+            let flagSingleStmt = ref(false)
+            let flagNegation = ref(false)
             for i in 0 to flags->String.length-1 {
                 let flag = flags->String.charAt(i)
-                if (flag == "h") {flagH := true}
-                else if (flag == "a") {flagA := true}
-                else if (flag == "+") {flagP := true}
-                else if (flag == "-") {flagM := true}
-                else if (flag == "s") {flagS := true}
-                else if (flag == "!") {flagN := true}
+                if (flag == P.flagHyps) {flagHyps := true}
+                else if (flag == P.flagHyp) {flagHyp := true}
+                else if (flag == P.flagAsrt) {flagAsrt := true}
+                else if (flag == P.flagAdj) {flagAdj := true}
+                else if (flag == P.flagNonAdj) {flagNonAdj := true}
+                else if (flag == P.flagSingleStmt) {flagSingleStmt := true}
+                else if (flag == P.flagNegation) {flagNegation := true}
                 else {
                     errors->Array.push(`'${tok}' - invalid flag '${flag}'`)
                 }
             }
-            if (flagH.contents && flagA.contents) {
-                errors->Array.push(`'${tok}' - flags 'h' and 'a' cannot be used together`)
+            if ((flagHyps.contents || flagHyp.contents) && flagAsrt.contents) {
+                errors->Array.push(
+                    `'${tok}' - flags '${P.flagHyps}', '${P.flagHyp}', and '${P.flagAsrt}' cannot be used together`
+                )
             }
-            if (flagP.contents && flagM.contents) {
-                errors->Array.push(`'${tok}' - flags '+' and '-' cannot be used together`)
+            if (flagAdj.contents && flagNonAdj.contents) {
+                errors->Array.push(`'${tok}' - flags '${P.flagAdj}' and '${P.flagNonAdj}' cannot be used together`)
             }
             if (
                 (tok->String.startsWith(P.openParenthesis) || tok->String.startsWith(P.closeParenthesis))
-                && flagN.contents
+                && flagNegation.contents
             ) {
-                errors->Array.push(`'${tok}' - flag '!' cannot be used with parentheses`)
+                errors->Array.push(`'${tok}' - flag '${P.flagNegation}' cannot be used with parentheses`)
             }
         }
     }
