@@ -30,6 +30,25 @@ let assertFrameMatchesPattern = (
     }
 }
 
+let findFramesByPattern = (
+    ~ctx:MM_context.mmContext, ~pattern:string
+):array<string> => {
+    let patterns = switch parsePattern(pattern, ~ctx) {
+        | Error(msg) => failMsg(`Failed to parse the pattern '${pattern}': ${msg}`)
+        | Ok(patterns) => patterns
+    }
+    let found = []
+    ctx->MM_context.forEachFrame(frm => {
+        switch frameMatchesPatterns(frm, patterns) {
+            | Matched(_) => found->Array.push(frm.label)
+            | _ => ()
+        }
+        None
+    })->ignore
+    found->Array.sort(String.compare)
+    found
+}
+
 let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/set-no-proofs._mm")
 let (ast, _) = MM_parser.parseMmFile(~mmFileContent=mmFileText)
 let ctx = MM_context.loadContext(ast)
@@ -143,139 +162,173 @@ describe("frameMatchesPatterns, complex scenarios", () => {
     it("some complex scenarios", () => {
         assertFrameMatchesPattern(~ctx, ~label="fourierdlem103", 
             ~pattern="
-            $[h
-                i e. ( 0 ..^ M ) ) -> 
-                $* 
-                R e. ( ( F |` ( ( V ` i ) (,) ( V 
-                $* 
-                ` ( i + 1 ) ) ) ) limCC ( V ` i ) ) )
-            $]
-            $*
-            $[
-                / ( 2 x. ( sin ` ( s / 2 ) ) ) ) ) ) 
-                $/ 
-                |- K = ( s e. ( -u _pi [,] _pi 
-                $/ 
-                ) |-> if ( s = 0 , 1 , ( s
-            $]
-            $*
-            $[
-                |- ( ph -> ps ~~> ( W / 2 ) )
-                $|
-                |- ( ph -> Z ~~> ( W / 2 ) )
-                $|
-                |- ( ph -> Z ~~> ( x / 2 ) )
-            $]
+                $[h
+                    i e. ( 0 ..^ M ) ) -> 
+                    $* 
+                    R e. ( ( F |` ( ( V ` i ) (,) ( V 
+                    $* 
+                    ` ( i + 1 ) ) ) ) limCC ( V ` i ) ) )
+                $]
+                $*
+                $[
+                    / ( 2 x. ( sin ` ( s / 2 ) ) ) ) ) ) 
+                    $/ 
+                    |- K = ( s e. ( -u _pi [,] _pi 
+                    $/ 
+                    ) |-> if ( s = 0 , 1 , ( s
+                $]
+                $*
+                $[
+                    |- ( ph -> ps ~~> ( W / 2 ) )
+                    $|
+                    |- ( ph -> Z ~~> ( W / 2 ) )
+                    $|
+                    |- ( ph -> Z ~~> ( x / 2 ) )
+                $]
             "
         )
         assertFrameMatchesPattern(~ctx, ~label="fsumxp", 
             ~pattern="
-            $[
-                |- ( z = <. 
+                $[
+                    |- ( z = <. 
+                    $*
+                    j , k >. -> 
+                    $*
+                    D = C )
+                $]
                 $*
-                j , k >. -> 
+                $[
+                    e. Fin )
+                    $/
+                    -> B 
+                    $/
+                    |- ( ph 
+                $]
                 $*
-                D = C )
-            $]
-            $*
-            $[
-                e. Fin )
-                $/
-                -> B 
-                $/
-                |- ( ph 
-            $]
-            $*
-            $[
-                j e. x y sum_ k e. B C
-                $|
-                j e. A sum_ k e. B C
-                $|
-                j e. A sum_ k e. RR C
-            $]
+                $[
+                    j e. x y sum_ k e. B C
+                    $|
+                    j e. A sum_ k e. B C
+                    $|
+                    j e. A sum_ k e. RR C
+                $]
             "
         )
         assertFrameMatchesPattern(~ctx, ~label="fsumxp", 
             ~pattern="
-            $[
-                j e. x y sum_ k e. B C
-                $|
-                j e. A sum_ k e. B C
-                $|
-                j e. A sum_ k e. RR C
-            $]
-            $/
-            $[
-                e. Fin )
+                $[
+                    j e. x y sum_ k e. B C
+                    $|
+                    j e. A sum_ k e. B C
+                    $|
+                    j e. A sum_ k e. RR C
+                $]
                 $/
-                -> B 
+                $[
+                    e. Fin )
+                    $/
+                    -> B 
+                    $/
+                    |- ( ph 
+                $]
                 $/
-                |- ( ph 
-            $]
-            $/
-            $[
-                |- ( z = <. 
-                $*
-                j , k >. -> 
-                $*
-                D = C )
-            $]
+                $[
+                    |- ( z = <. 
+                    $*
+                    j , k >. -> 
+                    $*
+                    D = C )
+                $]
             "
         )
         assertFrameMatchesPattern(~ctx, ~label="fsumxp", 
             ~pattern="
-            $[
-                j e. x y sum_ k e. B C
-                $|
-                j sum_ k B C
-                $|
-                j e. A sum_ k e. RR C
-            $]
-            $/
-            $[
-                e. )
+                $[
+                    j e. x y sum_ k e. B C
+                    $|
+                    j sum_ k B C
+                    $|
+                    j e. A sum_ k e. RR C
+                $]
                 $/
-                -> B 
+                $[
+                    e. )
+                    $/
+                    -> B 
+                    $/
+                    ( ph 
+                $]
                 $/
-                ( ph 
-            $]
-            $/
-            $[
-                |- z <. 
-                $*
-                , k -> 
-                $*
-                D C )
-            $]
+                $[
+                    |- z <. 
+                    $*
+                    , k -> 
+                    $*
+                    D C )
+                $]
             "
         )
         assertFrameMatchesPattern(~ctx, ~label="fsumxp", 
             ~pattern="
-            $+
-            $[
-                x y sum_ k e. B
-                $|
-                A sum_ k e. B
-                $|
-                A sum_ k e. RR
-            $]
-            $/
-            $[
-                e. Fin
+                $+
+                $[
+                    x y sum_ k e. B
+                    $|
+                    A sum_ k e. B
+                    $|
+                    A sum_ k e. RR
+                $]
                 $/
-                -> B 
+                $[
+                    e. Fin
+                    $/
+                    -> B 
+                    $/
+                    ( ph 
+                $]
                 $/
-                ( ph 
-            $]
-            $/
-            $[
-                ( z =
-                $*
-                k >.
-                $*
-                = C
-            $]
+                $[
+                    ( z =
+                    $*
+                    k >.
+                    $*
+                    = C
+                $]
             "
+        )
+    })
+    it("finds multiple frames by a pattern", () => {
+        assertEqMsg(
+            findFramesByPattern(
+                ~ctx, ~pattern="
+                    $+
+                    $[
+                        x y sum_ k e. B
+                        $|
+                        A sum_ k e. B
+                        $|
+                        A sum_ k e. RR
+                    $]
+                    $/
+                    $[
+                        e. Fin
+                        $/
+                        -> B 
+                        $/
+                        ( ph 
+                    $]
+                    $/
+                    $[
+                        ( z =
+                        $*
+                        k >.
+                        $*
+                        = C
+                    $]
+                "
+            ),
+            ["fsum2d","fsumxp"],
+            "case 1"
         )
     })
 })
