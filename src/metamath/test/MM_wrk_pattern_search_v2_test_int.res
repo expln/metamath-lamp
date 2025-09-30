@@ -296,8 +296,49 @@ describe("frameMatchesPatterns, complex scenarios", () => {
                 $]
             "
         )
+        let complexPattern1="
+            y e. B ph /\\ E. x e. A E. x e. ~~>
+            $|
+            y e. B ph /\\ E. x <-> e. A E. x e.
+            $|
+            $[
+                $[
+                    $[
+                        e. B 
+                        $* 
+                        $[ 
+                            E. x 
+                            $| 
+                            ph /\\ 
+                        $] 
+                    $]
+                    $/
+                    ( A. x e. A A. y 
+                    
+                $]
+                $*
+                $[
+                    E. y e. 
+                    $/
+                    B ps ) ->
+                $]
+                $*
+                $[
+                    ( ph /\\ ps )
+                    $/
+                    x e. A E. y e. B 
+                $]
+            $]
+        "
+        assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern=complexPattern1 )
+        assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern="$s "++complexPattern1 )
+        assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern="$a "++complexPattern1 )
     })
+
     it("finds multiple frames by a pattern", () => {
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/set-no-proofs._mm")
+        let (ast, _) = MM_parser.parseMmFile(~mmFileContent=mmFileText)
+        let ctx = MM_context.loadContext(ast, ~stopBefore="mathbox")
         assertEqMsg(
             findFramesByPattern(
                 ~ctx, ~pattern="
@@ -329,6 +370,46 @@ describe("frameMatchesPatterns, complex scenarios", () => {
             ),
             ["fsum2d","fsumxp"],
             "case 1"
+        )
+        assertEqMsg(
+            findFramesByPattern(
+                ~ctx, ~pattern="
+                    y e. B ph /\\ E. x e. A E. x e. ~~>
+                    $|
+                    y e. B ph /\\ E. x <-> e. A E. x e.
+                    $|
+                    $[
+                        $[
+                            $[
+                                e. B 
+                                $* 
+                                $[ 
+                                    E. x 
+                                    $| 
+                                    ph /\\ 
+                                $] 
+                            $]
+                            $/
+                            ( A. x e. A A. y 
+                            
+                        $]
+                        $*
+                        $[
+                            E. y e. 
+                            $/
+                            B ps ) ->
+                        $]
+                        $*
+                        $[
+                            ( ph /\\ ps )
+                            $/
+                            x e. A E. y e. B 
+                        $]
+                    $]
+                "
+            ),
+            ["2r19.29","mertenslem1","mertenslem2","ntrivcvgmul","r19.29d2r"],
+            "case 2"
         )
     })
 })
