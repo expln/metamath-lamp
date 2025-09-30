@@ -172,7 +172,7 @@ let rec exprIncludesConstSeqWithTarget = (
             ~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes, ~frmData, ~stmtI,
         )
     } else if (seq.singleStmt) {
-        //seq.singleStmt == true means we need to shrink the search space down to an individual statement
+        //seq.singleStmt == true means we need to shrink the search space down to individual statements
         let stmtI = ref(0)
         let lastMatchedIdx = ref(-1)
         while (stmtI.contents <= frmData.numOfHyps && lastMatchedIdx.contents < 0) {
@@ -391,8 +391,7 @@ let rec exprIncludesVarSeqWithTarget = (
         exprIncludesVarSeq(
             ~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes, ~next, ~stop, ~frmData, ~stmtI
         )
-    }
-    if (seq.singleStmt) {
+    } else if (seq.singleStmt) {
         let stmtI = ref(0)
         while (stmtI.contents <= frmData.numOfHyps && !stop.contents) {
             let newStartIdx = Math.Int.max(

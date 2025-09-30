@@ -335,7 +335,7 @@ describe("frameMatchesPatterns, complex scenarios", () => {
         assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern="$a "++complexPattern1 )
 
         let complexPattern2="
-            $[
+            $[h
                 $[
                     r We x ) /\\ _om ~~>
                     $|
@@ -349,7 +349,7 @@ describe("frameMatchesPatterns, complex scenarios", () => {
                 $]
             $]
             $/
-            $[
+            $[h
                 $[
                     G : ~P A -1-1-> U_ 
                     $*
