@@ -156,6 +156,49 @@ describe("frameMatchesPatterns, simple scenarios", () => {
             ~matchedIdxs=[[],[2]]
         )
     })
+
+    it("non-adj, each sub-sequence has 'h' or 'a', ordered", () => {
+        assertFrameMatchesPattern(~ctx, ~label="ss2iundv", 
+            ~pattern="
+                $[h |- ( ( ph /\\ x e. A ) -> Y e. C ) $]
+                $* $[h |- ( ( ph /\\ x e. A /\\ y = Y ) -> D = G ) $]
+                $* $[h |- ( ( ph /\\ x e. A ) -> B C_ G ) $]
+                $* $[a |- ( ph -> U_ x e. A B C_ U_ y e. C D ) $]
+            "
+        )
+    })
+    it("adj, each sub-sequence has 'h' or 'a', ordered", () => {
+        assertFrameMatchesPattern(~ctx, ~label="ss2iundv", 
+            ~pattern="
+                $+
+                $[h |- ( ( ph /\\ x e. A ) -> Y e. C ) $]
+                $* $[h |- ( ( ph /\\ x e. A /\\ y = Y ) -> D = G ) $]
+                $* $[h |- ( ( ph /\\ x e. A ) -> B C_ G ) $]
+                $* $[a |- ( ph -> U_ x e. A B C_ U_ y e. C D ) $]
+            "
+        )
+    })
+    it("non-adj, each sub-sequence has 'h' or 'a', unordered", () => {
+        assertFrameMatchesPattern(~ctx, ~label="ss2iundv", 
+            ~pattern="
+                $[h |- ( ( ph /\\ x e. A ) -> B C_ G ) $]
+                $/ $[h |- ( ( ph /\\ x e. A ) -> Y e. C ) $]
+                $/ $[a |- ( ph -> U_ x e. A B C_ U_ y e. C D ) $]
+                $/ $[h |- ( ( ph /\\ x e. A /\\ y = Y ) -> D = G ) $]
+            "
+        )
+    })
+    it("adj, each sub-sequence has 'h' or 'a', unordered", () => {
+        assertFrameMatchesPattern(~ctx, ~label="ss2iundv", 
+            ~pattern="
+                $+
+                $[h |- ( ( ph /\\ x e. A ) -> B C_ G ) $]
+                $/ $[h |- ( ( ph /\\ x e. A ) -> Y e. C ) $]
+                $/ $[a |- ( ph -> U_ x e. A B C_ U_ y e. C D ) $]
+                $/ $[h |- ( ( ph /\\ x e. A /\\ y = Y ) -> D = G ) $]
+            "
+        )
+    })
 })
 
 describe("frameMatchesPatterns, complex scenarios", () => {
