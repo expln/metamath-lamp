@@ -530,6 +530,24 @@ describe("frameMatchesPatterns, complex scenarios", () => {
     })
 })
 
+describe("frameMatchesPatterns, equivalent patterns", () => {
+    it("H vs h", () => {
+        let res1 = findFramesByPattern(~ctx, ~pattern="$H $[s A + B $] $* $[s B + C $]")
+        assertEqMsg(res1->Array.length, 168, "res1.length")
+        let res2 = findFramesByPattern(~ctx, ~pattern="$[h A + B $] $* $[h B + C $]")
+        assertEqMsg( res1, res2, "res1 == res2" )
+    })
+
+    it("negation", () => {
+        let res1 = findFramesByPattern(~ctx, ~pattern="A + B = B + A")
+        assertEqMsg(res1->Array.length, 509, "res1.length")
+        let res2 = findFramesByPattern(~ctx, ~pattern="$ A + B = B + A $! ph")
+        assertEqMsg(res2->Array.length, 200, "res2.length")
+        let res3 = findFramesByPattern(~ctx, ~pattern="$ A + B = B + A $ ph")
+        assertEqMsg(res3->Array.length, res1->Array.length - res2->Array.length, "res3.length")
+    })
+})
+
 // describe("temp test", () => {
 //     it("temp test", () => {
 //     })
