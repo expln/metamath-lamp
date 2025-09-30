@@ -333,6 +333,51 @@ describe("frameMatchesPatterns, complex scenarios", () => {
         assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern=complexPattern1 )
         assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern="$s "++complexPattern1 )
         assertFrameMatchesPattern(~ctx, ~label="2r19.29", ~pattern="$a "++complexPattern1 )
+
+        let complexPattern2="
+            $[
+                $[
+                    r We x ) /\\ _om ~~>
+                    $|
+                    r We x ) /\\ _om ~<_
+                $]
+                $/
+                $[
+                    <-> ( ( x C_ A 
+                    $*
+                    /\\ r C_ ( x X.
+                $]
+            $]
+            $/
+            $[
+                $[
+                    G : ~P A -1-1-> U_ 
+                    $*
+                    n e. _om ( A ^m n
+                $]
+                $/
+                $[
+                    |- ( ph ph
+                    $|
+                    |- ( ph
+                $]
+            $]
+            $/
+            $[a
+                $[
+                    A ^m n ) \\ U_ n 
+                    $*
+                    e. _om ( x ^m
+                $]
+                $/
+                $[
+                    ps ) -> D e. ( U_ n e. e. e.
+                    $|
+                    ps ) -> D e. ( U_ n e.
+                $]
+            $]
+        "
+        assertFrameMatchesPattern(~ctx, ~label="pwfseqlem1", ~pattern=complexPattern2 )
     })
 
     it("finds multiple frames by a pattern", () => {
