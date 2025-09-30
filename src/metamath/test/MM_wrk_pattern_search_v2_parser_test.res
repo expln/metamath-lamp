@@ -503,3 +503,14 @@ describe("passFlagsFromParentToChild", _ => {
         )
     })
 })
+
+describe("parseFlags", _ => {
+    it("parses flags as expected", _ => {
+        assertEq( parseFlags(""), {adj:None, target:None, singleStmt:None} )
+        assertEq( parseFlags("-H"), {adj:Some(false), target:Some(Hyps), singleStmt:None} )
+        assertEq( parseFlags("+h"), {adj:Some(true), target:Some(Hyps), singleStmt:Some(true)} )
+        assertEq( parseFlags("a"), {adj:None, target:Some(Asrt), singleStmt:None} )
+        assertEq( parseFlags("as"), {adj:None, target:Some(Asrt), singleStmt:Some(true)} )
+        assertEq( parseFlags("s"), {adj:None, target:None, singleStmt:Some(true)} )
+    })
+})
