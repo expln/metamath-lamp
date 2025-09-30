@@ -296,6 +296,34 @@ describe("frameMatchesPatterns, complex scenarios", () => {
                 $]
             "
         )
+        assertFrameMatchesPattern(~ctx, ~label="fsumxp", 
+            ~pattern="
+                $+
+                $[a
+                    x y sum_ k e. B
+                    $|
+                    A sum_ k e. B
+                    $|
+                    A sum_ k e. RR
+                $]
+                $/
+                $[h
+                    e. Fin
+                    $/
+                    -> B 
+                    $/
+                    ( ph 
+                $]
+                $/
+                $[h
+                    ( z =
+                    $*
+                    k >.
+                    $*
+                    = C
+                $]
+            "
+        )
         let complexPattern1="
             y e. B ph /\\ E. x e. A E. x e. ~~>
             $|
