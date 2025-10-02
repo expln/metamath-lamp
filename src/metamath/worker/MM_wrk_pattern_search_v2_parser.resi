@@ -1,5 +1,9 @@
+type patternTarget = Frm | Hyps | Asrt
+
 type flags = {
-    adj:option<bool>
+    adj:option<bool>,
+    target:option<patternTarget>,
+    singleStmt:option<bool>,
 }
 
 type rec symSeq = {
@@ -10,12 +14,12 @@ and seqGrp =
     | Symbols(array<string>) 
     | Ordered(array<symSeq>) 
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+    | OneOf(array<symSeq>)
 
 type pattern = {
-    target: patternTarget, 
-    symSeq: symSeq
+    flags: flags, 
+    neg:bool,
+    symSeq: symSeq,
 }
 
 let parseFlags: string => flags
@@ -26,7 +30,16 @@ let parsePattern: string => option<array<pattern>>
 
 let operatorOrdered:string
 let operatorUnordered:string
+let operatorOneOf:string
 let openParenthesis:string
 let closeParenthesis:string
+
+let flagAdj:string
+let flagNonAdj:string
+let flagHyps:string
+let flagHyp:string
+let flagAsrt:string
+let flagSingleStmt:string
+let flagNegation:string
 
 let isPatternBegin: string => option<pattern>

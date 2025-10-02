@@ -6,6 +6,9 @@ open MM_wrk_pre_ctx_data
 let settingsReadFromLocStor: () => settings
 let settingsSaveToLocStor: settings => unit
 
+let defaultHighlightColor:string
+let allColors:array<string>
+
 @react.component
 let make: (
     ~modalRef:modalRef, 

@@ -65,6 +65,12 @@ type frameDbg = {
     asrt: string,
 }
 
+type patternSearchData = {
+    allHypsAsrt:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
+    numOfHyps:int, //number of essential hypotheses
+    stmtBnds:array<int>, //statement boundaries (beginning indices of statements in allHypsAsrt)
+}
+
 type frame = {
     ord:int,
     isAxiom:bool,
@@ -85,8 +91,7 @@ type frame = {
     isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
     usageCnt: int, //the number of theorems which directly depend on this assertion
-    mutable allHyps?:array<int>, //concatenation of all essential hyps, used for the pattern search
-    mutable allHypsAsrt?:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
+    mutable patSearch?:patternSearchData,
 }
 
 type disjMutable = Belt_HashMapInt.t<Belt_HashSetInt.t>
@@ -582,24 +587,21 @@ let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
     frmIntsToSymsExn(ctx, frame, expr)->Array.joinUnsafe(" ")
 }
 
-let frmGetAllHyps = (frm:frame):array<int> => {
-    switch frm.allHyps {
-        | Some(arr) => arr
+let frmGetPatternSearchData = (frm:frame):patternSearchData => {
+    switch frm.patSearch {
+        | Some(res) => res
         | None => {
-            let allHyps:array<array<int>> = frm.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr)
-            let res = Array.concatMany([], allHyps)
-            frm.allHyps = Some(res)
-            res
-        }
-    }
-}
-
-let frmGetAllHypsAsrt = (frm:frame):array<int> => {
-    switch frm.allHypsAsrt {
-        | Some(arr) => arr
-        | None => {
-            let res = frmGetAllHyps(frm)->Array.copy->Array.concat(frm.asrt)
-            frm.allHypsAsrt = Some(res)
+            let eHyps = frm.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr)
+            let allHyps = Array.concatMany([], eHyps)
+            let res = {
+                allHypsAsrt: allHyps->Array.concat(frm.asrt),
+                numOfHyps: eHyps->Array.length,
+                stmtBnds: eHyps->Array.reduce([0], (bnds,eHyp) => {
+                    bnds->Array.push(bnds->Array.last->Option.getExn + eHyp->Array.length)
+                    bnds
+                }),
+            }
+            frm.patSearch = Some(res)
             res
         }
     }

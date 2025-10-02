@@ -5,19 +5,23 @@ open Expln_React_Mui
 let make = (
     ~patternVersion:int,
     ~highlightMatchedSymbols:bool,
-    ~onOk:(~patternVersion:int, ~highlightMatchedSymbols:bool)=>unit, 
+    ~highlightColor:string,
+    ~onOk:(~patternVersion:int, ~highlightMatchedSymbols:bool, ~highlightColor:string)=>unit, 
     ~onCancel:unit=>unit,
 ) => {
     let (patternVersion, setPatternVersion) = React.useState(() => patternVersion)
     let (highlightMatchedSymbols, setHighlightMatchedSymbols) = React.useState(() => highlightMatchedSymbols)
+    let (highlightColor, setHighlightColor) = React.useState(() => highlightColor)
 
     let actOk = () => {
-        onOk(~patternVersion, ~highlightMatchedSymbols)
+        onOk(~patternVersion, ~highlightMatchedSymbols, ~highlightColor)
     }
 
     let actCancel = () => {
         onCancel()
     }
+
+    let highlightMatchedSymbolsFinal = patternVersion!=1 && highlightMatchedSymbols
 
     <Col spacing=1.>
         <Row alignItems=#center>
@@ -31,16 +35,30 @@ let make = (
                 <FormControlLabel value="2" control={ <Radio/> } label="2" />
             </RadioGroup>
         </Row>
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked={patternVersion!=1 && highlightMatchedSymbols}
-                    onChange=evt2bool(b => setHighlightMatchedSymbols(_=>b))
-                    disabled={patternVersion==1}
-                />
+        <Row>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=highlightMatchedSymbolsFinal
+                        onChange=evt2bool(b => setHighlightMatchedSymbols(_=>b))
+                        disabled={patternVersion==1}
+                    />
+                }
+                label="Highlight matched symbols"
+            />
+            {
+                if (highlightMatchedSymbolsFinal) {
+                    MM_react_common.rndColorSelect(
+                        ~availableColors=MM_cmp_settings.allColors, 
+                        ~selectedColor=highlightColor, 
+                        ~onNewColorSelected=newHighlightColor=>setHighlightColor(_=>newHighlightColor),
+                        ~label="Color"
+                    )
+                } else {
+                    React.null
+                }
             }
-            label="Highlight matched symbols"
-        />
+        </Row>
         <Row alignItems=#center>
             <Button onClick=(_=>actOk()) variant=#contained > 
                 { React.string("Ok") }

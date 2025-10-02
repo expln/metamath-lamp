@@ -29,6 +29,7 @@ type props = {
     frame:frame,
     order:option<int>,
     matchedIdxs:option<MM_wrk_pattern_search.matchedIndices>,
+    highlightColor:string,
     openFrameExplorer:option<string=>unit>,
     openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
@@ -44,6 +45,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.frame === b.frame
     && a.order === b.order
     && a.matchedIdxs === b.matchedIdxs
+    && a.highlightColor === b.highlightColor
 }
 
 let make = React.memoCustomCompareProps( ({
@@ -60,6 +62,7 @@ let make = React.memoCustomCompareProps( ({
     frame,
     order,
     matchedIdxs,
+    highlightColor,
     openFrameExplorer,
     openExplorer,
     addAsrtByLabel,
@@ -290,6 +293,7 @@ let make = React.memoCustomCompareProps( ({
                                         symColors=state.symColors
                                         symRename=state.symRename
                                         symsToHighlight={matchedIdxs->Option.flatMap(idxs => idxs[i])}
+                                        highlightColor
                                         editStmtsByLeftClick
                                         openExplorer
                                     />
@@ -315,6 +319,7 @@ let make = React.memoCustomCompareProps( ({
                 symColors=state.symColors
                 symRename=state.symRename
                 symsToHighlight={matchedIdxs->Option.flatMap(idxs => idxs[idxs->Array.length-1])}
+                highlightColor
                 editStmtsByLeftClick
                 openExplorer
             />

@@ -1,20 +1,24 @@
+type patternTarget = Frm | Hyps | Asrt
+
 type flags = {
-    adj:option<bool>
+    adj:option<bool>,
+    target:option<patternTarget>,
+    singleStmt:option<bool>,
 }
 
 type rec symSeq = {
-    flags:flags,
-    elems:seqGrp
+    flags: flags, 
+    elems: seqGrp
 }
-and seqGrp =
-    | Symbols(array<string>)
-    | Ordered(array<symSeq>)
+and seqGrp = 
+    | Symbols(array<string>) 
+    | Ordered(array<symSeq>) 
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+    | OneOf(array<symSeq>)
 
 type pattern = {
-    target: patternTarget,
+    flags: flags, 
+    neg:bool,
     symSeq: symSeq,
 }
 
@@ -22,14 +26,28 @@ let logParsers = false
 
 let operatorOrdered = "$*"
 let operatorUnordered = "$/"
+let operatorOneOf = "$|"
 let openParenthesis = "$["
 let closeParenthesis = "$]"
 
-let toSymSeq = (elems:seqGrp, ~flags:flags={adj:None}):symSeq => { flags, elems }
+let flagAdj = "+"
+let flagNonAdj = "-"
+let flagHyps = "H"
+let flagHyp = "h"
+let flagAsrt = "a"
+let flagSingleStmt = "s"
+let flagNegation = "!"
 
+let toSymSeq = (elems:seqGrp, ~flags:flags={adj:None, target:None, singleStmt:None}):symSeq => { flags, elems }
+
+let flagSingleHyp = flagHyps ++ flagSingleStmt
 let parseFlags = (str:string):flags => {
+    let str = str->String.replaceAll(flagHyp, flagSingleHyp)
     {
-        adj: str->String.includes("+") ? Some(true) : str->String.includes("-") ? Some(false) : None
+        adj: str->String.includes(flagAdj) ? Some(true) : str->String.includes(flagNonAdj) ? Some(false) : None,
+        target: str->String.includes(flagAsrt) ? Some(Asrt) 
+            : str->String.includes(flagHyps) ? Some(Hyps) : None,
+        singleStmt: str->String.includes(flagSingleStmt) ? Some(true) : None,
     }
 }
 
@@ -39,22 +57,17 @@ let isPatternBegin = (str:string):option<pattern> => {
         && !(
             str->String.startsWith(operatorOrdered)
             || str->String.startsWith(operatorUnordered)
+            || str->String.startsWith(operatorOneOf)
             || str->String.startsWith(openParenthesis)
             || str->String.startsWith(closeParenthesis)
         )
     ) {
         Some({
-            target: 
-                if (str->String.includes("h")) {
-                    Hyps
-                } else if (str->String.includes("a")) {
-                    Asrt
-                } else {
-                    Frm
-                },
+            flags: parseFlags(str),
+            neg:str->String.includes(flagNegation),
             symSeq: {
-                flags: parseFlags(str),
-                elems: Symbols([])
+                flags: {adj:None, target:None, singleStmt:None},
+                elems: Symbols([]),
             },
         })
     } else {
@@ -62,28 +75,24 @@ let isPatternBegin = (str:string):option<pattern> => {
     }
 }
 
-let mergeOpt = (parent:option<'a>, child:option<'a>):option<'a> => {
-    child->Option.isSome ? child : parent
-}
-
 let passFlagsFromParentToChild = (parentFlags:flags, childFlags:flags):flags => {
     {
-        adj: mergeOpt(parentFlags.adj, childFlags.adj)
+        adj: childFlags.adj->Option.orElse(parentFlags.adj),
+        target: switch parentFlags.target {
+            | Some(Asrt) | Some(Hyps) => parentFlags.target
+            | None | Some(Frm) => childFlags.target 
+        },
+        singleStmt: switch parentFlags.singleStmt {
+            | Some(true) => Some(true)
+            | None | Some(false) => childFlags.singleStmt 
+        },
     }
 }
 
 let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
     switch beginOpt {
-        | None => { target: Frm, symSeq: seq }
-        | Some(stmtPat) => {
-            { 
-                target: stmtPat.target, 
-                symSeq: {
-                    ...seq,
-                    flags: passFlagsFromParentToChild(stmtPat.symSeq.flags, seq.flags)
-                }, 
-            }
-        }
+        | None => { flags:{adj:None, target:None, singleStmt:None}, neg:false, symSeq: seq, }
+        | Some(stmtPat) => { ...stmtPat, symSeq: seq, }
     }
 }
 
@@ -129,7 +138,7 @@ module PatternParser = {
         ->log("symbols")
 
     let operator:parser<string> =
-        oneOf([operatorOrdered, operatorUnordered])
+        oneOf([operatorOrdered, operatorUnordered, operatorOneOf])
         ->log("operator")
 
     let seqOperand:Parser.parser<seqOrOperator, symSeq> =
@@ -157,8 +166,11 @@ module PatternParser = {
     let unordered:Parser.parser<seqOrOperator, symSeq> =
         seqGrpForOperator(operatorUnordered, any([ordered, seqOperand]), elems=>Unordered(elems))
 
+    let oneOf:Parser.parser<seqOrOperator, symSeq> =
+        seqGrpForOperator(operatorOneOf, any([unordered, ordered, seqOperand]), elems=>OneOf(elems))
+
     let seqGrpParser:Parser.parser<seqOrOperator, symSeq> =
-        any([unordered, ordered])
+        any([oneOf, unordered, ordered])
 
     let rec symSeq = ():parser<symSeq> =>
         anyL([seqGrp, seqWithParens, ()=>symbols])

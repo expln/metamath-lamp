@@ -6,6 +6,7 @@ type rec testSeqGrp =
     | NonAdj(array<int>)
     | Ord(array<testSeqGrp>)
     | Unord(array<testSeqGrp>)
+    | OneOf(array<testSeqGrp>)
 
 let makeArrayOfSymbols = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>): array<sym> => {
     seq->Array.map(i => {
@@ -20,7 +21,7 @@ let makeArrayOfSymbols = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>):
 let rec collectAllSyms = (seq:testSeqGrp, allSyms:Belt_HashSetInt.t):unit => {
     switch seq {
         | Adj(ints) | NonAdj(ints) => ints->Array.forEach(Belt_HashSetInt.add(allSyms, _))
-        | Ord(ch) | Unord(ch) => ch->Array.forEach(collectAllSyms(_, allSyms))
+        | Ord(ch) | Unord(ch) | OneOf(ch) => ch->Array.forEach(collectAllSyms(_, allSyms))
     }
 }
 
@@ -36,7 +37,9 @@ let rec makeSymSeq = (
                 {
                     elems: Adjacent(makeArrayOfSymbols([i], symMap)),
                     minLen: 1,
-                    minConstMismatchIdx,
+                    target: Frm,
+                    singleStmt:false,
+                    minConstMismatchIdx:[minConstMismatchIdx,minConstMismatchIdx,minConstMismatchIdx],
                 }
             }))
             (seqGrp, seq->Array.length)
@@ -49,11 +52,21 @@ let rec makeSymSeq = (
             let childSeq:array<symSeq> = childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap))
             (Unordered(childSeq), countMinLen(childSeq))
         }
+        | OneOf(childElems) => {
+            let childSeq:array<symSeq> = childElems->Array.map(ch=>makeSymSeq(ch, minConstMismatchIdx, symMap))
+            (OneOf(childSeq), countMinLen(childSeq))
+        }
     }
-    { elems, minLen, minConstMismatchIdx, }
+    { 
+        elems, minLen, 
+        minConstMismatchIdx:[minConstMismatchIdx,minConstMismatchIdx,minConstMismatchIdx],
+        target: Frm, singleStmt:false, 
+    }
 }
 
-let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_HashMapInt.t<constOrVar> => {
+let makeSymMap = (
+    ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~capVars:ref<array<bool>>
+):Belt_HashMapInt.t<constOrVar> => {
     let allSym = Belt_HashSetInt.make(~hintSize=expr->Array.length)
     collectAllSyms(seq, allSym)
     Belt_HashMapInt.fromArray(
@@ -63,6 +76,7 @@ let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_
             } else {
                 let var = Var({
                     typ: varTypes[i]->Option.getExn(~message=`No type is defined for var ${i->Int.toString}`),
+                    capVars,
                     capVar: -1,
                     capVarIdx: -1,
                 })
@@ -75,21 +89,46 @@ let makeSymMap = (~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>):Belt_
 let assertMatches = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>, ~expectedIndices:array<int>
 ):unit => {
-    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), Some(expectedIndices))
+    let capVars = ref(Array.make(~length=varTypes->Array.length, false))
+    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes, ~capVars))
+    let frmData:MM_context.patternSearchData = {
+        allHypsAsrt:expr,
+        numOfHyps:0,
+        stmtBnds:[0]
+    }
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData ), Some(expectedIndices))
 }
 
 let assertDoesntMatch = (
     ~expr:array<int>, ~seq:testSeqGrp, ~varTypes:array<int>
 ):unit => {
-    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes))
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes ), None)
+    let capVars = ref(Array.make(~length=varTypes->Array.length, false))
+    let seq = makeSymSeq(seq, expr->Array.length, makeSymMap(~expr, ~seq, ~varTypes, ~capVars))
+    let frmData:MM_context.patternSearchData = {
+        allHypsAsrt:expr,
+        numOfHyps:0,
+        stmtBnds:[0]
+    }
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData ), None)
 }
 
-let adj = (syms:array<sym>):symSeq => { elems: Adjacent(syms), minLen:syms->Array.length, minConstMismatchIdx: -1 }
-let ord = (seq:array<symSeq>):symSeq => { elems: Ordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 }
-let unord = (seq:array<symSeq>):symSeq => { elems: Unordered(seq), minLen:countMinLen(seq), minConstMismatchIdx: -1 }
-let pat = (target:patternTarget, symSeq:symSeq):pattern => { target, symSeq, allSeq:[] }
+let baseSymSeq = { 
+    elems:Adjacent([]), minLen:0, minConstMismatchIdx:[], target: Frm, singleStmt:false, 
+}
+let adj = (syms:array<sym>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, elems: Adjacent(syms), minLen:syms->Array.length, target, singleStmt 
+}
+let ord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, elems: Ordered(seq), minLen:countMinLen(seq), target, singleStmt 
+}
+let unord = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, elems: Unordered(seq), minLen:countMinLen(seq), target, singleStmt 
+}
+let oneOf = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=false):symSeq => {
+    ...baseSymSeq, 
+    elems: OneOf(seq), minLen:seq->Array.reduce(100, (min,{minLen}) => Math.Int.min(min, minLen)), target, singleStmt 
+}
+let pat = (symSeq:symSeq, ~neg:bool=false):pattern => { symSeq, neg, allSeq:[], capVars:ref([]) }
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
@@ -382,12 +421,11 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[2,5]
         )
     })
-    it("same var in expr is assigned to different vars in pattern", _ => {
-        assertMatches(
+    it("same var in expr cannot be assigned to different vars in pattern", _ => {
+        assertDoesntMatch(
             ~expr=[0,-1,0],
             ~seq=Adj([1,-1,2]),
-            ~varTypes=[-2,-2,-2],
-            ~expectedIndices=[0,1,2]
+            ~varTypes=[-2,-2,-2]
         )
     })
     it("same var in pattern is assigned to same vars in expr", _ => {
@@ -514,6 +552,40 @@ describe("exprIncludesSeq", _ => {
         )
     })
 
+    it("two oneOf groups of adj vars and consts on the left", _ => {
+        assertMatches(
+            ~expr=[1,-11,0,-11,-12,0,-10,1,-15,-16,0,-10,1,-11,-12,1,-20,0],
+            ~seq=OneOf([Adj([3,-11,2]),Adj([2,-10,3])]),
+            ~varTypes=[-1,-2,-1,-2],
+            ~expectedIndices=[0,1,2]
+        )
+    })
+    it("two oneOf groups of adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,-11,0,-11,-12,0,-10,1,-17,-18],
+            ~seq=OneOf([Adj([2,-10,3]),Adj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[7,8,9]
+        )
+    })
+    it("two oneOf groups of adj vars and consts on the right", _ => {
+        assertMatches(
+            ~expr=[-15,4,1,-12,0,-11,-12,0,-11,1],
+            ~seq=OneOf([Adj([2,-10,3]),Adj([2,-11,3])]),
+            ~varTypes=[-1,-2,-1,-2,-3],
+            ~expectedIndices=[7,8,9]
+        )
+    })
+
+    it("two oneOf groups of non-adj vars and consts in the middle", _ => {
+        assertMatches(
+            ~expr=[-15,4,0,5,-16,4,1,-11,-12,1,5,-11,5,0,-17,-18],
+            ~seq=OneOf([NonAdj([2,-10,3]),NonAdj([3,-11,2])]),
+            ~varTypes=[-1,-2,-1,-2,-3,-4],
+            ~expectedIndices=[6,7,13]
+        )
+    })
+
     it("stops as soon as a match is found", _ => {
         assertMatches(
             ~expr=[-1,-1,-1],
@@ -577,7 +649,6 @@ describe("parsePattern", _ => {
     it("passes flags from parent to child", _ => {
         assertParsePattern(~pattern="a b $* c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([
                     ord([adj([a]), adj([b])]),
                     ord([adj([c]), adj([d])]),
@@ -586,7 +657,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="a b $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     ord([adj([c]), adj([d])]),
@@ -595,7 +665,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ a b $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     adj([a, b]),
                     adj([c, d]),
@@ -604,7 +673,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ $[- a b $] $/ c d", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
@@ -613,7 +681,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ $[- a b $] $/ $[+ c d $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
@@ -622,7 +689,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$[- a b $] $/ $[+ c d $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     adj([c, d]),
@@ -631,7 +697,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="a b $/ $[+ c d $* $[- a b $] $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 unord([
                     ord([adj([a]), adj([b])]),
                     ord([
@@ -643,7 +708,6 @@ describe("parsePattern", _ => {
         )
         assertParsePattern(~pattern="$+ a b $* $[- c d $/ $[+ a b $] $]", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([
                     adj([a, b]), 
                     unord([
@@ -653,54 +717,159 @@ describe("parsePattern", _ => {
                 ])
             )])
         )
+        assertParsePattern(~pattern="a", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a], ~target=Frm)
+            )])
+        )
+        assertParsePattern(~pattern="a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([ adj([a], ~target=Frm), adj([b], ~target=Frm)], ~target=Frm),
+            )])
+        )
+        assertParsePattern(~pattern="$H a", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$h a", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a], ~target=Hyps, ~singleStmt=true)
+            )])
+        )
+        assertParsePattern(~pattern="$a a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([ adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt),
+            )])
+        )
+        assertParsePattern(~pattern="$H a b $/ $[a c d $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                unord([
+                    ord([ adj([a], ~target=Hyps), adj([b], ~target=Hyps)], ~target=Hyps),
+                    ord([ adj([c], ~target=Hyps), adj([d], ~target=Hyps)], ~target=Hyps),
+                ], ~target=Hyps)
+            )])
+        )
+        assertParsePattern(~pattern="$a a b $* $[H c d $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([
+                    ord([ adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt),
+                    ord([ adj([c], ~target=Asrt), adj([d], ~target=Asrt)], ~target=Asrt),
+                ], ~target=Asrt)
+            )])
+        )
+        assertParsePattern(~pattern="a $| $[H b $/ $[ c $] $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                oneOf([
+                    adj([a], ~target=Frm),
+                    unord([
+                        adj([b], ~target=Hyps),
+                        adj([c], ~target=Hyps),
+                    ], ~target=Hyps),
+                ], ~target=Frm)
+            )])
+        )
+        assertParsePattern(~pattern="a $/ $[s b $* $[ c $] $]", ~syms, 
+            ~expectedResult=Ok([pat(
+                unord([
+                    adj([a], ~singleStmt=false),
+                    ord([
+                        adj([b], ~singleStmt=true),
+                        adj([c], ~singleStmt=true),
+                    ], ~singleStmt=true),
+                ], ~target=Frm)
+            )])
+        )
+        assertEqMsg(
+            parsePattern("a b", ~symMap=syms),
+            parsePattern("a $* b", ~symMap=syms),
+            "`a b` == `a $* b`"
+        )
+        assertEqMsg(
+            parsePattern("$[+ a b $]", ~symMap=syms),
+            parsePattern("$+ a b", ~symMap=syms),
+            "`$[+ a b $]` == `$+ a b`"
+        )
+        assertEqMsg(
+            parsePattern("$[+ $[- a b $] $]", ~symMap=syms),
+            parsePattern("a b", ~symMap=syms),
+            "`$[+ $[- a b $] $]` == `a b`"
+        )
+        assertEqMsg(
+            parsePattern("$+ $[- a b $] $| c d", ~symMap=syms),
+            parsePattern("a b $| $[+ c d $]", ~symMap=syms),
+            "`$+ $[- a b $] $| c d` == `a b $| $[+ c d $]`"
+        )
+        assertEqMsg(parsePattern("$h a b", ~symMap=syms), parsePattern("$[h a b $]", ~symMap=syms), 
+            "`$h a b` == `$[h a b $]`"
+        )
+        assertEqMsg(parsePattern("$H a b", ~symMap=syms), parsePattern("$[H a b $]", ~symMap=syms), 
+            "`$H a b` == `$[H a b $]`"
+        )
+        assertEqMsg(parsePattern("$a a b", ~symMap=syms), parsePattern("$[a a b $]", ~symMap=syms), 
+            "`$a a b` == `$[a a b $]`"
+        )
+        assertEqMsg(parsePattern("$s a b", ~symMap=syms), parsePattern("$[s a b $]", ~symMap=syms), 
+            "`$s a b` == `$[s a b $]`"
+        )
+        assertEqMsg(parsePattern("$Hs a b", ~symMap=syms), parsePattern("$h a b", ~symMap=syms), 
+            "`$Hs a b` == `$h a b`"
+        )
     })
     it("sets pattern targets", _ => {
         assertParsePattern(~pattern="a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([adj([a]), adj([b])])
             )])
         )
         assertParsePattern(~pattern="$ a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Frm,
                 ord([adj([a]), adj([b])])
+            )])
+        )
+        assertParsePattern(~pattern="$H a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                ord([adj([a], ~target=Hyps), adj([b], ~target=Hyps)], ~target=Hyps)
             )])
         )
         assertParsePattern(~pattern="$h a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Hyps,
-                ord([adj([a]), adj([b])])
+                ord([
+                    adj([a], ~target=Hyps, ~singleStmt=true), 
+                    adj([b], ~target=Hyps, ~singleStmt=true)
+                ], ~target=Hyps, ~singleStmt=true )
             )])
         )
         assertParsePattern(~pattern="$a a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Asrt,
-                ord([adj([a]), adj([b])])
+                ord([adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt)
+            )])
+        )
+        assertParsePattern(~pattern="$H+ a b", ~syms, 
+            ~expectedResult=Ok([pat(
+                adj([a,b], ~target=Hyps)
             )])
         )
         assertParsePattern(~pattern="$h+ a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Hyps,
-                adj([a,b])
+                adj([a,b], ~target=Hyps, ~singleStmt=true)
             )])
         )
         assertParsePattern(~pattern="$a+ a b", ~syms, 
             ~expectedResult=Ok([pat(
-                Asrt,
-                adj([a,b])
+                adj([a,b], ~target=Asrt)
             )])
         )
     })
     it("can parse multiple patterns", _ => {
-        assertParsePattern(~pattern="$ a b $h c d $a a b $+ c d $h+ a b $a+ c d", ~syms, 
+        assertParsePattern(~pattern="$ a b $H c d $a a b $+ c d $H+ a b $a+ c d", ~syms, 
             ~expectedResult=Ok([
-                pat(Frm, ord([adj([a]), adj([b])])),
-                pat(Hyps, ord([adj([c]), adj([d])])),
-                pat(Asrt, ord([adj([a]), adj([b])])),
-                pat(Frm, adj([c,d])),
-                pat(Hyps, adj([a,b])),
-                pat(Asrt, adj([c,d])),
+                pat(ord([adj([a]), adj([b])])),
+                pat(ord([adj([c], ~target=Hyps), adj([d], ~target=Hyps)], ~target=Hyps)),
+                pat(ord([adj([a], ~target=Asrt), adj([b], ~target=Asrt)], ~target=Asrt)),
+                pat(adj([c,d])),
+                pat(adj([a,b], ~target=Hyps)),
+                pat(adj([c,d], ~target=Asrt)),
             ])
         )
     })
@@ -717,44 +886,41 @@ describe("convertMatchedIndices", () => {
         }
     }
     it("converts indices for Frm target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2], Frm), [[0],[0],[0]], "case 1" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Frm), [[0],[],[]], "case 2" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1], Frm), [[],[0],[]], "case 3" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2], Frm), [[],[],[0]], "case 4" )
-        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Frm), [[0]], "case 5" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1,2]), [[0],[0],[0]], "case 1" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0]), [[0],[],[]], "case 2" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1]), [[],[0],[]], "case 3" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2]), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0]), [[0]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [0,1,2,6,7,8,12,13,14,15,19], 
-                Frm
             ),
             [[0,1,2],[1,2,3],[2,3,4],[0,4]],
             "case 6"
         )
     })
     it("converts indices for Hyps target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1], Hyps), [[0],[0],[]], "case 1" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Hyps), [[0],[],[]], "case 2" )
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1], Hyps), [[],[0],[]], "case 3" )
-        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [], Hyps), [[]], "case 5" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0,1]), [[0],[0],[]], "case 1" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0]), [[0],[],[]], "case 2" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [1]), [[],[0],[]], "case 3" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), []), [[]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
                 [0,1,2,6,7,8,12,13,14], 
-                Hyps
             ),
             [[0,1,2],[1,2,3],[2,3,4],[]],
             "case 6"
         )
     })
     it("converts indices for Asrt target", () => {
-        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [0], Asrt), [[],[],[0]], "case 4" )
-        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0], Asrt), [[0]], "case 5" )
+        assertEqMsg( convertMatchedIndices(makeFrame([[0],[1]], [2]), [2]), [[],[],[0]], "case 4" )
+        assertEqMsg( convertMatchedIndices(makeFrame([], [0]), [0]), [[0]], "case 5" )
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [0,1], 
-                Asrt
+                [15,16], 
             ),
             [[],[],[],[0,1]],
             "case 6"
@@ -762,8 +928,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [0,1,2], 
-                Asrt
+                [15,16,17], 
             ),
             [[],[],[],[0,1,2]],
             "case 7"
@@ -771,8 +936,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [1,2,3], 
-                Asrt
+                [16,17,18], 
             ),
             [[],[],[],[1,2,3]],
             "case 8"
@@ -780,8 +944,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [2,3,4], 
-                Asrt
+                [17,18,19], 
             ),
             [[],[],[],[2,3,4]],
             "case 9"
@@ -789,8 +952,7 @@ describe("convertMatchedIndices", () => {
         assertEqMsg(
             convertMatchedIndices(
                 makeFrame([[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14]], [15,16,17,18,19]), 
-                [1,3], 
-                Asrt
+                [16,18], 
             ),
             [[],[],[],[1,3]],
             "case 10"
@@ -862,15 +1024,21 @@ describe("validatePattern", () => {
         )
     })
 
-    it("flags 'h' and 'a' cannot be used together", () => {
+    it("flags 'H', 'h', and 'a' cannot be used together (ha)", () => {
         assertEq( 
             validatePattern(~text="$ha t = r", ~ctx), 
-            Some("'$ha' - flags 'h' and 'a' cannot be used together") 
+            Some("'$ha' - flags 'H', 'h', and 'a' cannot be used together") 
         )
     })
-    it("flags 'h' and 'a' cannot be used together (negative)", () => {
+    it("flags 'H', 'h', and 'a' cannot be used together (Ha)", () => {
         assertEq( 
-            validatePattern(~text="$h- t = r", ~ctx), 
+            validatePattern(~text="$Ha t = r", ~ctx), 
+            Some("'$Ha' - flags 'H', 'h', and 'a' cannot be used together") 
+        )
+    })
+    it("flags 'H', 'h', and 'a' cannot be used together (negative)", () => {
+        assertEq( 
+            validatePattern(~text="$h- t = r $a+ t = r $H t = r", ~ctx), 
             None
         )
     })
@@ -888,17 +1056,17 @@ describe("validatePattern", () => {
         )
     })
 
-    it("flag 'h' cannot be used with parentheses", () => {
+    it("flag '!' cannot be used with parentheses", () => {
         assertEq( 
-            validatePattern(~text="$[h t = r $]", ~ctx), 
-            Some("'$[h' - flags 'h' and 'a' cannot be used with parentheses") 
+            validatePattern(~text="$[! t = r $]", ~ctx), 
+            Some("'$[!' - flag '!' cannot be used with parentheses") 
         )
     })
 
-    it("flag 'a' cannot be used with parentheses", () => {
+    it("flag '!' cannot be used with parentheses (negative)", () => {
         assertEq( 
-            validatePattern(~text="$[a t = r $]", ~ctx), 
-            Some("'$[a' - flags 'h' and 'a' cannot be used with parentheses") 
+            validatePattern(~text="$! t = r", ~ctx), 
+            None
         )
     })
 
@@ -964,7 +1132,7 @@ describe("frameMatchesPatterns", () => {
         assertEq( 
             frameMatchesPatterns(
                 ctx->MM_context.getFrameExn("mp"),
-                parsePattern("$h P -> Q $a Q", ~ctx)->Result.getExn
+                parsePattern("$H P -> Q $a Q", ~ctx)->Result.getExn
             ), 
             Matched(Some([[1],[3,4],[1]])) 
         )

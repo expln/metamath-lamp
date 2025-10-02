@@ -23,6 +23,12 @@ type frameDbg = {
     asrt: string,
 }
 
+type patternSearchData = {
+    allHypsAsrt:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
+    numOfHyps:int, //number of essential hypotheses
+    stmtBnds:array<int>, //statement boundaries (beginning indices of statements in allHypsAsrt)
+}
+
 type frame = {
     ord:int,
     isAxiom:bool,
@@ -43,8 +49,7 @@ type frame = {
     isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
     usageCnt: int, //the number of theorems which directly depend on this assertion
-    mutable allHyps?:array<int>, //concatenation of all essential hyps, used for the pattern search
-    mutable allHypsAsrt?:array<int>, //concatenation of all essential hyps and asrt, used for the pattern search
+    mutable patSearch?:patternSearchData,
 }
 
 type optimizedConstsOrder = {
@@ -134,8 +139,7 @@ let frmIntToSym: (mmContext, frame, int) => option<string>
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
 let frmIntsToSymsExn: (mmContext, frame, expr) => array<string>
-let frmGetAllHyps: frame => array<int>
-let frmGetAllHypsAsrt: frame => array<int>
+let frmGetPatternSearchData: frame => patternSearchData
 let createFrame: (
     ~ctx:mmContext, 
     ~ord:int,

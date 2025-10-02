@@ -10,7 +10,8 @@ let seq = (elems:seqGrp, ~flags:string):symSeq => { flags:parseFlags(flags), ele
 let sym = (symbols:array<string>, ~flags:string=""):symSeq => seq(Symbols(symbols), ~flags)
 let ord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Ordered(elems), ~flags)
 let unord = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(Unordered(elems), ~flags)
-let pat = (symSeq:symSeq, ~target:patternTarget=Frm):pattern => {target, symSeq}
+let oneOf = (elems:array<symSeq>, ~flags:string=""):symSeq => seq(OneOf(elems), ~flags)
+let pat = (symSeq:symSeq, ~flags:string="", ~neg:bool=false):pattern => {flags:parseFlags(flags), neg, symSeq:symSeq}
 
 describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern works as expected", _ => {
@@ -41,6 +42,10 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
         testPatternParser(
             "a b $/ c d $/ e f",
             Some([pat(unord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))])
+        )
+        testPatternParser(
+            "a b $| c d $| e f",
+            Some([pat(oneOf([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]))])
         )
         testPatternParser(
             "a b $* c d $/ e f",
@@ -86,6 +91,36 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
                 sym(["e","f"]),
             ]))])
         )
+
+        testPatternParser(
+            "a b $* c d $| e f $/ g h",
+            Some([pat(oneOf([
+                ord([sym(["a","b"]), sym(["c","d"])]),
+                unord([sym(["e","f"]), sym(["g","h"])]),
+            ]))])
+        )
+
+        testPatternParser(
+            "a b $* c d $* e f $| g h $/ i j $/ k l",
+            Some([pat(oneOf([
+                ord([sym(["a","b"]), sym(["c","d"]), sym(["e","f"])]),
+                unord([sym(["g","h"]), sym(["i","j"]), sym(["k","l"])]),
+            ]))])
+        )
+
+        testPatternParser(
+            "a b $* c d $* $[ e f $| g h $] $/ i j $/ k l",
+            Some([pat(unord([
+                ord([
+                    sym(["a","b"]), 
+                    sym(["c","d"]), 
+                    oneOf([sym(["e","f"]), sym(["g","h"])])
+                ]),
+                sym(["i","j"]), 
+                sym(["k","l"]),
+            ]))])
+        )
+
         testPatternParser(
             "$[ a b $] $/ c d",
             Some([pat(unord([
@@ -215,39 +250,267 @@ describe("MM_wrk_pattern_search_v2_parser", _ => {
     it("parsePattern parses flags correctly", _ => {
         testPatternParser(
             "$+ a b",
-            Some([ pat(sym(["a", "b"], ~flags="+"))])
+            Some([ pat(sym(["a", "b"]), ~flags="+")])
         )
         testPatternParser(
             "$+ $[ a b $]",
-            Some([ pat(sym(["a", "b"], ~flags="+"))])
+            Some([ pat(sym(["a", "b"]), ~flags="+")])
         )
         testPatternParser(
             "$+ $[- a b $]",
-            Some([ pat(sym(["a", "b"], ~flags="-"))])
+            Some([ pat(sym(["a", "b"], ~flags="-"), ~flags="+")])
         )
         testPatternParser(
             "$ a b $h a b $a a b",
             Some([ 
-                pat(sym(["a", "b"]), ~target=Frm),
-                pat(sym(["a", "b"]), ~target=Hyps),
-                pat(sym(["a", "b"]), ~target=Asrt),
+                pat(sym(["a", "b"])),
+                pat(sym(["a", "b"]), ~flags="h"),
+                pat(sym(["a", "b"]), ~flags="a"),
             ])
         )
         testPatternParser(
             "$+ a b $h+ a b $a+ a b",
             Some([ 
-                pat(sym(["a", "b"], ~flags="+"), ~target=Frm),
-                pat(sym(["a", "b"], ~flags="+"), ~target=Hyps),
-                pat(sym(["a", "b"], ~flags="+"), ~target=Asrt),
+                pat(sym(["a", "b"]), ~flags="+"),
+                pat(sym(["a", "b"]), ~flags="+h"),
+                pat(sym(["a", "b"]), ~flags="+a"),
             ])
         )
         testPatternParser(
             "$+ $[- a b $] $h+ $[- a b $] $a+ $[- a b $]",
             Some([ 
-                pat(sym(["a", "b"], ~flags="-"), ~target=Frm),
-                pat(sym(["a", "b"], ~flags="-"), ~target=Hyps),
-                pat(sym(["a", "b"], ~flags="-"), ~target=Asrt),
+                pat(sym(["a", "b"], ~flags="-"), ~flags="+"),
+                pat(sym(["a", "b"], ~flags="-"), ~flags="+h"),
+                pat(sym(["a", "b"], ~flags="-"), ~flags="+a"),
             ])
         )
+    })
+})
+
+describe("passFlagsFromParentToChild", _ => {
+    it("passes empty flags", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:None, singleStmt:None},
+            ),
+            {adj:None, target:None, singleStmt:None}
+        )
+    })
+
+    it("passes adj flag", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None}, 
+                {adj:Some(false), target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None}, 
+                {adj:Some(true), target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(false), target:None, singleStmt:None}, 
+                {adj:None, target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(true), target:None, singleStmt:None}, 
+                {adj:None, target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(false), target:None, singleStmt:None}, 
+                {adj:Some(false), target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(false), target:None, singleStmt:None}, 
+                {adj:Some(true), target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(true), target:None, singleStmt:None}, 
+                {adj:Some(false), target:None, singleStmt:None},
+            ),
+            {adj:Some(false), target:None, singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:Some(true), target:None, singleStmt:None}, 
+                {adj:Some(true), target:None, singleStmt:None},
+            ),
+            {adj:Some(true), target:None, singleStmt:None}
+        )
+    })
+
+    it("passes singleStmt flag", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:None, target:None, adj:None}, 
+                {singleStmt:Some(false), target:None, adj:None},
+            ),
+            {singleStmt:Some(false), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:None, target:None, adj:None}, 
+                {singleStmt:Some(true), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(false), target:None, adj:None}, 
+                {singleStmt:None, target:None, adj:None},
+            ),
+            {singleStmt:None, target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(true), target:None, adj:None}, 
+                {singleStmt:None, target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(false), target:None, adj:None}, 
+                {singleStmt:Some(false), target:None, adj:None},
+            ),
+            {singleStmt:Some(false), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(false), target:None, adj:None}, 
+                {singleStmt:Some(true), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(true), target:None, adj:None}, 
+                {singleStmt:Some(false), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {singleStmt:Some(true), target:None, adj:None}, 
+                {singleStmt:Some(true), target:None, adj:None},
+            ),
+            {singleStmt:Some(true), target:None, adj:None}
+        )
+    })
+
+    it("passes target flag", _ => {
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Frm), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:None, singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Frm), singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Frm), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Frm), singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Frm), singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Hyps), singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Hyps), singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Hyps), singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Hyps), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Asrt), singleStmt:None},
+                {adj:None, target:Some(Frm), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Asrt), singleStmt:None},
+                {adj:None, target:Some(Hyps), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+        assertEq(
+            passFlagsFromParentToChild(
+                {adj:None, target:Some(Asrt), singleStmt:None},
+                {adj:None, target:Some(Asrt), singleStmt:None},
+            ),
+            {adj:None, target:Some(Asrt), singleStmt:None}
+        )
+    })
+})
+
+describe("parseFlags", _ => {
+    it("parses flags as expected", _ => {
+        assertEq( parseFlags(""), {adj:None, target:None, singleStmt:None} )
+        assertEq( parseFlags("-H"), {adj:Some(false), target:Some(Hyps), singleStmt:None} )
+        assertEq( parseFlags("+h"), {adj:Some(true), target:Some(Hyps), singleStmt:Some(true)} )
+        assertEq( parseFlags("a"), {adj:None, target:Some(Asrt), singleStmt:None} )
+        assertEq( parseFlags("as"), {adj:None, target:Some(Asrt), singleStmt:Some(true)} )
+        assertEq( parseFlags("s"), {adj:None, target:None, singleStmt:Some(true)} )
     })
 })

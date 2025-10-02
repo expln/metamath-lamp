@@ -87,6 +87,7 @@ let make = React.memoCustomCompareProps(({
     let (highlightMatchedSymbols, setHighlightMatchedSymbols) = useStateFromLocalStorageBool(
         ~key="pe-index-highlight-matched-symbols", ~default=true
     )
+    let (highlightColor, setHighlightColor) = MM_use_highlight_color.useHighlightColor()
 
     let actClearFilters = (~applyFilters:bool) => {
         setIsAxiomFilter(_ => None)
@@ -460,11 +461,13 @@ let make = React.memoCustomCompareProps(({
                 <MM_cmp_pattern_search_params
                     patternVersion
                     highlightMatchedSymbols
-                    onOk={(~patternVersion:int, ~highlightMatchedSymbols:bool)=>{
+                    highlightColor
+                    onOk={(~patternVersion:int, ~highlightMatchedSymbols:bool, ~highlightColor:string)=>{
                         close()
                         setApplyFiltersRequested(_ => prevPatternVersion != patternVersion)
                         setPatternVersion(_ => Math.Int.max(1,Math.Int.min(patternVersion,2)))
                         setHighlightMatchedSymbols(_=>highlightMatchedSymbols)
+                        setHighlightColor(_=>highlightColor)
                     }}
                     onCancel=close
                 />
@@ -804,6 +807,7 @@ let make = React.memoCustomCompareProps(({
                                 syntaxTypes=preCtxData.syntaxTypes
                                 labels=filteredLabels
                                 highlightMatchedSymbols
+                                highlightColor
                                 openFrameExplorer
                                 openExplorer
                                 asrtsPerPage

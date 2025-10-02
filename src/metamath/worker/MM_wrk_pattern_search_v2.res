@@ -7,32 +7,38 @@ type matchResult =
 
 type variable = {
     typ: int,
+    capVars:ref<array<bool>>, //captured variables
     mutable capVar: int, //captured variable
     mutable capVarIdx: int, //index of the first occurrence of the captured variable
 }
 
-type rec sym = {
+type constOrVar = Const(int) | Var(variable)
+
+type sym = {
     constOrVar: constOrVar,
     mutable matchedIdx: int, //index of the matched symbol
 }
-and constOrVar = Const(int) | Var(variable)
+
+type patternTarget = Frm | Hyps | Asrt
 
 type rec symSeq = {
     elems: seqGrp,
+    target: patternTarget,
+    singleStmt: bool,
     minLen:int,
-    mutable minConstMismatchIdx:int,
+    minConstMismatchIdx:array<int>,
 }
 and seqGrp = 
     | Adjacent(array<sym>)
     | Ordered(array<symSeq>)
     | Unordered(array<symSeq>)
-
-type patternTarget = Frm | Hyps | Asrt
+    | OneOf(array<symSeq>)
 
 type pattern = {
-    target: patternTarget,
+    neg: bool,
     symSeq: symSeq,
     allSeq: array<symSeq>,
+    capVars:ref<array<bool>>, //captured variables
 }
 
 type subSeqMatchRes = {
@@ -50,9 +56,11 @@ let exprSymMatchesSeqConst = (~exprSym:int, ~seqConst:int, ~varTypes: array<int>
 
 let countMinLen = (seq:array<symSeq>):int => seq->Array.reduce(0,(sum,seq)=>sum+seq.minLen)
 
-let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>):int => {
+let exprIncludesConstAdjSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:array<sym>, ~varTypes: array<int>
+):int => {
     let begin = ref(startIdx)
-    let maxBegin = expr->Array.length - seq->Array.length
+    let maxBegin = maxIdx + 1 - seq->Array.length
     let matched = ref(false)
     let maxSeqI = seq->Array.length - 1
     while (begin.contents <= maxBegin && !matched.contents) {
@@ -80,36 +88,172 @@ let exprIncludesConstAdjSeq = (~expr:array<int>, ~startIdx:int, ~seq:array<sym>,
     }
 }
 
-let rec exprIncludesConstSeq = (~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~varTypes: array<int>):int => {
-    if (expr->Array.length <= startIdx || seq.minConstMismatchIdx <= startIdx) {
+let getMinIdxForSingleStmt = (
+    ~stmtI:int, ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => frmData.stmtBnds->Array.getUnsafe(stmtI)
+        | Hyps => {
+            if (stmtI == frmData.numOfHyps) {
+                exprLen
+            } else {
+                frmData.stmtBnds->Array.getUnsafe(stmtI)
+            }
+        }
+        | Asrt => {
+            if (stmtI == frmData.numOfHyps) {
+                frmData.stmtBnds->Array.getUnsafe(stmtI)
+            } else {
+                exprLen
+            }
+        }
+    }
+}
+
+let getMaxIdxForSingleStmt = (
+    ~stmtI:int, ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => frmData.stmtBnds[stmtI+1]->Option.mapOr(exprLen-1, nextStmtStart => nextStmtStart - 1)
+        | Hyps => {
+            if (stmtI == frmData.numOfHyps) {
+                -1
+            } else {
+                frmData.stmtBnds->Array.getUnsafe(stmtI+1) - 1
+            }
+        }
+        | Asrt => {
+            if (stmtI == frmData.numOfHyps) {
+                exprLen-1
+            } else {
+                -1
+            }
+        }
+    }
+}
+
+let getMinIdxForNonSingleStmt = (
+    ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => 0
+        | Hyps => if (frmData.numOfHyps > 0) { 0 } else { exprLen }
+        | Asrt => frmData.stmtBnds->Array.getUnsafe(frmData.numOfHyps)
+    }
+}
+
+let getMaxIdxForNonSingleStmt = (
+    ~exprLen:int, ~target:patternTarget, ~frmData:MC.patternSearchData
+):int => {
+    switch target {
+        | Frm => exprLen - 1
+        | Hyps => if (frmData.numOfHyps > 0) { frmData.stmtBnds->Array.getUnsafe(frmData.numOfHyps) - 1 } else { -1 }
+        | Asrt => exprLen - 1
+    }
+}
+
+let getStmtIForNonSingleStmt = ( ~target:patternTarget, ~frmData:MC.patternSearchData ):int => {
+    switch target {
+        | Asrt => frmData.numOfHyps
+        | Hyps => frmData.numOfHyps+1
+        | Frm => frmData.numOfHyps+2
+    }
+}
+
+let rec exprIncludesConstSeqWithTarget = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>, ~frmData:MC.patternSearchData,
+    ~stmtI:int,
+):int => {
+    let exprLen = expr->Array.length
+    let target = seq.target
+    if (stmtI <= frmData.numOfHyps) {
+        //stmtI <= frmData.numOfHyps means we are searching in a singe statement (a hypothesis or assertion)
+        exprIncludesConstSeq(
+            ~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes, ~frmData, ~stmtI,
+        )
+    } else if (seq.singleStmt) {
+        //seq.singleStmt == true means we need to shrink the search space down to individual statements
+        let stmtI = ref(0)
+        let lastMatchedIdx = ref(-1)
+        while (stmtI.contents <= frmData.numOfHyps && lastMatchedIdx.contents < 0) {
+            let newStartIdx = Math.Int.max(
+                startIdx,
+                getMinIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target, ~frmData)
+            )
+            let newMaxIdx = Math.Int.min(
+                maxIdx,
+                getMaxIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target, ~frmData)
+            )
+            if (newStartIdx <= newMaxIdx) {
+                lastMatchedIdx := exprIncludesConstSeq(
+                    ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~frmData, ~stmtI=stmtI.contents,
+                )
+            }
+            stmtI := stmtI.contents + 1
+        }
+        lastMatchedIdx.contents
+    } else {
+        let newStartIdx = Math.Int.max(
+            startIdx,
+            getMinIdxForNonSingleStmt(~exprLen, ~target, ~frmData)
+        )
+        let newMaxIdx = Math.Int.min(
+            maxIdx,
+            getMaxIdxForNonSingleStmt(~exprLen, ~target, ~frmData)
+        )
+        if (newStartIdx <= newMaxIdx) {
+            exprIncludesConstSeq(
+                ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~frmData, 
+                ~stmtI=getStmtIForNonSingleStmt(~target, ~frmData),
+            )
+        } else {
+            -1
+        }
+    }
+}
+
+and exprIncludesConstSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>, ~frmData:MC.patternSearchData,
+    ~stmtI:int,
+):int => {
+    if (maxIdx < startIdx || seq.minConstMismatchIdx->Array.getUnsafe(stmtI) <= startIdx) {
         -1
     } else {
         let res = switch seq.elems {
-            | Adjacent(seq) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~seq, ~varTypes)
-            | Ordered(childElems) => exprIncludesConstOrderedSeq(~expr, ~startIdx, ~childElems, ~varTypes)
+            | Adjacent(seq) => exprIncludesConstAdjSeq(~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes)
+            | Ordered(childElems) => {
+                exprIncludesConstOrderedSeq(~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~frmData, ~stmtI)
+            }
             | Unordered(childElems) => {
-                exprIncludesConstUnorderedSeq(~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[])
+                exprIncludesConstUnorderedSeq(
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~frmData, ~stmtI
+                )
+            }
+            | OneOf(childElems) => {
+                exprIncludesConstOneOfSeq( ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~frmData, ~stmtI )
             }
         }
         if (res < 0) {
-            seq.minConstMismatchIdx = startIdx
+            seq.minConstMismatchIdx[stmtI] = startIdx
         }
         res
     }
 }
 
 and let exprIncludesConstOrderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
+    ~frmData:MC.patternSearchData, ~stmtI:int
 ):int => {
     let lastMatchedIdx = ref(startIdx-1)
     let matched = ref(true)
     let i = ref(0)
     let maxI = childElems->Array.length - 1
     while (i.contents <= maxI && matched.contents) {
-        lastMatchedIdx := exprIncludesConstSeq(
-            ~expr, ~startIdx=lastMatchedIdx.contents+1, ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes
+        lastMatchedIdx := exprIncludesConstSeqWithTarget(
+            ~expr, ~startIdx=lastMatchedIdx.contents+1, ~maxIdx, 
+            ~seq=childElems->Array.getUnsafe(i.contents), ~varTypes, ~frmData, ~stmtI,
         )
-        matched := lastMatchedIdx.contents >= 0
+        matched := 0 <= lastMatchedIdx.contents && lastMatchedIdx.contents <= maxIdx
         i := i.contents + 1
     }
     if (matched.contents) {
@@ -120,7 +264,8 @@ and let exprIncludesConstOrderedSeq = (
 }
 
 and let exprIncludesConstUnorderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
+    ~passedSeqIdxs:array<int>, ~frmData:MC.patternSearchData, ~stmtI:int
 ):int => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         startIdx-1
@@ -131,12 +276,15 @@ and let exprIncludesConstUnorderedSeq = (
         while (res.contents < 0 && i.contents <= maxI) {
             if !(passedSeqIdxs->Array.includes(i.contents)) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
-                if (startIdx < curSeq.minConstMismatchIdx) {
-                    let lastMatchedIdx = exprIncludesConstSeq(~expr, ~startIdx, ~seq=curSeq, ~varTypes)
-                    if (lastMatchedIdx >= 0) {
+                if (startIdx < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)) {
+                    let lastMatchedIdx = exprIncludesConstSeqWithTarget(
+                        ~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes, ~frmData, ~stmtI
+                    )
+                    if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
                         passedSeqIdxs->Array.push(i.contents)
                         res := exprIncludesConstUnorderedSeq(
-                            ~expr, ~startIdx=lastMatchedIdx+1, ~childElems, ~varTypes, ~passedSeqIdxs
+                            ~expr, ~startIdx=lastMatchedIdx+1, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs, 
+                            ~frmData, ~stmtI
                         )
                         passedSeqIdxs->Array.pop->ignore
                     }
@@ -148,12 +296,34 @@ and let exprIncludesConstUnorderedSeq = (
     }
 }
 
+and let exprIncludesConstOneOfSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
+    ~frmData:MC.patternSearchData, ~stmtI:int
+):int => {
+    let res = ref(-1)
+    let i = ref(0)
+    let maxI = childElems->Array.length - 1
+    while (res.contents < 0 && i.contents <= maxI) {
+        let curSeq = childElems->Array.getUnsafe(i.contents)
+        if (startIdx < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)) {
+            let lastMatchedIdx = exprIncludesConstSeqWithTarget(
+                ~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes, ~frmData, ~stmtI
+            )
+            if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
+                res := lastMatchedIdx
+            }
+        }
+        i := i.contents + 1
+    }
+    res.contents
+}
+
 let exprIncludesVarAdjSeq = (
-    ~expr:array<int>, ~startIdx:int, ~seq:array<sym>, ~varTypes: array<int>,
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:array<sym>, ~varTypes: array<int>,
     ~next:subSeqMatchRes=>unit
 ):unit => {
     let begin = ref(startIdx)
-    let maxBegin = expr->Array.length - seq->Array.length
+    let maxBegin = maxIdx + 1 - seq->Array.length
     let matched = ref(false)
     let maxSeqI = seq->Array.length - 1
     while (begin.contents <= maxBegin && !matched.contents) {
@@ -168,8 +338,13 @@ let exprIncludesVarAdjSeq = (
                 | Var(seqVar) => {
                     if (seqVar.capVar >= 0) {
                         matched := seqVar.capVar == exprSym
-                    } else if ( exprSym >= 0 && varTypes->getVarType(exprSym) == seqVar.typ ) {
+                    } else if ( 
+                        exprSym >= 0 
+                        && !(seqVar.capVars.contents[exprSym]->Option.getExn(~message="capVars.length is too small."))
+                        && varTypes->getVarType(exprSym) == seqVar.typ
+                    ) {
                         seqVar.capVar = exprSym
+                        seqVar.capVars.contents[seqVar.capVar] = true
                         seqVar.capVarIdx = exprI.contents
                     } else {
                         matched := false
@@ -194,6 +369,7 @@ let exprIncludesVarAdjSeq = (
                 | Var(seqVar) => {
                     let exprIdx = begin.contents + seqI.contents
                     if (exprIdx == seqVar.capVarIdx) {
+                        seqVar.capVars.contents[seqVar.capVar] = false
                         seqVar.capVar = -1
                     }
                 }
@@ -204,21 +380,75 @@ let exprIncludesVarAdjSeq = (
     }
 }
 
-let rec exprIncludesVarSeq = (
-    ~expr:array<int>, ~startIdx:int, ~seq:symSeq, ~varTypes:array<int>,
-    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>
+let rec exprIncludesVarSeqWithTarget = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes: array<int>, ~frmData:MC.patternSearchData,
+    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>, ~stmtI:int
 ):unit => {
-    if (startIdx < expr->Array.length && startIdx < seq.minConstMismatchIdx) {
+    let exprLen = expr->Array.length
+    let target = seq.target
+    if (stmtI <= frmData.numOfHyps) {
+        //stmtI <= frmData.numOfHyps means we are searching in a singe statement (a hypothesis or assertion)
+        exprIncludesVarSeq(
+            ~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes, ~next, ~stop, ~frmData, ~stmtI
+        )
+    } else if (seq.singleStmt) {
+        let stmtI = ref(0)
+        while (stmtI.contents <= frmData.numOfHyps && !stop.contents) {
+            let newStartIdx = Math.Int.max(
+                startIdx,
+                getMinIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target, ~frmData)
+            )
+            let newMaxIdx = Math.Int.min(
+                maxIdx,
+                getMaxIdxForSingleStmt(~stmtI=stmtI.contents, ~exprLen, ~target, ~frmData)
+            )
+            if (newStartIdx <= newMaxIdx) {
+                exprIncludesVarSeq(
+                    ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~next, ~stop, ~frmData,
+                    ~stmtI=stmtI.contents
+                )
+            }
+            stmtI := stmtI.contents + 1
+        }
+    } else {
+        let newStartIdx = Math.Int.max(
+            startIdx,
+            getMinIdxForNonSingleStmt(~exprLen, ~target, ~frmData)
+        )
+        let newMaxIdx = Math.Int.min(
+            maxIdx,
+            getMaxIdxForNonSingleStmt(~exprLen, ~target, ~frmData)
+        )
+        if (newStartIdx <= newMaxIdx) {
+            exprIncludesVarSeq(
+                ~expr, ~startIdx=newStartIdx, ~maxIdx=newMaxIdx, ~seq, ~varTypes, ~next, ~stop, ~frmData, ~stmtI
+            )
+        }
+    }
+}
+
+and let exprIncludesVarSeq = ( 
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~seq:symSeq, ~varTypes:array<int>,
+    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>, ~frmData:MC.patternSearchData, ~stmtI:int
+):unit => {
+    if (startIdx <= maxIdx && startIdx < seq.minConstMismatchIdx->Array.getUnsafe(stmtI)) {
         switch seq.elems {
-            | Adjacent(seq) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~seq, ~varTypes, ~next)
+            | Adjacent(seq) => exprIncludesVarAdjSeq(~expr, ~startIdx, ~maxIdx, ~seq, ~varTypes, ~next)
             | Ordered(childElems) => {
                 exprIncludesVarOrderedSeq(
-                    ~expr, ~startIdx, ~childElems, ~varTypes, ~next, ~res=None, ~childElemIdx=0, ~stop
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~next, ~res=None, ~childElemIdx=0, ~stop, 
+                    ~frmData, ~stmtI
                 )
             }
             | Unordered(childElems) => {
                 exprIncludesVarUnorderedSeq(
-                    ~expr, ~startIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next, ~res=None, ~stop
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs=[], ~next, ~res=None, ~stop, 
+                    ~frmData, ~stmtI
+                )
+            }
+            | OneOf(childElems) => {
+                exprIncludesVarOneOfSeq( 
+                    ~expr, ~startIdx, ~maxIdx, ~childElems, ~varTypes, ~next, ~stop, ~frmData, ~stmtI
                 )
             }
         }
@@ -226,70 +456,81 @@ let rec exprIncludesVarSeq = (
 }
 
 and let exprIncludesVarOrderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
-    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~childElemIdx:int, ~stop:ref<bool>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
+    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~childElemIdx:int, ~stop:ref<bool>, 
+    ~frmData:MC.patternSearchData, ~stmtI:int
 ):unit => {
     if (childElems->Array.length <= childElemIdx) {
         switch res {
             | None => Exn.raiseError("exprIncludesVarOrderedSeq: res is None")
             | Some(res) => next({...res, matchEnd:startIdx-1})
         }
-    } else if (startIdx < expr->Array.length) {
+    } else if (startIdx <= maxIdx) {
         let curSeq = childElems->Array.getUnsafe(childElemIdx)
         let begin = ref(startIdx)
-        let beginMax = expr->Array.length - curSeq.minLen
-        while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
+        let beginMax = maxIdx + 1 - curSeq.minLen
+        while (!stop.contents && begin.contents <= beginMax 
+            && begin.contents < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)
+        ) {
             let beginCopy = begin.contents
             begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
-            exprIncludesVarSeq(
-                ~expr, ~startIdx=beginCopy, ~seq=curSeq, ~varTypes,
+            exprIncludesVarSeqWithTarget(
+                ~expr, ~startIdx=beginCopy, ~maxIdx, ~seq=curSeq, ~varTypes,
                 ~next = curSeqRes => {
-                    exprIncludesVarOrderedSeq(
-                        ~expr, ~startIdx=curSeqRes.matchEnd+1, ~childElems, ~varTypes, ~next,
-                        ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
-                        ~childElemIdx=childElemIdx+1, ~stop
-                    )
-                    begin := curSeqRes.matchBegin + 1
+                    if (curSeqRes.matchEnd <= maxIdx) {
+                        exprIncludesVarOrderedSeq(
+                            ~expr, ~startIdx=curSeqRes.matchEnd+1, ~maxIdx, ~childElems, ~varTypes, ~next,
+                            ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
+                            ~childElemIdx=childElemIdx+1, ~stop, ~frmData, ~stmtI
+                        )
+                        begin := curSeqRes.matchBegin + 1
+                    }
                 }, 
-                ~stop
+                ~stop, ~frmData, ~stmtI
             )
         }
     }
 }
 
 and let exprIncludesVarUnorderedSeq = (
-    ~expr:array<int>, ~startIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, ~passedSeqIdxs:array<int>,
-    ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~stop:ref<bool>
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
+    ~passedSeqIdxs:array<int>, ~next:subSeqMatchRes=>unit, ~res:option<subSeqMatchRes>, ~stop:ref<bool>, 
+    ~frmData:MC.patternSearchData, ~stmtI:int
 ):unit => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         switch res {
             | None => Exn.raiseError("exprIncludesVarUnorderedSeq: res is None")
             | Some(res) => next({...res, matchEnd:startIdx-1})
         }
-    } else if (startIdx < expr->Array.length) {
+    } else if (startIdx <= maxIdx) {
         let i = ref(0)
         let maxI = childElems->Array.length - 1
         while (!stop.contents && i.contents <= maxI) {
             if (!(passedSeqIdxs->Array.includes(i.contents))) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
                 let begin = ref(startIdx)
-                let beginMax = expr->Array.length - curSeq.minLen
-                while (!stop.contents && begin.contents <= beginMax && begin.contents < curSeq.minConstMismatchIdx) {
+                let beginMax = maxIdx + 1 - curSeq.minLen
+                while (!stop.contents && begin.contents <= beginMax 
+                    && begin.contents < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)
+                ) {
                     let beginCopy = begin.contents
                     begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
-                    exprIncludesVarSeq(
-                        ~expr, ~startIdx=beginCopy, ~seq=curSeq, ~varTypes,
+                    exprIncludesVarSeqWithTarget(
+                        ~expr, ~startIdx=beginCopy, ~maxIdx, ~seq=curSeq, ~varTypes,
                         ~next = curSeqRes => {
-                            passedSeqIdxs->Array.push(i.contents)
-                            exprIncludesVarUnorderedSeq(
-                                ~expr, ~startIdx=curSeqRes.matchEnd+1, ~childElems, ~varTypes, ~passedSeqIdxs, ~next,
-                                ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
-                                ~stop
-                            )
-                            passedSeqIdxs->Array.pop->ignore
-                            begin := curSeqRes.matchBegin + 1
+                            if (curSeqRes.matchEnd <= maxIdx) {
+                                passedSeqIdxs->Array.push(i.contents)
+                                exprIncludesVarUnorderedSeq(
+                                    ~expr, ~startIdx=curSeqRes.matchEnd+1, ~maxIdx, 
+                                    ~childElems, ~varTypes, ~passedSeqIdxs, ~next,
+                                    ~res=switch res {|Some(_)=>res |None=>Some({matchBegin:beginCopy, matchEnd:-1})},
+                                    ~stop, ~frmData, ~stmtI
+                                )
+                                passedSeqIdxs->Array.pop->ignore
+                                begin := curSeqRes.matchBegin + 1
+                            }
                         },
-                        ~stop
+                        ~stop, ~frmData, ~stmtI
                     )
                 }
             }
@@ -298,12 +539,46 @@ and let exprIncludesVarUnorderedSeq = (
     }
 }
 
+and let exprIncludesVarOneOfSeq = (
+    ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>,
+    ~next:subSeqMatchRes=>unit, ~stop:ref<bool>, ~frmData:MC.patternSearchData, ~stmtI:int
+):unit => {
+    let i = ref(0)
+    let maxI = childElems->Array.length - 1
+    while (!stop.contents && i.contents <= maxI) {
+        let curSeq = childElems->Array.getUnsafe(i.contents)
+        let begin = ref(startIdx)
+        let beginMax = maxIdx + 1 - curSeq.minLen
+        while (!stop.contents && begin.contents <= beginMax 
+            && begin.contents < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)
+        ) {
+            let beginCopy = begin.contents
+            begin := beginMax + 1 // this ends the while loop unless begin is changed in the next()
+            exprIncludesVarSeqWithTarget(
+                ~expr, ~startIdx=beginCopy, ~maxIdx, ~seq=curSeq, ~varTypes,
+                ~next = curSeqRes => {
+                    if (curSeqRes.matchEnd <= maxIdx) {
+                        next(curSeqRes)
+                        begin := curSeqRes.matchBegin + 1
+                    }
+                },
+                ~stop, ~frmData, ~stmtI
+            )
+        }
+        i := i.contents + 1
+    }
+}
+
 let getMatchedIndices = (seq:symSeq):array<int> => {
     let indices = []
     let rec go = (seq:symSeq):unit => {
         switch seq.elems {
-            | Adjacent(syms) => syms->Array.forEach(sym => indices->Array.push(sym.matchedIdx))
-            | Ordered(childElems) | Unordered(childElems) => childElems->Array.forEach(go)
+            | Adjacent(syms) => syms->Array.forEach(sym => {
+                if (sym.matchedIdx >= 0) {
+                    indices->Array.push(sym.matchedIdx)
+                }
+            })
+            | Ordered(childElems) | Unordered(childElems) | OneOf(childElems) => childElems->Array.forEach(go)
         }
     }
     go(seq)
@@ -312,13 +587,15 @@ let getMatchedIndices = (seq:symSeq):array<int> => {
 }
 
 let exprIncludesSeq = (
-    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>
+    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>, ~frmData:MC.patternSearchData
 ):option<array<int>> => {
     let res = ref(None)
-    if (exprIncludesConstSeq(~expr, ~startIdx=0, ~seq, ~varTypes) >= 0) {
+    let maxIdx = expr->Array.length-1
+    let stmtI = getStmtIForNonSingleStmt(~target=Frm, ~frmData)
+    if ( 0 <= exprIncludesConstSeqWithTarget(~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes, ~frmData, ~stmtI) ) {
         let stop = ref(false)
-        exprIncludesVarSeq(
-            ~expr, ~startIdx=0, ~seq, ~varTypes, 
+        exprIncludesVarSeqWithTarget(
+            ~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes,
             ~next = _ => {
                 stop := true
                 switch res.contents {
@@ -326,7 +603,7 @@ let exprIncludesSeq = (
                     | Some(_) => Exn.raiseError("next() is called twice in exprIncludesSeq.")
                 }
             },
-            ~stop
+            ~stop, ~frmData, ~stmtI
         )
     }
     res.contents
@@ -344,31 +621,51 @@ let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
     }
 }
 
-let rec astToSymSeq = (ast:P.symSeq, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
-    let elems = astToSeqGrp(ast.elems, P.passFlagsFromParentToChild(flags, ast.flags), symMap)
+let rec astToSymSeq = (ast:P.symSeq, parentFlags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):symSeq => {
+    let flags = P.passFlagsFromParentToChild(parentFlags, ast.flags)
+    let target = switch flags.target {|None|Some(Frm)=>Frm |Some(Hyps)=>Hyps |Some(Asrt)=>Asrt}
+    let singleStmt = flags.singleStmt->Option.getOr(false)
+    let elems = astToSeqGrp(ast.elems, flags, target, singleStmt, symMap)
     let minLen = switch elems {
         | Adjacent(syms) => syms->Array.length
         | Ordered(symSeq) | Unordered(symSeq) => countMinLen(symSeq)
+        | OneOf(symSeq) => {
+            symSeq->Array.reduce(
+                symSeq[0]->Option.map(seq=>seq.minLen)->Option.getOr(0), 
+                (minLen,seq) => Math.Int.min(minLen,seq.minLen)
+            )
+        }
     }
-    { elems, minLen, minConstMismatchIdx: -1, }
+    { 
+        elems, 
+        minLen, 
+        minConstMismatchIdx: [], 
+        target,
+        singleStmt
+    }
 }
-and astToSeqGrp = (ast:P.seqGrp, flags:P.flags, symMap:Belt_HashMapString.t<constOrVar>):seqGrp => {
+and astToSeqGrp = (
+    ast:P.seqGrp, flags:P.flags, target:patternTarget, singleStmt:bool, symMap:Belt_HashMapString.t<constOrVar>
+):seqGrp => {
     switch ast {
         | Symbols(syms) => {
-            if (isAdj(flags)) {
+            if (isAdj(flags) || syms->Array.length == 1) {
                 Adjacent(syms->Array.map(makeSym(_,symMap)))
             } else {
                 Ordered(syms->Array.map(symStr => {
                     {
                         elems:Adjacent([makeSym(symStr,symMap)]),
                         minLen:1,
-                        minConstMismatchIdx:-1,
+                        minConstMismatchIdx:[],
+                        target,
+                        singleStmt,
                     }
                 }))
             }
         }
         | Ordered(syms) => Ordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
         | Unordered(syms) => Unordered(syms->Array.map(astToSymSeq(_, flags, symMap)))
+        | OneOf(syms) => OneOf(syms->Array.map(astToSymSeq(_, flags, symMap)))
     }
 }
 
@@ -382,7 +679,7 @@ let rec traverseAst = (
     onSeqGrp(seq.elems)
     switch seq.elems {
         | Symbols(syms) => syms->Array.forEach(onSym)
-        | Ordered(childSeq) | Unordered(childSeq) => {
+        | Ordered(childSeq) | Unordered(childSeq) | OneOf(childSeq) => {
             childSeq->Array.forEach(traverseAst(_, ~onSymSeq, ~onSeqGrp, ~onSym))
         }
     }
@@ -398,7 +695,7 @@ let rec traversePattern = (
     onSeqGrp(seq.elems)
     switch seq.elems {
         | Adjacent(syms) => syms->Array.forEach(onSym)
-        | Ordered(childSeq) | Unordered(childSeq) => {
+        | Ordered(childSeq) | Unordered(childSeq) | OneOf(childSeq) => {
             childSeq->Array.forEach(traversePattern(_, ~onSymSeq, ~onSeqGrp, ~onSym))
         }
     }
@@ -408,17 +705,20 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
     traversePattern(seq, ~onSymSeq=s=>allSeq->Array.push(s))
 }
 
-let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>):pattern => {
+let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>, capVars:ref<array<bool>>):pattern => {
     let res = {
-        target: switch ast.target {|Frm => Frm |Hyps => Hyps |Asrt => Asrt},
-        symSeq: astToSymSeq(ast.symSeq, {adj:None}, symMap),
-        allSeq: []
+        symSeq: astToSymSeq(ast.symSeq, ast.flags, symMap),
+        neg: ast.neg,
+        allSeq: [],
+        capVars,
     }
     collectAllSeq(res.symSeq, res.allSeq)
     res
 }
 
-let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<constOrVar>, string> => {
+let makeSymMap = (
+    ast:P.pattern, ctx:MC.mmContext, capVars:ref<array<bool>>
+):result<Belt_HashMapString.t<constOrVar>, string> => {
     let symMap = Belt_HashMapString.make(~hintSize=20)
     let errors:array<string> = []
     traverseAst(ast.symSeq, ~onSym=sym => {
@@ -432,6 +732,7 @@ let makeSymMap = (ast:P.pattern, ctx:MC.mmContext):result<Belt_HashMapString.t<c
                 if (!(symMap->Belt_HashMapString.has(sym))) {
                     symMap->Belt_HashMapString.set(sym, Var({
                         typ: ctx->MC.getTypeOfVarExn(ctx->MC.ctxSymToIntExn(sym)),
+                        capVars,
                         capVar: -1,
                         capVarIdx: -1,
                     }))
@@ -451,35 +752,44 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
     if (!(tok->String.startsWith("$"))) {
         errors->Array.push(`'${tok}' - all control tokens must start with '$'`)
     } else if (!(
-        tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.openParenthesis || tok == P.closeParenthesis
+        tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.operatorOneOf 
+        || tok == P.openParenthesis || tok == P.closeParenthesis
     )) {
         let flags = tok->String.substringToEnd(~start=tok->String.startsWith(P.openParenthesis)?2:1)
         if (flags->String.length > 0) {
-            let flagH = ref(false)
-            let flagA = ref(false)
-            let flagP = ref(false)
-            let flagM = ref(false)
+            let flagHyps = ref(false)
+            let flagHyp = ref(false)
+            let flagAsrt = ref(false)
+            let flagAdj = ref(false)
+            let flagNonAdj = ref(false)
+            let flagSingleStmt = ref(false)
+            let flagNegation = ref(false)
             for i in 0 to flags->String.length-1 {
                 let flag = flags->String.charAt(i)
-                if (flag == "h") {flagH := true}
-                else if (flag == "a") {flagA := true}
-                else if (flag == "+") {flagP := true}
-                else if (flag == "-") {flagM := true}
+                if (flag == P.flagHyps) {flagHyps := true}
+                else if (flag == P.flagHyp) {flagHyp := true}
+                else if (flag == P.flagAsrt) {flagAsrt := true}
+                else if (flag == P.flagAdj) {flagAdj := true}
+                else if (flag == P.flagNonAdj) {flagNonAdj := true}
+                else if (flag == P.flagSingleStmt) {flagSingleStmt := true}
+                else if (flag == P.flagNegation) {flagNegation := true}
                 else {
                     errors->Array.push(`'${tok}' - invalid flag '${flag}'`)
                 }
             }
-            if (flagH.contents && flagA.contents) {
-                errors->Array.push(`'${tok}' - flags 'h' and 'a' cannot be used together`)
+            if ((flagHyps.contents || flagHyp.contents) && flagAsrt.contents) {
+                errors->Array.push(
+                    `'${tok}' - flags '${P.flagHyps}', '${P.flagHyp}', and '${P.flagAsrt}' cannot be used together`
+                )
             }
-            if (flagP.contents && flagM.contents) {
-                errors->Array.push(`'${tok}' - flags '+' and '-' cannot be used together`)
+            if (flagAdj.contents && flagNonAdj.contents) {
+                errors->Array.push(`'${tok}' - flags '${P.flagAdj}' and '${P.flagNonAdj}' cannot be used together`)
             }
             if (
                 (tok->String.startsWith(P.openParenthesis) || tok->String.startsWith(P.closeParenthesis))
-                && (flagH.contents || flagA.contents)
+                && flagNegation.contents
             ) {
-                errors->Array.push(`'${tok}' - flags 'h' and 'a' cannot be used with parentheses`)
+                errors->Array.push(`'${tok}' - flag '${P.flagNegation}' cannot be used with parentheses`)
             }
         }
     }
@@ -573,11 +883,20 @@ let parsePattern = (
                                         ast, 
                                         ctx->Option.getExn(
                                             ~message="parsePattern: either symMap or ctx must be provided."
-                                        )
+                                        ),
+                                        ref([])
                                     )
                                 }
                             }
-                            symMap->Result.map(astToPattern(ast, _))
+                            symMap->Result.map(symMap => {
+                                let capVars = symMap->Belt_HashMapString.valuesToArray
+                                    ->Array.find(constOrVar => switch constOrVar {| Const(_)=>false | Var(_)=>true})
+                                    ->Option.mapOr(
+                                        ref([]), 
+                                        constOrVar => switch constOrVar {| Const(_)=>ref([]) | Var({capVars})=>capVars}
+                                    )
+                                astToPattern(ast, symMap, capVars)
+                            })
                         })
                         subpatterns->Array.reduce(Ok([]), (acc, subpatRes) => {
                             switch acc {
@@ -609,46 +928,34 @@ let makeEmptyMatchedIdxs = (numOfStmts:int):array<array<int>> => {
     Array.fromInitializer(~length=numOfStmts, _=>[])
 }
 
-let convertMatchedIndices = (frm:MC.frame, idxs:array<int>, target:patternTarget):array<array<int>> => {
+let convertMatchedIndices = (frm:MC.frame, idxs:array<int>):array<array<int>> => {
     let hyps = frm.hyps->Array.filter(hyp => hyp.typ == E)
     let numOfHyps = hyps->Array.length
     let res = makeEmptyMatchedIdxs(numOfHyps+1)
     let idxI = ref(0)
     let maxIdxI = idxs->Array.length-1
-    switch target {
-        | Frm | Hyps => {
-            let hypI = ref(0)
-            let maxHypI = numOfHyps-1
-            let hypLenSum = ref(0)
-            while (hypI.contents <= maxHypI) {
-                let curHypLen = (hyps->Array.getUnsafe(hypI.contents)).expr->Array.length
-                let maxIdx = hypLenSum.contents + curHypLen - 1
-                let curResArr = res->Array.getUnsafe(hypI.contents)
-                let curIdx = ref(idxs[idxI.contents])
-                while (curIdx.contents->Option.mapOr(false, curIdx => curIdx <= maxIdx) && idxI.contents <= maxIdxI) {
-                    curResArr->Array.push(curIdx.contents->Option.getExn - hypLenSum.contents)
-                    idxI := idxI.contents + 1
-                    curIdx := idxs[idxI.contents]
-                }
-                hypLenSum := hypLenSum.contents + curHypLen
-                hypI := hypI.contents + 1
-            }
-            let curResArr = res->Array.getUnsafe(hypI.contents)
-            while (idxI.contents <= maxIdxI) {
-                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum.contents)
-                idxI := idxI.contents + 1
-            }
-            res
+    let hypI = ref(0)
+    let maxHypI = numOfHyps-1
+    let hypLenSum = ref(0)
+    while (hypI.contents <= maxHypI) {
+        let curHypLen = (hyps->Array.getUnsafe(hypI.contents)).expr->Array.length
+        let maxIdx = hypLenSum.contents + curHypLen - 1
+        let curResArr = res->Array.getUnsafe(hypI.contents)
+        let curIdx = ref(idxs[idxI.contents])
+        while (curIdx.contents->Option.mapOr(false, curIdx => curIdx <= maxIdx) && idxI.contents <= maxIdxI) {
+            curResArr->Array.push(curIdx.contents->Option.getExn - hypLenSum.contents)
+            idxI := idxI.contents + 1
+            curIdx := idxs[idxI.contents]
         }
-        | Asrt => {
-            let curResArr = res->Array.getUnsafe(numOfHyps)
-            while (idxI.contents <= maxIdxI) {
-                curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents))
-                idxI := idxI.contents + 1
-            }
-            res
-        }
+        hypLenSum := hypLenSum.contents + curHypLen
+        hypI := hypI.contents + 1
     }
+    let curResArr = res->Array.getUnsafe(hypI.contents)
+    while (idxI.contents <= maxIdxI) {
+        curResArr->Array.push(idxs->Array.getUnsafe(idxI.contents) - hypLenSum.contents)
+        idxI := idxI.contents + 1
+    }
+    res
 }
 
 let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
@@ -664,15 +971,28 @@ let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
 }
 
 let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int>>> => {
-    let expr = switch pattern.target {
-        | Frm => MC.frmGetAllHypsAsrt(frm)
-        | Hyps => MC.frmGetAllHyps(frm)
-        | Asrt => frm.asrt
-    }
+    let frmData = MC.frmGetPatternSearchData(frm)
+    let expr = frmData.allHypsAsrt
     let exprLen = expr->Array.length
-    pattern.allSeq->Array.forEach(seq => seq.minConstMismatchIdx = exprLen)
-    exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes)
-        ->Option.map(convertMatchedIndices(frm, _, pattern.target))
+    pattern.allSeq->Array.forEach(seq => {
+        let maxStmtI = getStmtIForNonSingleStmt(~target=Frm, ~frmData)
+        while (seq.minConstMismatchIdx->Array.length <= maxStmtI) {
+            seq.minConstMismatchIdx->Array.push(exprLen)
+        }
+        for i in 0 to maxStmtI {
+            seq.minConstMismatchIdx[i] = exprLen
+        }
+    })
+    if (pattern.capVars.contents->Array.length < frm.varTypes->Array.length) {
+        pattern.capVars := Array.make(~length=frm.varTypes->Array.length, false)
+    }
+    switch (
+        exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
+            ->Option.map(convertMatchedIndices(frm, _))
+    ) {
+        | None => if (pattern.neg) {Some(convertMatchedIndices(frm, []))} else {None}
+        | Some(idxs) => if (pattern.neg) {None} else {Some(idxs)}
+    }
 }
 
 let frameMatchesPatterns = (frm:MC.frame, patterns:array<pattern>):matchResult => {
