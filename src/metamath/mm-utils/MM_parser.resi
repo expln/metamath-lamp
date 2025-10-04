@@ -36,3 +36,4 @@ let traverseAst: ('c, mmAstNode,
 let stmtToStr: mmAstNode => string
 let stmtToStrRec: mmAstNode => array<string>
 let astToStr: mmAstNode => string
+let isWhitespace: string=>bool

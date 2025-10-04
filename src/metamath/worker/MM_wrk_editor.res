@@ -1974,6 +1974,15 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
     }
 }
 
+let beginsWithWhiteSpace = (str:string):bool => {
+    str->String.length != 0 && str->String.charAt(0)->isWhitespace
+}
+
+let endsWithWhiteSpace = (str:string):bool => {
+    let strLen = str->String.length
+    strLen != 0 && str->String.charAt(strLen-1)->isWhitespace
+}
+
 let proofToText = (
     ~wrkCtx:mmContext,
     ~typeOrderInDisj:Belt_HashMapInt.t<int>,
@@ -2014,7 +2023,10 @@ let proofToText = (
                 }
             })
             if (!descrIsEmpty) {
-                result->Array.push("$( " ++ descr ++ " $)")
+                let leftWhiteSpace = beginsWithWhiteSpace(descr) ? "" : " "
+                let descr = leftWhiteSpace ++ descr
+                let rightWhiteSpace = endsWithWhiteSpace(descr) ? "" : " "
+                result->Array.push("$(" ++ descr ++ rightWhiteSpace ++ "$)")
             }
             result->Array.push(stmt.label)
             result->Array.push(`    $p ${stmt.cont->contToStr}`)
