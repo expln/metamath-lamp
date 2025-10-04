@@ -80,32 +80,53 @@ let parseMmFile = (
         }
     }
 
+    /*  
+      The result doesn't include tillToken, but the global idx is set to point to the character right after tillToken.
+      There must be a white space or end of file after tillToken (therefore it is "token" and not just "text").
+    */
     let readAllTextTill = (tillToken:string):option<string> => {
         let result = ref(None)
+        let resultIsReady = ref(false)
         let beginIdx = idx.contents
-        while (result.contents->Belt_Option.isNone) {
+        while (!resultIsReady.contents) {
             let foundIdx = text->String.indexOfFrom(tillToken, idx.contents)
             if (foundIdx < 0) {
-                result.contents = Some(None)
+                resultIsReady := true
             } else {
                 let nextIdx = foundIdx + tillToken->String.length
                 setIdx(nextIdx)
                 if (endOfFile.contents || ch.contents->isWhitespace) {
-                    result.contents = Some(Some(text->String.substring(~start=beginIdx, ~end=foundIdx)))
+                    result := Some(text->String.substring(~start=beginIdx, ~end=foundIdx))
+                    resultIsReady := true
                 } else {
                     setIdx(foundIdx+1)
                 }
             }
         }
-        result.contents->Belt_Option.getExn
+        result.contents
     }
 
     let textAt = textAt(text, _)
 
+    let isCommentBegin = (lastToken:string):bool => {
+        lastToken == "$(" && !endOfFile.contents && ch.contents->isWhitespace
+    }
+
     let parseComment = (~beginIdx:int):mmAstNode => {
+        //the "begin of comment" token must be surrounded with white spaces
+        readNextChar()->ignore
         switch readAllTextTill("$)") {
             | None => raise(MmException({msg:`A comment is not closed at ${textAt(beginIdx)}`}))
-            | Some(commentText) => {begin:beginIdx, end:idx.contents-1, stmt:Comment({text:commentText})}
+            | Some(commentText) => {
+                //the "end of comment" token must be surrounded with white spaces.
+                //commentText will not end with " " only if the comment is empty (todo: add a test for this case)
+                let commentLen = commentText->String.length
+                let lastCommentChar = commentText->String.substringToEnd(~start=commentLen-1)
+                let commentText = lastCommentChar->isWhitespace 
+                    ? commentText->String.substring(~start=0, ~end=commentLen-1)
+                    : commentText
+                {begin:beginIdx, end:idx.contents-1, stmt:Comment({text:commentText})}
+            }
         }
     }
 
@@ -119,7 +140,7 @@ let parseMmFile = (
             text->String.substring(~start=beginIdx, ~end=idx.contents)
         } else {
             let nextToken = ref(readNextToken(~skipComments=false))
-            while (nextToken.contents == "$(") {
+            while (nextToken.contents->isCommentBegin) {
                 parseComment(~beginIdx=idx.contents)->ignore
                 nextToken.contents = readNextToken(~skipComments=false)
             }
@@ -127,23 +148,28 @@ let parseMmFile = (
         }
     }
 
+    /*
+     The result doesn't include tillToken.
+    */
     let readAllTokensTill = (tillToken:string):option<array<string>> => {
         let result = ref(None)
+        let resultIsReady = ref(false)
         let tokens = []
-        while (result.contents->Belt_Option.isNone) {
-            let token = readNextToken(())
+        while (!resultIsReady.contents) {
+            let token = readNextToken()
             if (token == "") {
-                result.contents = Some(None)
-            } else if (token == "$(") {
-                //skipping comments inside of statements
+                resultIsReady := true
+            } else if (token->isCommentBegin) {
+                //skipping comments inside statements
                 parseComment(~beginIdx=idx.contents)->ignore
             } else if (token == tillToken) {
-                result.contents = Some(Some(tokens))
+                result.contents = Some(tokens)
+                resultIsReady := true
             } else {
                 tokens->Array.push(token)
             }
         }
-        result.contents->Belt_Option.getExn
+        result.contents
     }
 
     let parseConst = (~beginIdx:int):mmAstNode => {
@@ -270,7 +296,7 @@ let parseMmFile = (
                 result.contents = Some({begin:beginIdx, end:idx.contents-1, stmt:Block({level, statements:statements})})
             } else if (token == "${") {
                 pushStmt(parseBlock(~beginIdx=tokenIdx, ~level=level+1))
-            } else if (token == "$(") {
+            } else if (token->isCommentBegin) {
                 let comment = parseComment(~beginIdx=tokenIdx)
                 if (!skipComments) {
                     pushStmt(comment)
