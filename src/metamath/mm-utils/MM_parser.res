@@ -81,8 +81,8 @@ let parseMmFile = (
     }
 
     /*  
-      The result doesn't include tillToken, but the global idx is set to point to the character right after tillToken.
-      There must be a white space or end of file after tillToken (therefore it is "token" and not just "text").
+      The result doesn't include tillToken, but the global idx points to the character right after tillToken.
+      There must be a white space or end of file after tillToken (therefore it is a "token" and not just a "text").
     */
     let readAllTextTill = (tillToken:string):option<string> => {
         let result = ref(None)
@@ -108,29 +108,17 @@ let parseMmFile = (
 
     let textAt = textAt(text, _)
 
-    let isCommentBegin = (lastToken:string):bool => {
-        lastToken == "$(" && !endOfFile.contents && ch.contents->isWhitespace
-    }
-
     let parseComment = (~beginIdx:int):mmAstNode => {
-        //the "begin of comment" token must be surrounded with white spaces
-        readNextChar()->ignore
         switch readAllTextTill("$)") {
             | None => raise(MmException({msg:`A comment is not closed at ${textAt(beginIdx)}`}))
-            | Some(commentText) => {
-                //the "end of comment" token must be surrounded with white spaces.
-                //commentText will not end with " " only if the comment is empty (todo: add a test for this case)
-                let commentLen = commentText->String.length
-                let lastCommentChar = commentText->String.substringToEnd(~start=commentLen-1)
-                let commentText = lastCommentChar->isWhitespace 
-                    ? commentText->String.substring(~start=0, ~end=commentLen-1)
-                    : commentText
-                {begin:beginIdx, end:idx.contents-1, stmt:Comment({text:commentText})}
-            }
+            | Some(commentText) => {begin:beginIdx, end:idx.contents-1, stmt:Comment({text:commentText})}
         }
     }
 
-    let rec readNextToken = (~skipComments=true):string => {
+    /*
+     At the end the global idx points to the character right after the token (it is either a white space or end of file)
+    */
+    let rec readNextToken = (~skipComments:bool):string => {
         if (!skipComments) {
             skipWhitespaces()
             let beginIdx = idx.contents
@@ -140,7 +128,7 @@ let parseMmFile = (
             text->String.substring(~start=beginIdx, ~end=idx.contents)
         } else {
             let nextToken = ref(readNextToken(~skipComments=false))
-            while (nextToken.contents->isCommentBegin) {
+            while (nextToken.contents == "$(") {
                 parseComment(~beginIdx=idx.contents)->ignore
                 nextToken.contents = readNextToken(~skipComments=false)
             }
@@ -150,18 +138,16 @@ let parseMmFile = (
 
     /*
      The result doesn't include tillToken.
+     At the end the global idx points to the character right after the token.
     */
     let readAllTokensTill = (tillToken:string):option<array<string>> => {
         let result = ref(None)
         let resultIsReady = ref(false)
         let tokens = []
         while (!resultIsReady.contents) {
-            let token = readNextToken()
+            let token = readNextToken(~skipComments=true)
             if (token == "") {
                 resultIsReady := true
-            } else if (token->isCommentBegin) {
-                //skipping comments inside statements
-                parseComment(~beginIdx=idx.contents)->ignore
             } else if (token == tillToken) {
                 result.contents = Some(tokens)
                 resultIsReady := true
@@ -218,7 +204,7 @@ let parseMmFile = (
         switch readAllTokensTill("$=") {
             | None => raise(MmException({msg:`A provable statement is not closed[1] at ${textAt(beginIdx)}`}))
             | Some(expression) => {
-                let firstProofToken = readNextToken(())
+                let firstProofToken = readNextToken(~skipComments=true)
                 if (firstProofToken == "(") {
                     switch readAllTokensTill(")") {
                         | None => raise(MmException({msg:`A provable statement is not closed[2] at ${textAt(beginIdx)}`}))
@@ -296,7 +282,7 @@ let parseMmFile = (
                 result.contents = Some({begin:beginIdx, end:idx.contents-1, stmt:Block({level, statements:statements})})
             } else if (token == "${") {
                 pushStmt(parseBlock(~beginIdx=tokenIdx, ~level=level+1))
-            } else if (token->isCommentBegin) {
+            } else if (token == "$(") {
                 let comment = parseComment(~beginIdx=tokenIdx)
                 if (!skipComments) {
                     pushStmt(comment)
@@ -312,7 +298,7 @@ let parseMmFile = (
                 pushStmt(parseDisj(~beginIdx=tokenIdx))
             } else {
                 let label = token
-                let token2 = readNextToken(())
+                let token2 = readNextToken(~skipComments=true)
                 let token2Idx = idx.contents - token2->String.length
                 if (token2 == "") {
                     raise(MmException({msg:`Unexpected end of file at ${textAt(tokenIdx)}`}))
