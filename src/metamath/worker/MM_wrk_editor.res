@@ -1983,6 +1983,13 @@ let endsWithWhiteSpace = (str:string):bool => {
     strLen != 0 && str->String.charAt(strLen-1)->isWhitespace
 }
 
+let makeCommentFromDescription = (descr:string):string => {
+    let leftWhiteSpace = beginsWithWhiteSpace(descr) ? "" : " "
+    let descr = leftWhiteSpace ++ descr
+    let rightWhiteSpace = endsWithWhiteSpace(descr) ? "" : " "
+    "$(" ++ descr ++ rightWhiteSpace ++ "$)"
+}
+
 let proofToText = (
     ~wrkCtx:mmContext,
     ~typeOrderInDisj:Belt_HashMapInt.t<int>,
@@ -1995,7 +2002,7 @@ let proofToText = (
     switch proof {
         | Compressed({labels, compressedProofBlock}) => {
             let blk = splitIntoChunks(compressedProofBlock, 50)->Array.joinUnsafe(" ")
-            let descrIsEmpty = descr->String.trim->String.length == 0
+            let descrIsEmpty = descr->String.length == 0
             let blockIsRequired = newHyps->Array.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
             let varsArrStr = newHyps->Array.filter(hyp => hyp.typ == F)
@@ -2023,10 +2030,7 @@ let proofToText = (
                 }
             })
             if (!descrIsEmpty) {
-                let leftWhiteSpace = beginsWithWhiteSpace(descr) ? "" : " "
-                let descr = leftWhiteSpace ++ descr
-                let rightWhiteSpace = endsWithWhiteSpace(descr) ? "" : " "
-                result->Array.push("$(" ++ descr ++ rightWhiteSpace ++ "$)")
+                result->Array.push(makeCommentFromDescription(descr))
             }
             result->Array.push(stmt.label)
             result->Array.push(`    $p ${stmt.cont->contToStr}`)
