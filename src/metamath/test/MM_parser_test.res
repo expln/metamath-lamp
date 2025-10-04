@@ -1,6 +1,37 @@
 open Expln_test
 open MM_parser
 
+let collectComments = (ast:mmAstNode):Belt_HashMapString.t<string> => {
+    let lastComment = ref("########################")
+    let collectedComments = Belt_HashMapString.make(~hintSize=20)
+    traverseAst(
+        (),
+        ast,
+        ~process = (_, node) => {
+            @warning("-8")
+            switch node {
+                | {stmt:Comment({text})} => lastComment := text
+                | {stmt:Axiom({label})} => {
+                    collectedComments->Belt_HashMapString.set(label, lastComment.contents)
+                    lastComment := "########################"
+                }
+                | _ => ()
+            }
+            None
+        }
+    )->ignore
+    collectedComments
+}
+
+let assertCommentEq = (allComments:Belt_HashMapString.t<string>, testCaseName:string, expectedComment:string) => {
+    assertEqMsg(
+        allComments->Belt_HashMapString.get(testCaseName)
+            ->Option.getExn(~message=`No comment found for the test case ${testCaseName}.`),
+        expectedComment,
+        testCaseName
+    )
+}
+
 describe("parseMmFile", _ => {
     it("parses a valid mm file", _ => {
         //given
@@ -41,5 +72,33 @@ describe("parseMmFile", _ => {
             //assertEq(actual[i], expected[i])
         //}
         assertEq(actual, expected)
+    })
+
+    it("does not modify comments", _ => {
+        //given
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/test_comment_parser._mm")
+            ->String.replaceAll("TAB", "\t")
+            ->String.replaceAll("NEW_LINE", "\n")
+            ->String.replaceAll("RN", "\r\n")
+
+        //when
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+
+        //then
+        let allComments = collectComments(ast)
+        assertCommentEq(allComments, "empty_comment_1_space", " ")
+        assertCommentEq(allComments, "empty_comment_2_spaces", "  ")
+        assertCommentEq(allComments, "empty_comment_3_spaces", "   ")
+        assertCommentEq(allComments, "empty_comment_1_tab", "\t")
+        assertCommentEq(allComments, "empty_comment_2_tabs", "\t\t")
+        assertCommentEq(allComments, "empty_comment_3_tabs", "\t\t\t")
+        assertCommentEq(allComments, "empty_comment_1_new_line", "\n")
+        assertCommentEq(allComments, "empty_comment_2_new_lines", "\n\n")
+        assertCommentEq(allComments, "empty_comment_3_new_lines", "\n\n\n")
+        assertCommentEq(allComments, "empty_comment_1_rn", "\r\n")
+        assertCommentEq(allComments, "empty_comment_2_rn", "\r\n\r\n")
+        assertCommentEq(allComments, "empty_comment_3_rn", "\r\n\r\n\r\n")
+        assertCommentEq(allComments, "non_empty_comment_1_word", " abc ")
+        assertCommentEq(allComments, "non_empty_comment_2_words", " abc def ")
     })
 })

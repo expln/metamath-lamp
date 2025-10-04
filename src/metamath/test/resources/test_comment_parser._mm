@@ -1,0 +1,43 @@
+$c 0 1 $.
+
+$( $)
+empty_comment_1_space $a 0 1 $.
+
+$(  $)
+empty_comment_2_spaces $a 0 1 $.
+
+$(   $)
+empty_comment_3_spaces $a 0 1 $.
+
+$(TAB$)
+empty_comment_1_tab $a 0 1 $.
+
+$(TABTAB$)
+empty_comment_2_tabs $a 0 1 $.
+
+$(TABTABTAB$)
+empty_comment_3_tabs $a 0 1 $.
+
+$(NEW_LINE$)
+empty_comment_1_new_line $a 0 1 $.
+
+$(NEW_LINENEW_LINE$)
+empty_comment_2_new_lines $a 0 1 $.
+
+$(NEW_LINENEW_LINENEW_LINE$)
+empty_comment_3_new_lines $a 0 1 $.
+
+$(RN$)
+empty_comment_1_rn $a 0 1 $.
+
+$(RNRN$)
+empty_comment_2_rn $a 0 1 $.
+
+$(RNRNRN$)
+empty_comment_3_rn $a 0 1 $.
+
+$( abc $)
+non_empty_comment_1_word $a 0 1 $.
+
+$( abc def $)
+non_empty_comment_2_words $a 0 1 $.
