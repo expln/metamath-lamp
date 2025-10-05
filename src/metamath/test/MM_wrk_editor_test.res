@@ -2466,3 +2466,36 @@ describe("moveCheckedBookmarkedStmts", _ => {
         )
     })
 })
+
+describe("makeCommentFromDescription", () => {
+    it("left none, right none", () => {
+        assertEq(makeCommentFromDescription("abc"), "$( abc $)")
+    })
+    it("left none, right space", () => {
+        assertEq(makeCommentFromDescription("abc "), "$( abc $)")
+    })
+    it("left none, right tab", () => {
+        assertEq(makeCommentFromDescription("abc\t"), "$( abc\t$)")
+    })
+    it("left none, right new line", () => {
+        assertEq(makeCommentFromDescription("abc\n"), "$( abc\n$)")
+    })
+    it("left space, right none", () => {
+        assertEq(makeCommentFromDescription(" abc"), "$( abc $)")
+    })
+    it("left tab, right none", () => {
+        assertEq(makeCommentFromDescription("\tabc"), "$(\tabc $)")
+    })
+    it("left new line, right none", () => {
+        assertEq(makeCommentFromDescription("\nabc"), "$(\nabc $)")
+    })
+    it("left space, right space", () => {
+        assertEq(makeCommentFromDescription(" abc"), "$( abc $)")
+    })
+    it("left tab, right tab", () => {
+        assertEq(makeCommentFromDescription("\tabc\t"), "$(\tabc\t$)")
+    })
+    it("left new line, right new line", () => {
+        assertEq(makeCommentFromDescription("\nabc\n"), "$(\nabc\n$)")
+    })
+})

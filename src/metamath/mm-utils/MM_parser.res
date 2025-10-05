@@ -80,24 +80,30 @@ let parseMmFile = (
         }
     }
 
+    /*  
+      The result doesn't include tillToken, but the global idx points to the character right after tillToken.
+      There must be a white space or end of file after tillToken (therefore it is a "token" and not just a "text").
+    */
     let readAllTextTill = (tillToken:string):option<string> => {
         let result = ref(None)
+        let resultIsReady = ref(false)
         let beginIdx = idx.contents
-        while (result.contents->Belt_Option.isNone) {
+        while (!resultIsReady.contents) {
             let foundIdx = text->String.indexOfFrom(tillToken, idx.contents)
             if (foundIdx < 0) {
-                result.contents = Some(None)
+                resultIsReady := true
             } else {
                 let nextIdx = foundIdx + tillToken->String.length
                 setIdx(nextIdx)
                 if (endOfFile.contents || ch.contents->isWhitespace) {
-                    result.contents = Some(Some(text->String.substring(~start=beginIdx, ~end=foundIdx)))
+                    result := Some(text->String.substring(~start=beginIdx, ~end=foundIdx))
+                    resultIsReady := true
                 } else {
                     setIdx(foundIdx+1)
                 }
             }
         }
-        result.contents->Belt_Option.getExn
+        result.contents
     }
 
     let textAt = textAt(text, _)
@@ -109,7 +115,10 @@ let parseMmFile = (
         }
     }
 
-    let rec readNextToken = (~skipComments=true):string => {
+    /*
+     At the end the global idx points to the character right after the token (it is either a white space or end of file)
+    */
+    let rec readNextToken = (~skipComments:bool):string => {
         if (!skipComments) {
             skipWhitespaces()
             let beginIdx = idx.contents
@@ -127,23 +136,26 @@ let parseMmFile = (
         }
     }
 
+    /*
+     The result doesn't include tillToken.
+     At the end the global idx points to the character right after the token.
+    */
     let readAllTokensTill = (tillToken:string):option<array<string>> => {
         let result = ref(None)
+        let resultIsReady = ref(false)
         let tokens = []
-        while (result.contents->Belt_Option.isNone) {
-            let token = readNextToken(())
+        while (!resultIsReady.contents) {
+            let token = readNextToken(~skipComments=true)
             if (token == "") {
-                result.contents = Some(None)
-            } else if (token == "$(") {
-                //skipping comments inside of statements
-                parseComment(~beginIdx=idx.contents)->ignore
+                resultIsReady := true
             } else if (token == tillToken) {
-                result.contents = Some(Some(tokens))
+                result.contents = Some(tokens)
+                resultIsReady := true
             } else {
                 tokens->Array.push(token)
             }
         }
-        result.contents->Belt_Option.getExn
+        result.contents
     }
 
     let parseConst = (~beginIdx:int):mmAstNode => {
@@ -192,7 +204,7 @@ let parseMmFile = (
         switch readAllTokensTill("$=") {
             | None => raise(MmException({msg:`A provable statement is not closed[1] at ${textAt(beginIdx)}`}))
             | Some(expression) => {
-                let firstProofToken = readNextToken(())
+                let firstProofToken = readNextToken(~skipComments=true)
                 if (firstProofToken == "(") {
                     switch readAllTokensTill(")") {
                         | None => raise(MmException({msg:`A provable statement is not closed[2] at ${textAt(beginIdx)}`}))
@@ -286,7 +298,7 @@ let parseMmFile = (
                 pushStmt(parseDisj(~beginIdx=tokenIdx))
             } else {
                 let label = token
-                let token2 = readNextToken(())
+                let token2 = readNextToken(~skipComments=true)
                 let token2Idx = idx.contents - token2->String.length
                 if (token2 == "") {
                     raise(MmException({msg:`Unexpected end of file at ${textAt(tokenIdx)}`}))

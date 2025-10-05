@@ -687,10 +687,11 @@ let make = (
     }
 
     let actCancelEditDescr = (newText):unit => {
-        let textOld = state.descr->String.trim
+        let textOldUntrimed = state.descr
+        let textOld = textOldUntrimed->String.trim
         let textNew = newText->String.trim
         if (textOld == textNew || textNew == "") {
-            setState(completeDescrEditMode(_,textOld))
+            setState(completeDescrEditMode(_,textOldUntrimed))
         } else {
             openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                 updateModal(modalRef, modalId, () => {
@@ -699,7 +700,7 @@ let make = (
                         contNew={<pre>{React.string(textNew)}</pre>}
                         onDiscard={() => {
                             closeModal(modalRef, modalId)
-                            setState(completeDescrEditMode(_,textOld))
+                            setState(completeDescrEditMode(_,textOldUntrimed))
                         }}
                         onSave={() => {
                             closeModal(modalRef, modalId)

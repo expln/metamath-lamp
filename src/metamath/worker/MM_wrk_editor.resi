@@ -284,3 +284,7 @@ let textToSyntaxTree: (
 let recalcWrkColors: editorState => editorState
 
 let reorderSteps: editorState => editorState
+
+//FOR TESTING
+
+let makeCommentFromDescription: string=>string
