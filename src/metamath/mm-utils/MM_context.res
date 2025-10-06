@@ -5,19 +5,43 @@ open Common
 
 type expr = array<int>
 
+let getSavedHash: array<'a> => option<int> = %raw(`
+    arr => arr._hash_
+`)
+
+let saveHash: (array<'a>, int) => int = %raw(`
+    (arr, hash) => {
+        arr._hash_ = hash;
+        return hash;
+    }
+`)
+
 let exprEq: (expr,expr) => bool = (a,b) => {
-    let len1 = a->Array.length
-    let len2 = b->Array.length
-    if (len1 != len2) {
+    let hashesNotEq = switch getSavedHash(a) {
+        | None => false
+        | Some(aHash) => {
+            switch getSavedHash(b) {
+                | None => false
+                | Some(bHash) => aHash != bHash
+            }
+        }
+    }
+    if (hashesNotEq) {
         false
     } else {
-        let eq = ref(true)
-        let i = ref(0)
-        while (eq.contents && i.contents < len1) {
-            eq.contents = a->Array.getUnsafe(i.contents) == b->Array.getUnsafe(i.contents)
-            i.contents = i.contents + 1
+        let len1 = a->Array.length
+        let len2 = b->Array.length
+        if (len1 != len2) {
+            false
+        } else {
+            let eq = ref(true)
+            let i = ref(0)
+            while (eq.contents && i.contents < len1) {
+                eq.contents = a->Array.getUnsafe(i.contents) == b->Array.getUnsafe(i.contents)
+                i.contents = i.contents + 1
+            }
+            eq.contents
         }
-        eq.contents
     }
 }
 
@@ -45,7 +69,13 @@ module ExprCmp = Belt.Id.MakeComparableU({
 
 module ExprHash = Belt.Id.MakeHashableU({
     type t = expr
-    let hash = Expln_utils_common.hashArrInt
+    let hash = expr => {
+        switch getSavedHash(expr) {
+            | Some(hash) => hash
+            | None => Expln_utils_common.hashArrInt(expr)->saveHash(expr, _)
+        }
+        
+    }
     let eq = exprEq
 })
 
