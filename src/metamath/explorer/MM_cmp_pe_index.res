@@ -66,6 +66,8 @@ let make = React.memoCustomCompareProps(({
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (dependsOnFilter, setDependsOnFilter) = React.useState(() => initDependsOnFilter)
     let (dependsOnTranFilter, setDependsOnTranFilter) = React.useState(() => false)
+    let (referencedByFilter, setReferencedByFilter) = React.useState(() => "")
+    let (referencedByTranFilter, setReferencedByTranFilter) = React.useState(() => false)
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (descrFilterStr, setDescrFilterStr) = React.useState(() => "")
@@ -95,6 +97,8 @@ let make = React.memoCustomCompareProps(({
         setLabelFilter(_ => "")
         setDependsOnFilter(_ => "")
         setDependsOnTranFilter(_ => false)
+        setReferencedByFilter(_ => "")
+        setReferencedByTranFilter(_ => false)
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
         setDescrFilterStr(_ => "")
@@ -143,6 +147,50 @@ let make = React.memoCustomCompareProps(({
             })
             res
         }
+    }
+
+    let getReferencedBy = (~ctx:mmContext, ~rootLabels:array<string>, ~transitive:bool):Belt_HashSetString.t => {
+        let res = Belt_HashSetString.make(~hintSize=100)
+        let queuedLabels = Belt_HashSetString.fromArray(rootLabels)
+        let labelsToProcess = Belt_MutableQueue.fromArray(queuedLabels->Belt_HashSetString.toArray)
+        while (labelsToProcess->Belt_MutableQueue.size > 0) {
+            switch ctx->getFrame(labelsToProcess->Belt_MutableQueue.popExn) {
+                | None => ()
+                | Some(frame) => {
+                    switch frame.proof {
+                        | None => ()
+                        | Some(Uncompressed({labels:parentLabels})) | Some(Compressed({labels:parentLabels})) => {
+                            parentLabels->Array.forEach(parentLabel => {
+                                res->Belt_HashSetString.add(parentLabel)
+                                if (transitive && !(queuedLabels->Belt_HashSetString.has(parentLabel))) {
+                                    labelsToProcess->Belt_MutableQueue.add(parentLabel)
+                                    queuedLabels->Belt_HashSetString.add(parentLabel)
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+        }
+        res
+    }
+
+    let filterByReferencedBy = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
+        let referencedBy:array<string> = referencedByFilter->Common.getSpaceSeparatedValuesAsArray
+        if (referencedBy->Array.length == 0 || frames->Array.length == 0) {
+            frames
+        } else {
+            let resLabels = getReferencedBy(
+                ~ctx=preCtxData.ctxV.val.full,
+                ~rootLabels=referencedBy,
+                ~transitive=referencedByTranFilter
+            )
+            frames->Array.filter(((frame, _)) => resLabels->Belt_HashSetString.has(frame.label))
+        }
+    }
+
+    let filterByNonWrk = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
+        frames->filterByDescr->filterByDependsOn->filterByReferencedBy
     }
 
     let mapToLabel = (frames:array<(frame,option<matchedIndices>)>):array<(string,option<matchedIndices>)> => {
@@ -223,8 +271,7 @@ let make = React.memoCustomCompareProps(({
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
                             )
-                            ->filterByDescr
-                            ->filterByDependsOn
+                            ->filterByNonWrk
                             ->Array.toSorted(resultComparator)
                             ->mapToLabel
                         })
@@ -271,8 +318,7 @@ let make = React.memoCustomCompareProps(({
                                                     ->Option.getExn(~message="Error MM_cmp_pe_index.actApplyFilters[3]")
                                             )
                                         })
-                                        ->filterByDescr
-                                        ->filterByDependsOn
+                                        ->filterByNonWrk
                                         ->Array.toSorted(resultComparator)
                                         ->mapToLabel
                                 })
@@ -376,6 +422,14 @@ let make = React.memoCustomCompareProps(({
         setDependsOnTranFilter(prev => !prev)
     }
 
+    let actReferencedByFilterUpdated = newReferencedByFilter => {
+        setReferencedByFilter(_ => newReferencedByFilter)
+    }
+
+    let actToggleReferencedByTranFilter = () => {
+        setReferencedByTranFilter(prev => !prev)
+    }
+
     let actPatternFilterStrUpdated = newPatternFilterStr => {
         setPatternFilterStr(_ => newPatternFilterStr)
     }
@@ -397,13 +451,19 @@ let make = React.memoCustomCompareProps(({
     }
 
     let (isFirstRender, setIsFirstRender) = React.useState(() => true)
-    React.useEffect7(() => {
-        setIsFirstRender(_ => false)
-        if (!isFirstRender) {
-            actApplyFilters()
-        }
-        None
-    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter, dependsOnTranFilter, sorting))
+    useEffect8(
+        () => {
+            setIsFirstRender(_ => false)
+            if (!isFirstRender) {
+                actApplyFilters()
+            }
+            None
+        }, 
+        (
+            isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter, 
+            dependsOnTranFilter, referencedByTranFilter, sorting
+        )
+    )
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -540,6 +600,30 @@ let make = React.memoCustomCompareProps(({
                             checked=dependsOnTranFilter
                             onChange={_ => {
                                 actToggleDependsOnTranFilter()
+                            }}
+                        />
+                    }
+                    label="transitively"
+                />
+            </Row>
+    }
+
+    let rndReferencedByFilter = () => {
+            <Row style=ReactDOM.Style.make(~border="1px solid lightgray", ~borderRadius="5px", ())>
+                <TextField 
+                    label="Referenced by"
+                    size=#small
+                    style=ReactDOM.Style.make(~width="200px", ())
+                    value=referencedByFilter
+                    onChange=evt2str(actReferencedByFilterUpdated)
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
+                />
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked=referencedByTranFilter
+                            onChange={_ => {
+                                actToggleReferencedByTranFilter()
                             }}
                         />
                     }
@@ -701,6 +785,7 @@ let make = React.memoCustomCompareProps(({
                 {rndDeprFilter()}
                 {rndTranDeprFilter()}
                 {rndDependsOnFilter()}
+                {rndReferencedByFilter()}
             </Row>
             {
                 if (sorting.sortBys->Array.length > 0) {

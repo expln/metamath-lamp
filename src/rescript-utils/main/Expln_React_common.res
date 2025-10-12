@@ -63,3 +63,9 @@ let evt2click = (clickConsumer:reClickEvt=>unit):reMouseHnd => evt => {
 }
 
 external reElem2Obj: reElem => Nullable.t<{..}> = "%identity"
+
+@module("react")
+external useEffect8: (
+  (unit => option<unit => unit>),
+  ('t1, 't2, 't3, 't4, 't5, 't6, 't7, 't8),
+) => unit = "useEffect"
