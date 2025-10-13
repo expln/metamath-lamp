@@ -31,7 +31,7 @@ type props = {
     matchedIdxs:option<MM_wrk_pattern_search.matchedIndices>,
     highlightColor:string,
     openFrameExplorer:option<string=>unit>,
-    openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
+    openExplorer:option<openExplorer>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
 }
 

@@ -43,7 +43,7 @@ type state = {
     dummyVarDisjStr: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
-    provedFromAxioms:array<string>,
+    provedFromAxioms:int,
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
     vData:array<option<vDataRec>>,
@@ -243,8 +243,7 @@ let createInitialState = (
         ->Array.filter(Option.isSome)
         ->Array.map(Option.getExn(_))
         ->Array.filter(frm => frm.isAxiom)
-        ->Array.toSorted(Expln_utils_common.comparatorByInt(frm => frm.ord))
-        ->Array.map(frm => frm.label)
+        ->Array.length
     
 
     let st = {
@@ -373,7 +372,7 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
+    openExplorer:openExplorer,
     openEditor: editorStateLocStor => unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
@@ -1112,6 +1111,25 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndProvedFromAxioms = state => {
+        if (state.frame.isAxiom) {
+            React.null
+        } else {
+            <span>
+                { React.string("Proved from axioms: ") }
+                <a 
+                    onClick={_=>openExplorer(
+                        ~initIsAxiomFilter=true,
+                        ~initReferencedByFilter=state.frame.label, ~initReferencedByTranFilter=true
+                    )} 
+                    style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+                >
+                    {React.string(state.provedFromAxioms->Int.toString)}
+                </a>
+            </span>
+        }
+    }
+
     let rndUsageCnt = state => {
         <span>
             { React.string("Referenced by: ") }
@@ -1122,29 +1140,6 @@ let make = React.memoCustomCompareProps(({
                 {React.string(state.frame.usageCnt->Int.toString)}
             </a>
         </span>
-    }
-
-    let rndProvedFromAxioms = state => {
-        if (state.frame.isAxiom) {
-            React.null
-        } else {
-            <span>
-                { React.string("Proved from axioms: ") }
-                {
-                    state.provedFromAxioms->Array.map(label => {
-                        <span key=label>
-                            <MM_cmp_pe_frame_descr
-                                settings=preCtxData.settingsV.val
-                                ctx=preCtxData.ctxV.val.full
-                                symColors=state.symColors
-                                openFrameExplorer
-                                text={nbsp ++ nbsp ++ ` ~ ${label}`}
-                            />
-                        </span>
-                    })->React.array
-                }
-            </span>
-        }
     }
 
     let rndDisj = state => {
@@ -1531,8 +1526,10 @@ let make = React.memoCustomCompareProps(({
                     {rndDummyVarDisj(state)}
                     {rndSummary(state)}
                     <hr/>
-                    {rndUsageCnt(state)}
-                    {rndProvedFromAxioms(state)}
+                    <Row spacing=2.>
+                        {rndProvedFromAxioms(state)}
+                        {rndUsageCnt(state)}
+                    </Row>
                     {rndPagination(state)}
                     {rndProof(state)}
                     {rndPagination(state)}

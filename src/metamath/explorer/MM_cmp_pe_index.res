@@ -16,11 +16,14 @@ type props = {
     preCtxData:preCtxData,
     tabTitle:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
+    openExplorer:openExplorer,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
+    initIsAxiomFilter:option<bool>,
     initPatternFilterStr:string,
     initDependsOnFilter:string,
+    initReferencedByFilter:string,
+    initReferencedByTranFilter:bool,
     addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
     onTabTitleChange:string=>unit,
 }
@@ -46,8 +49,11 @@ let make = React.memoCustomCompareProps(({
     openExplorer,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
+    initIsAxiomFilter,
     initPatternFilterStr,
     initDependsOnFilter,
+    initReferencedByFilter,
+    initReferencedByTranFilter,
     addAsrtByLabel,
     onTabTitleChange,
 }:props) => {
@@ -61,13 +67,13 @@ let make = React.memoCustomCompareProps(({
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
 
-    let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
+    let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => initIsAxiomFilter)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (dependsOnFilter, setDependsOnFilter) = React.useState(() => initDependsOnFilter)
     let (dependsOnTranFilter, setDependsOnTranFilter) = React.useState(() => false)
-    let (referencedByFilter, setReferencedByFilter) = React.useState(() => "")
-    let (referencedByTranFilter, setReferencedByTranFilter) = React.useState(() => false)
+    let (referencedByFilter, setReferencedByFilter) = React.useState(() => initReferencedByFilter)
+    let (referencedByTranFilter, setReferencedByTranFilter) = React.useState(() => initReferencedByTranFilter)
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (descrFilterStr, setDescrFilterStr) = React.useState(() => "")

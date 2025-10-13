@@ -40,7 +40,7 @@ type props = {
     symsToHighlight:option<array<int>>,
     highlightColor:string,
     editStmtsByLeftClick:bool,
-    openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
+    openExplorer:option<Common.openExplorer>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
