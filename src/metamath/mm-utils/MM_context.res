@@ -1691,3 +1691,26 @@ let getLabelsReferencedBy = (ctx:mmContext, ~rootLabels:array<string>, ~transiti
     }
     res
 }
+
+let getLabelsDependingOn = (
+    ~allFramesInDeclarationOrder:array<frame>, 
+    ~rootLabels:array<string>, 
+    ~transitive:bool
+):Belt_HashSetString.t => {
+    let dependsOn = Belt_HashSetString.fromArray(rootLabels)
+    let res = Belt_HashSetString.make(~hintSize=100)
+    allFramesInDeclarationOrder->Array.forEach(frame => {
+        switch frame.proof {
+            | None => ()
+            | Some(Uncompressed({labels:parentLabels})) | Some(Compressed({labels:parentLabels})) => {
+                if (parentLabels->Array.some(Belt_HashSetString.has(dependsOn, _))) {
+                    res->Belt_HashSetString.add(frame.label)
+                    if (transitive) {
+                        dependsOn->Belt_HashSetString.add(frame.label)
+                    }
+                }
+            }
+        }
+    })
+    res
+}
