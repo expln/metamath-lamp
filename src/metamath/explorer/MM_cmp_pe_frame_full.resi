@@ -27,6 +27,7 @@ type state = {
     dummyVarDisjStr: option<array<array<(string, option<string>)>>>,
     hyps: array<MM_context.hypothesis>,
     asrt: MM_context.expr,
+    provedFromAxioms:array<string>,
     proofTable: option<MM_proof_table.proofTable>,
     symColors: Belt_HashMapString.t<string>,
     vData: array<option<vDataRec>>,

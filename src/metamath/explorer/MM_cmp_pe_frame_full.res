@@ -43,6 +43,7 @@ type state = {
     dummyVarDisjStr: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
+    provedFromAxioms:array<string>,
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
     vData:array<option<vDataRec>>,
@@ -236,6 +237,16 @@ let createInitialState = (
         None
     }
 
+    let provedFromAxioms = preCtx->MM_context.getLabelsReferencedBy(~rootLabels=[frame.label], ~transitive=true)
+        ->Belt_HashSetString.toArray
+        ->Array.map(getFrame(preCtx, _))
+        ->Array.filter(Option.isSome)
+        ->Array.map(Option.getExn(_))
+        ->Array.filter(frm => frm.isAxiom)
+        ->Array.toSorted(Expln_utils_common.comparatorByInt(frm => frm.ord))
+        ->Array.map(frm => frm.label)
+    
+
     let st = {
         settings,
         frmMmScopes,
@@ -250,6 +261,7 @@ let createInitialState = (
         dummyVarDisjStr:None,
         hyps:frame.hyps->Array.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
+        provedFromAxioms,
         proofTable: None,
         symColors,
         vData: [],
@@ -1112,6 +1124,29 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndProvedFromAxioms = state => {
+        if (state.frame.isAxiom) {
+            React.null
+        } else {
+            <span>
+                { React.string("Proved from axioms: ") }
+                {
+                    state.provedFromAxioms->Array.map(label => {
+                        <span key=label>
+                            <MM_cmp_pe_frame_descr
+                                settings=preCtxData.settingsV.val
+                                ctx=preCtxData.ctxV.val.full
+                                symColors=state.symColors
+                                openFrameExplorer
+                                text={nbsp ++ nbsp ++ ` ~ ${label}`}
+                            />
+                        </span>
+                    })->React.array
+                }
+            </span>
+        }
+    }
+
     let rndDisj = state => {
         switch state.disjStr {
             | None => <div style=ReactDOM.Style.make(~display="none", ()) />
@@ -1488,14 +1523,16 @@ let make = React.memoCustomCompareProps(({
                 }
             }
             | Some(state) => {
-                <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                <Col spacing=2. style=ReactDOM.Style.make(~padding="5px 10px", ())>
                     {rndMainMenu(state)}
                     {rndLabel(state)}
                     {rndDescr(state)}
-                    {rndUsageCnt(state)}
                     {rndDisj(state)}
                     {rndDummyVarDisj(state)}
                     {rndSummary(state)}
+                    <hr/>
+                    {rndUsageCnt(state)}
+                    {rndProvedFromAxioms(state)}
                     {rndPagination(state)}
                     {rndProof(state)}
                     {rndPagination(state)}
