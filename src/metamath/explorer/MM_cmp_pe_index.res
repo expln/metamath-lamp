@@ -124,28 +124,16 @@ let make = React.memoCustomCompareProps(({
     }
 
     let filterByDependsOn = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
-        let dependsOn:Belt_HashSetString.t = dependsOnFilter
-            ->Common.getSpaceSeparatedValuesAsArray
-            ->Belt_HashSetString.fromArray
-        if (dependsOn->Belt_HashSetString.isEmpty) {
+        let dependsOn:array<string> = dependsOnFilter->Common.getSpaceSeparatedValuesAsArray
+        if (dependsOn->Array.length == 0 || frames->Array.length == 0) {
             frames
         } else {
-            let res:array<(frame,option<matchedIndices>)> = []
-            frames->Array.forEach(frameAndIdxs => {
-                let (frame, _) = frameAndIdxs
-                switch frame.proof {
-                    | None => ()
-                    | Some(Uncompressed({labels:parentLabels})) | Some(Compressed({labels:parentLabels})) => {
-                        if (parentLabels->Array.some(Belt_HashSetString.has(dependsOn, _))) {
-                            res->Array.push(frameAndIdxs)
-                            if (dependsOnTranFilter) {
-                                dependsOn->Belt_HashSetString.add(frame.label)
-                            }
-                        }
-                    }
-                }
-            })
-            res
+            let resLabels = getLabelsDependingOn(
+                ~allFramesInDeclarationOrder,
+                ~rootLabels=dependsOn,
+                ~transitive=dependsOnTranFilter
+            )
+            frames->Array.filter(((frame, _)) => resLabels->Belt_HashSetString.has(frame.label))
         }
     }
 
