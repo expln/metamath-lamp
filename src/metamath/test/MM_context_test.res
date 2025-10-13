@@ -301,3 +301,43 @@ describe("frmGetPatternSearchData", _ => {
 
     })
 })
+
+describe("getLabelsReferencedBy", _ => {
+    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/referenced_by_depends_on._mm")
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+    let ctx = loadContext(ast)
+
+    it("gets labels non-transitively", _ => {
+        assertEq(
+            ctx->getLabelsReferencedBy(
+                ~rootLabels=["L9"], 
+                ~transitive=false
+            )->Belt_HashSetString.toArray->Array.toSorted(String.compare), 
+            ["L1", "L7", "L8"]
+        )
+    })
+
+    it("gets labels transitively", _ => {
+        assertEq(
+            ctx->getLabelsReferencedBy(
+                ~rootLabels=["L9"], 
+                ~transitive=true
+            )->Belt_HashSetString.toArray->Array.toSorted(String.compare), 
+            ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9"]
+        )
+        assertEq(
+            ctx->getLabelsReferencedBy(
+                ~rootLabels=["L6"], 
+                ~transitive=true
+            )->Belt_HashSetString.toArray->Array.toSorted(String.compare), 
+            ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9"]
+        )
+        assertEq(
+            ctx->getLabelsReferencedBy(
+                ~rootLabels=["L7"], 
+                ~transitive=true
+            )->Belt_HashSetString.toArray->Array.toSorted(String.compare), 
+            ["L2", "L3", "L5"]
+        )
+    })
+})

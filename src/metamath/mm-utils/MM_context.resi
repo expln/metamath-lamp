@@ -126,6 +126,7 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?) => array<int>
 let getTypeOfVar: (mmContext, int) => option<int>
 let getTypeOfVarExn: (mmContext, int) => int
 let getTokenType: (mmContext, string) => option<tokenType>
+let getLabelsReferencedBy: (mmContext, ~rootLabels:array<string>, ~transitive:bool) => Belt_HashSetString.t
 
 let ctxSymToInt: (mmContext, string) => option<int>
 let ctxIntToSym: (mmContext, int) => option<string>

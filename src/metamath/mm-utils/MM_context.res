@@ -1665,3 +1665,29 @@ let ctxOptimizeForProver = (
     resCtx->moveConstsToBegin(resCtx->ctxSymsToIntsExn(allConsts))
     resCtx
 }
+
+let getLabelsReferencedBy = (ctx:mmContext, ~rootLabels:array<string>, ~transitive:bool):Belt_HashSetString.t => {
+    let res = Belt_HashSetString.make(~hintSize=100)
+    let queuedLabels = Belt_HashSetString.fromArray(rootLabels)
+    let labelsToProcess = Belt_MutableQueue.fromArray(queuedLabels->Belt_HashSetString.toArray)
+    while (labelsToProcess->Belt_MutableQueue.size > 0) {
+        switch ctx->getFrame(labelsToProcess->Belt_MutableQueue.popExn) {
+            | None => ()
+            | Some(frame) => {
+                switch frame.proof {
+                    | None => ()
+                    | Some(Uncompressed({labels:parentLabels})) | Some(Compressed({labels:parentLabels})) => {
+                        parentLabels->Array.forEach(parentLabel => {
+                            res->Belt_HashSetString.add(parentLabel)
+                            if (transitive && !(queuedLabels->Belt_HashSetString.has(parentLabel))) {
+                                labelsToProcess->Belt_MutableQueue.add(parentLabel)
+                                queuedLabels->Belt_HashSetString.add(parentLabel)
+                            }
+                        })
+                    }
+                }
+            }
+        }
+    }
+    res
+}
