@@ -4,6 +4,7 @@
 (https://github.com/expln/metamath-lamp/issues/237)
 * Bug fix: Extra spaces around description when opening proof in editor.
 https://github.com/expln/metamath-lamp/issues/245
+* Add "Referenced by" filter to the Explorer tab.
 ### [Version 30](https://expln.github.io/lamp/v30/index.html)
 * Sort assertions on the Explorer tab. https://github.com/expln/metamath-lamp/issues/235
 * Bug fix: Crash when adding statements with "use". https://github.com/expln/metamath-lamp/issues/239
