@@ -252,3 +252,12 @@ let createTypeOrderFromStr = (~sortDisjByType:string, ~typeNameToInt:string=>opt
     })
     typeOrderInDisj
 }
+
+type openExplorer = (
+    ~title:string=?,
+    ~initIsAxiomFilter:bool=?,
+    ~initPatternFilterStr:string=?, 
+    ~initDependsOnFilter:string=?,
+    ~initReferencedByFilter:string=?,
+    ~initReferencedByTranFilter:bool=?,
+)=>unit

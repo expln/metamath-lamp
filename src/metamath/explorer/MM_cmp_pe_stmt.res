@@ -40,7 +40,7 @@ type props = {
     symsToHighlight:option<array<int>>,
     highlightColor:string,
     editStmtsByLeftClick:bool,
-    openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
+    openExplorer:option<Common.openExplorer>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -143,7 +143,9 @@ let make = React.memoCustomCompareProps( ({
     let actSearchSelectedInNewExplorer = () => {
         switch getSelectedText(state.cont) {
             | None => ()
-            | Some(selectedText) => openExplorer->Option.forEach(fn=>fn(~initPatternFilterStr="$+ " ++ selectedText))
+            | Some(selectedText) => openExplorer->Option.forEach(fn=>{
+                fn(~title=selectedText, ~initPatternFilterStr="$+ " ++ selectedText)
+            })
         }
     }
 

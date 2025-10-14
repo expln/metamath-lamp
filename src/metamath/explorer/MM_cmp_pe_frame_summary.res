@@ -31,7 +31,7 @@ type props = {
     matchedIdxs:option<MM_wrk_pattern_search.matchedIndices>,
     highlightColor:string,
     openFrameExplorer:option<string=>unit>,
-    openExplorer:option<(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit>,
+    openExplorer:option<openExplorer>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
 }
 
@@ -239,7 +239,9 @@ let make = React.memoCustomCompareProps( ({
                 <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
                     { React.string("Referenced by: ") }
                     <a 
-                        onClick={_=>openExplorer->Option.forEach(fn=>fn(~initDependsOnFilter=frame.label))} 
+                        onClick={_=>openExplorer->Option.forEach(fn=>{
+                            fn(~title="Dependents of " ++ frame.label, ~initDependsOnFilter=frame.label)
+                        })} 
                         style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
                     >
                         {React.string(frame.usageCnt->Int.toString)}

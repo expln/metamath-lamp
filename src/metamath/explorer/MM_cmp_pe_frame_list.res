@@ -28,7 +28,7 @@ type props = {
     highlightMatchedSymbols:bool,
     highlightColor:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
+    openExplorer:Common.openExplorer,
     asrtsPerPage:int,
     addAsrtByLabel:string=>promise<result<unit,string>>,
 }

@@ -43,6 +43,7 @@ type state = {
     dummyVarDisjStr: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
+    provedFromAxioms:int,
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
     vData:array<option<vDataRec>>,
@@ -236,6 +237,15 @@ let createInitialState = (
         None
     }
 
+    let provedFromAxioms = preCtx->MM_context.getLabelsReferencedBy(~rootLabels=[frame.label], ~transitive=true)
+        ->Belt_HashSetString.toArray
+        ->Array.map(getFrame(preCtx, _))
+        ->Array.filter(Option.isSome)
+        ->Array.map(Option.getExn(_))
+        ->Array.filter(frm => frm.isAxiom)
+        ->Array.length
+    
+
     let st = {
         settings,
         frmMmScopes,
@@ -250,6 +260,7 @@ let createInitialState = (
         dummyVarDisjStr:None,
         hyps:frame.hyps->Array.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
+        provedFromAxioms,
         proofTable: None,
         symColors,
         vData: [],
@@ -361,7 +372,7 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?, ~initDependsOnFilter:string=?)=>unit,
+    openExplorer:openExplorer,
     openEditor: editorStateLocStor => unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
@@ -1100,11 +1111,34 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndProvedFromAxioms = state => {
+        if (state.frame.isAxiom) {
+            React.null
+        } else {
+            <span>
+                { React.string("Proved from axioms: ") }
+                <a 
+                    onClick={_=>openExplorer(
+                        ~title="Axioms " ++ state.frame.label ++ " is proved from",
+                        ~initIsAxiomFilter=true,
+                        ~initReferencedByFilter=state.frame.label, ~initReferencedByTranFilter=true
+                    )} 
+                    style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+                >
+                    {React.string(state.provedFromAxioms->Int.toString)}
+                </a>
+            </span>
+        }
+    }
+
     let rndUsageCnt = state => {
         <span>
             { React.string("Referenced by: ") }
             <a 
-                onClick={_=>openExplorer(~initDependsOnFilter=state.frame.label)} 
+                onClick={_=>openExplorer(
+                    ~title="Dependents of " ++ state.frame.label,
+                    ~initDependsOnFilter=state.frame.label
+                )} 
                 style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
             >
                 {React.string(state.frame.usageCnt->Int.toString)}
@@ -1488,14 +1522,18 @@ let make = React.memoCustomCompareProps(({
                 }
             }
             | Some(state) => {
-                <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                <Col spacing=2. style=ReactDOM.Style.make(~padding="5px 10px", ())>
                     {rndMainMenu(state)}
                     {rndLabel(state)}
                     {rndDescr(state)}
-                    {rndUsageCnt(state)}
                     {rndDisj(state)}
                     {rndDummyVarDisj(state)}
                     {rndSummary(state)}
+                    <hr/>
+                    <Row spacing=2.>
+                        {rndProvedFromAxioms(state)}
+                        {rndUsageCnt(state)}
+                    </Row>
                     {rndPagination(state)}
                     {rndProof(state)}
                     {rndPagination(state)}
