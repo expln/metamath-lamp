@@ -58,6 +58,7 @@ let createVarNameComparator: Belt_HashMapInt.t<string> => Expln_utils_common.com
 let createTypeOrderFromStr: (~sortDisjByType:string, ~typeNameToInt:string=>option<int>) => Belt_HashMapInt.t<int>
 
 type openExplorer = (
+    ~title:string=?,
     ~initIsAxiomFilter:bool=?,
     ~initPatternFilterStr:string=?, 
     ~initDependsOnFilter:string=?,

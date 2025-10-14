@@ -143,7 +143,9 @@ let make = React.memoCustomCompareProps( ({
     let actSearchSelectedInNewExplorer = () => {
         switch getSelectedText(state.cont) {
             | None => ()
-            | Some(selectedText) => openExplorer->Option.forEach(fn=>fn(~initPatternFilterStr="$+ " ++ selectedText))
+            | Some(selectedText) => openExplorer->Option.forEach(fn=>{
+                fn(~title=selectedText, ~initPatternFilterStr="$+ " ++ selectedText)
+            })
         }
     }
 

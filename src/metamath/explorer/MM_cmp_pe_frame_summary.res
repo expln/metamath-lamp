@@ -239,7 +239,9 @@ let make = React.memoCustomCompareProps( ({
                 <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
                     { React.string("Referenced by: ") }
                     <a 
-                        onClick={_=>openExplorer->Option.forEach(fn=>fn(~initDependsOnFilter=frame.label))} 
+                        onClick={_=>openExplorer->Option.forEach(fn=>{
+                            fn(~title="Dependents of " ++ frame.label, ~initDependsOnFilter=frame.label)
+                        })} 
                         style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
                     >
                         {React.string(frame.usageCnt->Int.toString)}

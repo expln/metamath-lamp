@@ -1119,6 +1119,7 @@ let make = React.memoCustomCompareProps(({
                 { React.string("Proved from axioms: ") }
                 <a 
                     onClick={_=>openExplorer(
+                        ~title="Axioms " ++ state.frame.label ++ " is proved from",
                         ~initIsAxiomFilter=true,
                         ~initReferencedByFilter=state.frame.label, ~initReferencedByTranFilter=true
                     )} 
@@ -1134,7 +1135,10 @@ let make = React.memoCustomCompareProps(({
         <span>
             { React.string("Referenced by: ") }
             <a 
-                onClick={_=>openExplorer(~initDependsOnFilter=state.frame.label)} 
+                onClick={_=>openExplorer(
+                    ~title="Dependents of " ++ state.frame.label,
+                    ~initDependsOnFilter=state.frame.label
+                )} 
                 style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
             >
                 {React.string(state.frame.usageCnt->Int.toString)}

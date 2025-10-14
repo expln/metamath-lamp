@@ -254,6 +254,7 @@ let createTypeOrderFromStr = (~sortDisjByType:string, ~typeNameToInt:string=>opt
 }
 
 type openExplorer = (
+    ~title:string=?,
     ~initIsAxiomFilter:bool=?,
     ~initPatternFilterStr:string=?, 
     ~initDependsOnFilter:string=?,

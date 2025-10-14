@@ -220,46 +220,27 @@ let makeNewTabTitle = (
     ~prefix:string
 ):string => {
     let existingTitles = existingTabs->Array.map(t => t.label)
-    let newId = ref(1)
-    let makeTitle = (i:int):string => prefix ++ " [" ++ i->Int.toString ++ "]"
-    let newTitle = ref(makeTitle(newId.contents))
-    while (existingTitles->Array.includes(newTitle.contents)) {
-        newId := newId.contents + 1
-        newTitle := makeTitle(newId.contents)
+    if (!(existingTitles->Array.includes(prefix))) {
+        prefix
+    } else {
+        let newId = ref(1)
+        let makeTitle = (i:int):string => prefix ++ " [" ++ i->Int.toString ++ "]"
+        let newTitle = ref(makeTitle(newId.contents))
+        while (existingTitles->Array.includes(newTitle.contents)) {
+            newId := newId.contents + 1
+            newTitle := makeTitle(newId.contents)
+        }
+        newTitle.contents
     }
-    newTitle.contents
 }
 
 let getNewExplorerTabTitle = (
     ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
-    ~initIsAxiomFilter:option<bool>=?,
-    ~initPatternFilterStr:string="",
-    ~initDependsOnFilter:string="",
-    ~initReferencedByFilter:string="",
-    ~initReferencedByTranFilter:bool=false,
+    ~title:option<string>,
 ):string => {
-    if (initPatternFilterStr->String.length > 0) {
-        let substrInc = initPatternFilterStr->String.startsWith("$+ ") ? 3 : 0
-        initPatternFilterStr->String.substring(
-            ~start=substrInc, 
-            ~end=40+substrInc
-        )
-    } else if (initDependsOnFilter->String.length > 0) {
-        ("Dependents of " ++ initDependsOnFilter)->String.substring(
-            ~start=0, 
-            ~end=40
-        )
-    } else if (
-        initIsAxiomFilter->Option.getOr(false) 
-        && initReferencedByFilter->String.length > 0
-        && initReferencedByTranFilter
-    ) {
-        ("Axioms " ++ initReferencedByFilter ++ " is proved from")->String.substring(
-            ~start=0, 
-            ~end=40
-        )
-    } else {
-        makeNewTabTitle(~existingTabs, ~prefix="EXPLORER")
+    switch title {
+        | Some(title) => makeNewTabTitle(~existingTabs, ~prefix=title->String.substring( ~start=0, ~end=40 ))
+        | None => makeNewTabTitle(~existingTabs, ~prefix="EXPLORER")
     }
 }
 
@@ -458,6 +439,7 @@ let make = () => {
     }
 
     let actOpenExplorer:openExplorer = (
+        ~title:option<string>=?,
         ~initIsAxiomFilter:option<bool>=?,
         ~initPatternFilterStr:string="", 
         ~initDependsOnFilter:string="",
@@ -466,12 +448,8 @@ let make = () => {
     ):unit => {
         updateTabs(tabsSt => {
             let newTabTitle = getNewExplorerTabTitle(
-                ~initIsAxiomFilter?,
                 ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
-                ~initPatternFilterStr=initPatternFilterStr->String.trim,
-                ~initDependsOnFilter=initDependsOnFilter->String.trim,
-                ~initReferencedByFilter=initReferencedByFilter->String.trim,
-                ~initReferencedByTranFilter,
+                ~title,
             )
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label=newTabTitle,
