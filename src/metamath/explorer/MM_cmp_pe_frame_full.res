@@ -1247,20 +1247,30 @@ let make = React.memoCustomCompareProps(({
         ~textDecorationColor="rgb(0,0,238)",
         ()
     )
-    let rndRef = (pRec:proofRecord):reElem => {
+    let rndRef = (state:state, pRec:proofRecord):reElem => {
         switch pRec.proof {
             | Hypothesis({label}) => label->React.string
             | Assertion({label}) => {
-                <span 
-                    style={
-                        linkStyle->ReactDOM.Style.combine(
-                            ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", ())
-                        )
-                    }
-                    onClick={clickHnd(~act=()=>openFrameExplorer(label))}
-                >
-                    {label->React.string}
-                </span>
+                let refFrame = state.frms->frmsGetByLabel(label)->Option.map(frm=>frm.frame)
+                let ordColor = refFrame->Option.map(frm=>frm.isAxiom)->Option.getOr(false) ? "red" : "green"
+                let ordText = refFrame->Option.map(frm=>" "++(frm.ord+1)->Int.toString)->Option.getOr("")
+                <>
+                    <span
+                        style={
+                            linkStyle->ReactDOM.Style.combine(
+                                ReactDOM.Style.make(
+                                    ~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", ()
+                                )
+                            )
+                        }
+                        onClick={clickHnd(~act=()=>openFrameExplorer(label))}
+                    >
+                        {label->React.string}
+                    </span>
+                    <span style=ReactDOM.Style.make( ~color=ordColor, ~fontSize="0.7em", () ) >
+                        {ordText->React.string}
+                    </span>
+                </>
             }
         }
     }
@@ -1476,7 +1486,7 @@ let make = React.memoCustomCompareProps(({
                                             } 
                                             className=classColRef 
                                         >
-                                            {rndRef(pRec)}
+                                            {rndRef(state, pRec)}
                                         </td>
                                         <td style=tdStyle >
                                             {rndExpr(~state, ~pRec, ~pRecIdx=idx)}
