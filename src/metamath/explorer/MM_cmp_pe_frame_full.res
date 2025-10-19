@@ -1239,12 +1239,12 @@ let make = React.memoCustomCompareProps(({
             }
         }
     }
-
+    let linkColor = "rgb(0,0,238)"
     let linkStyle = ReactDOM.Style.make(
         ~cursor="pointer", 
         ~textDecoration="underline",
-        ~color="rgb(0,0,238)",
-        ~textDecorationColor="rgb(0,0,238)",
+        ~color=linkColor,
+        ~textDecorationColor=linkColor,
         ()
     )
     let rndRef = (state:state, pRec:proofRecord):reElem => {
@@ -1252,25 +1252,22 @@ let make = React.memoCustomCompareProps(({
             | Hypothesis({label}) => label->React.string
             | Assertion({label}) => {
                 let refFrame = state.frms->frmsGetByLabel(label)->Option.map(frm=>frm.frame)
-                let ordColor = refFrame->Option.map(frm=>frm.isAxiom)->Option.getOr(false) ? "red" : "green"
-                let ordText = refFrame->Option.map(frm=>" "++(frm.ord+1)->Int.toString)->Option.getOr("")
-                <>
-                    <span
-                        style={
-                            linkStyle->ReactDOM.Style.combine(
-                                ReactDOM.Style.make(
-                                    ~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", ()
-                                )
+                let isAxiom = refFrame->Option.map(frm=>frm.isAxiom)->Option.getOr(false)
+                let textDecorationColor = isAxiom ? "red" : linkColor
+                <span
+                    style={
+                        linkStyle->ReactDOM.Style.combine(
+                            ReactDOM.Style.make(
+                                ~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", 
+                                ~textDecorationColor,
+                                ()
                             )
-                        }
-                        onClick={clickHnd(~act=()=>openFrameExplorer(label))}
-                    >
-                        {label->React.string}
-                    </span>
-                    <span style=ReactDOM.Style.make( ~color=ordColor, ~fontSize="0.7em", () ) >
-                        {ordText->React.string}
-                    </span>
-                </>
+                        )
+                    }
+                    onClick={clickHnd(~act=()=>openFrameExplorer(label))}
+                >
+                    {label->React.string}
+                </span>
             }
         }
     }
