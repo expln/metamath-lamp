@@ -1244,6 +1244,7 @@ let make = React.memoCustomCompareProps(({
         ~cursor="pointer", 
         ~textDecoration="underline",
         ~color=linkColor,
+        ~textDecorationColor=linkColor,
         ()
     )
     let rndRef = (state:state, pRec:proofRecord):reElem => {
