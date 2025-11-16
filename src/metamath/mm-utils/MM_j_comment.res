@@ -16,28 +16,31 @@ module CommandParser = {
     let whitespaceChar:parser<string> = oneOf([" ", "\t", "\r", "\n", "\f"])
         ->log("whitespaceChar")
 
-    let nonWhitespaceChar:parser<string> = not_(whitespaceChar)
-        ->log("nonWhitespaceChar")
-
     let endOfCommand:parser<string> = val(";")
         ->log("endOfCommand")
 
-    let notSpaceNotEnd:parser<string> = not_(any([whitespaceChar, endOfCommand]))
+    let notSpaceNotEndChar:parser<string> = not_(any([whitespaceChar, endOfCommand]))
         ->log("notSpaceNotEnd")
 
-    let commandName:parser<string> = any([rep(nonWhitespaceChar, ~minCnt=2)->map(Array.join(_, "")), notSpaceNotEnd])
+    let commandName:parser<string> = rep(notSpaceNotEndChar, ~minCnt=1)->map(Array.join(_, ""))
         ->log("commandName")
 
     let unquotedArg:parser<commandArg> = 
-        any([rep(nonWhitespaceChar, ~minCnt=2)->map(Array.join(_, "")), notSpaceNotEnd])
-        ->map(arg => Unquoted(arg))
+        rep(notSpaceNotEndChar, ~minCnt=1)->map(arg => Unquoted(Array.join(arg, "")))
         ->log("unquotedArg")
 
-    let quote:parser<string> = val("'")
-        ->log("quote")
+    let singleQuote:parser<string> = val("'")
+        ->log("singleQuote")
+
+    let doubleQuote:parser<string> = val(`"`)
+        ->log("doubleQuote")
 
     let quotedArg:parser<commandArg> = 
-        seq3(quote,rep(not_(quote)),quote)->map(((_,argValue,_)) => Quoted(argValue->Array.join("")))
+        any([
+            seq3(singleQuote,rep(not_(singleQuote)),singleQuote), 
+            seq3(doubleQuote,rep(not_(doubleQuote)),doubleQuote)
+        ])
+        ->map(((_,argValue,_)) => Quoted(argValue->Array.join("")))
         ->log("quotedArg")
 
     let argument:parser<commandArg> = any([quotedArg, unquotedArg])
@@ -50,13 +53,13 @@ module CommandParser = {
         Array.concat([head], tail->Array.map(((_,arg)) => arg))
     })->log("argList")
 
-    let command:parser<command> = seq4(commandName, whitespace, opt(seq2(argList, whitespace)), endOfCommand)
-        ->map(((cmdName, _, optArgs, _)) => {
-            {command:cmdName, args:optArgs->Option.map(((args,_))=>args)->Option.getOr([])}
+    let command:parser<command> = seq4(commandName, opt(seq2(whitespace, argList)), opt(whitespace), endOfCommand)
+        ->map(((cmdName, optArgs, _, _)) => {
+            {command:cmdName, args:optArgs->Option.map(((_,args))=>args)->Option.getOr([])}
         })
         ->log("command")
 
-    let commands:parser<array<command>> = seq2(command,rep(seq2(whitespace,command)))->map(((head,tail)) => {
+    let commands:parser<array<command>> = seq2(command,rep(seq2(opt(whitespace),command)))->map(((head,tail)) => {
         Array.concat([head], tail->Array.map(((_,cmd)) => cmd))
     })->log("commands")
 }
