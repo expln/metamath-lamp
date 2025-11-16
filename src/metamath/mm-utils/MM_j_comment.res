@@ -10,8 +10,8 @@ type command = {
 module CommandParser = {
     open Parser
     type parser<'d> = parser<string,'d>
-    let logParsers = true
-    let log = (parser,name) => if logParsers {Parser.log(parser,name,~tokenSep="")} else {parser}
+    let enableLog = false
+    let log = (parser,name) => if enableLog {Parser.log(parser,name,~tokenSep="")} else {parser}
 
     let whitespaceChar:parser<string> = oneOf([" ", "\t", "\r", "\n", "\f"])
         ->log("whitespaceChar")
@@ -19,10 +19,18 @@ module CommandParser = {
     let nonWhitespaceChar:parser<string> = not_(whitespaceChar)
         ->log("nonWhitespaceChar")
 
-    let commandName:parser<string> = rep(nonWhitespaceChar, ~minCnt=1)->map(Array.join(_, ""))
+    let endOfCommand:parser<string> = val(";")
+        ->log("endOfCommand")
+
+    let notSpaceNotEnd:parser<string> = not_(any([whitespaceChar, endOfCommand]))
+        ->log("notSpaceNotEnd")
+
+    let commandName:parser<string> = any([rep(nonWhitespaceChar, ~minCnt=2)->map(Array.join(_, "")), notSpaceNotEnd])
         ->log("commandName")
 
-    let unquotedArg:parser<commandArg> = rep(nonWhitespaceChar, ~minCnt=1)->map(arg => Unquoted(arg->Array.join("")))
+    let unquotedArg:parser<commandArg> = 
+        any([rep(nonWhitespaceChar, ~minCnt=2)->map(Array.join(_, "")), notSpaceNotEnd])
+        ->map(arg => Unquoted(arg))
         ->log("unquotedArg")
 
     let quote:parser<string> = val("'")
@@ -42,11 +50,10 @@ module CommandParser = {
         Array.concat([head], tail->Array.map(((_,arg)) => arg))
     })->log("argList")
 
-    let endOfCommand:parser<string> = val(";")
-        ->log("endOfCommand")
-
-    let command:parser<command> = seq5(commandName, whitespace, opt(argList), opt(whitespace), endOfCommand)
-        ->map(((cmdName, _, optArgs, _, _)) => {command:cmdName, args:optArgs->Option.getOr([])})
+    let command:parser<command> = seq4(commandName, whitespace, opt(seq2(argList, whitespace)), endOfCommand)
+        ->map(((cmdName, _, optArgs, _)) => {
+            {command:cmdName, args:optArgs->Option.map(((args,_))=>args)->Option.getOr([])}
+        })
         ->log("command")
 
     let commands:parser<array<command>> = seq2(command,rep(seq2(whitespace,command)))->map(((head,tail)) => {

@@ -22,8 +22,6 @@ type pattern = {
     symSeq: symSeq,
 }
 
-let logParsers = false
-
 let operatorOrdered = "$*"
 let operatorUnordered = "$/"
 let operatorOneOf = "$|"
@@ -96,26 +94,11 @@ let makePattern = (beginOpt:option<pattern>, seq:symSeq):pattern => {
     }
 }
 
-let inpToStr = (inp:Parser.parserInput<string>, cnt:int):string => {
-    inp.tokens->Array.slice(~start=inp.begin, ~end=inp.begin+cnt)->Array.join(" ")
-}
-
-let log = (parser:Parser.parser<string,'d>, name:string):Parser.parser<string,'d> => {
-    if (logParsers) {
-        let tokensToPrint = 100
-        parser->Parser.withCallbacks(
-            ~before=inp=>Console.log(`${name} trying: '${inpToStr(inp, tokensToPrint)}'`),
-            ~onSuccess=parsed=>Console.log(`${name} parsed: ${Expln_utils_common.stringify(parsed.data)}`),
-            ~onFail=inp=>Console.log(`${name} failed: '${inpToStr(inp, tokensToPrint)}'`),
-        )
-    } else {
-        parser
-    }
-}
-
 module PatternParser = {
     open Parser
     type parser<'d> = parser<string,'d>
+    let enableLog = false
+    let log = (parser,name) => if enableLog {Parser.log(parser,name,~tokenSep=" ")} else {parser}
 
     type seqOrOperator =
         | Seq(symSeq)
