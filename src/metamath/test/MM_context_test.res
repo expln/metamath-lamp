@@ -100,7 +100,8 @@ describe("moveConstsToBegin", _ => {
 
         //when
         let ctx = ctx->ctxOptimizeForProver(
-            ~parens=constsToMove, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+            ~parens=constsToMove, ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true,
+            ~updateUsageCntForFrames=false
         )
 
         //then
@@ -117,7 +118,8 @@ describe("moveConstsToBegin", _ => {
 
         //when
         let ctx = ctx->ctxOptimizeForProver(
-            ~parens="( ) [ t ] { } abc yyy", ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+            ~parens="( ) [ t ] { } abc yyy", ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true,
+            ~updateUsageCntForFrames=false
         )
 
         //then
@@ -142,7 +144,8 @@ describe("moveConstsToBegin", _ => {
 
         //when
         let ctx = ctx->ctxOptimizeForProver(
-            ~parens="( ) [ ] { }", ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+            ~parens="( ) [ ] { }", ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true,
+            ~updateUsageCntForFrames=false
         )
 
         //then
@@ -165,7 +168,8 @@ describe("moveConstsToBegin", _ => {
 
         //when
         let ctx = ctx->ctxOptimizeForProver(
-            ~parens="( ) [ ] { }", ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+            ~parens="( ) [ ] { }", ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true,
+            ~updateUsageCntForFrames=false
         )
 
         //then

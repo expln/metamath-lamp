@@ -42,7 +42,8 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
         )
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
         let ctx = ctx->ctxOptimizeForProver(
-            ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+            ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true,
+            ~updateUsageCntForFrames=false
         )
         let frms = prepareFrmSubsData(~ctx)
         let parenCnt = makeParenCnt(~ctx, ~parens)

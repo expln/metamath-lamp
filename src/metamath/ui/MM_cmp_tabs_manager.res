@@ -19,6 +19,7 @@ let make = (
     ~onTabClose:Expln_React_UseTabs.tabId=>unit,
     ~onOpenExplorer:unit=>unit,
     ~onOpenEditor:unit=>unit,
+    ~onOpenDbInfo:unit=>unit,
 ) => {
     let actRenameTab = (tab:tabProps) => {
         openModalPaneWithTitle(
@@ -42,6 +43,7 @@ let make = (
             {"Open new tab: "->React.string}
             <Button onClick={_=>onOpenEditor()} variant={#outlined}> {React.string("Editor")} </Button>
             <Button onClick={_=>onOpenExplorer()} variant={#outlined}> {React.string("Explorer")} </Button>
+            <Button onClick={_=>onOpenDbInfo()} variant={#outlined}> {React.string("Database Info")} </Button>
         </Row>
     }
 

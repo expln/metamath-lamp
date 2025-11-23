@@ -15,7 +15,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let ctx = loadContext(ast)
     let parens = "( ) { } [ ]"
     let ctx = ctx->ctxOptimizeForProver(
-        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true, ~updateUsageCntForFrames=false
     )
     let expr = ctx->ctxStrToIntsExn(exprStr)
     let frms = prepareFrmSubsData(~ctx)

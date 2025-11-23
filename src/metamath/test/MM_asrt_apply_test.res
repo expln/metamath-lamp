@@ -262,7 +262,8 @@ let testApplyAssertions = (
     let parens = "( ) { } [ ]"
     let workCtx = createContext(~parent=preCtx)
     let workCtx = workCtx->ctxOptimizeForProver(
-        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true,
+        ~updateUsageCntForFrames=false
     )
     let frms = prepareFrmSubsData(~ctx=workCtx)
     let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)

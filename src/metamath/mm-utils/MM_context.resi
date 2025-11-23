@@ -94,6 +94,7 @@ let ctxOptimizeForProver: (
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
     ~updateUsageCntForFrames:bool,
+    ~removeAddInfoComments:bool,
 ) => mmContext
 
 let ctxGetOptimizedConstsOrder: (mmContext, ~parens:string) => optimizedConstsOrder
@@ -132,6 +133,7 @@ let getLabelsDependingOn: (
     ~rootLabels:array<string>, 
     ~transitive:bool
 ) => Belt_HashSetString.t
+let getAddInfoComments: mmContext => array<string>
 
 let ctxSymToInt: (mmContext, string) => option<int>
 let ctxIntToSym: (mmContext, int) => option<string>
