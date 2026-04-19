@@ -2372,20 +2372,22 @@ let make = (
         })
     }
 
-    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_syntax_tree.syntaxTreeNode,string>>,string> => {
+    let actBuildSyntaxTrees = (
+        untypedExprs:array<string>,
+        typedExprs:array<string>,
+    ):result<array<result<MM_syntax_tree.syntaxTreeNode,string>>,string> => {
         switch state.wrkCtx {
             | None => Error(`There are errors in the editor.`)
             | Some(wrkCtx) => {
-                let untypedSyms = exprs->Array.map(getSpaceSeparatedValuesAsArray)
-                let unrecognizedSymbol = untypedSyms->Expln_utils_common.arrFlatMap(a => a)
-                    ->Belt_HashSetString.fromArray
-                    ->Belt_HashSetString.toArray
+                let untypedSyms = untypedExprs->Array.map(getSpaceSeparatedValuesAsArray)
+                let typedSyms = typedExprs->Array.map(getSpaceSeparatedValuesAsArray)
+                let unrecognizedSymbol = Array.concat(untypedSyms,typedSyms)->Array.flatMap(a => a)
                     ->Array.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
                 switch unrecognizedSymbol {
                     | Some(sym) => Error(`Unrecognized symbol '${sym}'`)
                     | None => {
                         textToSyntaxTree( 
-                            ~wrkCtx, ~untypedSyms, ~typedSyms=[], 
+                            ~wrkCtx, ~untypedSyms, ~typedSyms, 
                             ~stmtTypeToSyntaxType=state.preCtxData.stmtTypeToSyntaxType, ~frms=state.preCtxData.frms, 
                             ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
                             ~parenCnt=state.preCtxData.parenCnt,

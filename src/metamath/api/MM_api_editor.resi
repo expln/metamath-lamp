@@ -31,7 +31,7 @@ let updateEditorData: (
     ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
-    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ) => unit

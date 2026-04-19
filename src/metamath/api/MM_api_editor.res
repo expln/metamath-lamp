@@ -1057,22 +1057,24 @@ let apiAddAsrtByLabel = (
 
 let editorBuildSyntaxTrees = (
     ~params:apiInput,
-    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~state:editorState,
 ):promise<result<JSON.t,string>> => {
     switch state.wrkCtx {
         | None => Promise.resolve(Error( "Cannot build syntax trees because there are errors in the editor." ))
         | Some(wrkCtx) => {
             open Expln_utils_jsonParse
-            let parseResult:result<{"exprs":array<string>},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
-                {
-                    "exprs":d->arr("exprs", asStr(_))
-                }
-            }))
+            let parseResult:result<{"untypedExprs":array<string>,"typedExprs":array<string>},string> = 
+                fromJson(params->apiInputToJson, asObj(_, d=>{
+                    {
+                        "untypedExprs":d->arr("untypedExprs", asStr(_)),
+                        "typedExprs":d->arr("typedExprs", asStr(_)),
+                    }
+                }))
             switch parseResult {
                 | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(params) => {
-                    switch buildSyntaxTrees(params["exprs"]) {
+                    switch buildSyntaxTrees(params["untypedExprs"], params["typedExprs"]) {
                         | Error(msg) => Promise.resolve(Error(msg))
                         | Ok(syntaxTrees) => {
                             Promise.resolve(
@@ -1140,19 +1142,18 @@ let findAsrtsByUnif = (
     })
 }
 
-let statementsToExpressions = (
+let getStatementTypes = (
     ~wrkCtx:mmContext,
     ~stmts:array<string>,
-): array<result<(int,string),string>> => {
+): array<result<int,string>> => {
     stmts->Array.map(stmt => {
         let syms = getSpaceSeparatedValuesAsArray(stmt)
-        let len = syms->Array.length
-        if (len < 2) {
+        if (syms->Array.length < 2) {
             Error("The statement length must be at least 2 symbols.")
         } else {
             switch wrkCtx->ctxSymToInt(syms->Array.getUnsafe(0)) {
                 | None => Error(`Unrecognized symbol '${syms->Array.getUnsafe(0)}'.`)
-                | Some(typ) => Ok((typ, syms->Array.sliceToEnd(~start=1)->Array.join(" ")))
+                | Some(typ) => Ok(typ)
             }
         }
     })
@@ -1166,7 +1167,7 @@ type apiFindAsrtsByUnifInpParams = {
 let apiFindAsrtsByUnif = (
     ~params:apiInput,
     ~state:editorState,
-    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~unifMetavarPrefix:string,
 ):promise<result<JSON.t,string>> => {
@@ -1186,14 +1187,8 @@ let apiFindAsrtsByUnif = (
             switch parseResult {
                 | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(params) => {
-                    let exprs:array<result<(int,string),string>> = statementsToExpressions(~wrkCtx, ~stmts=params.stmts)
-                    let exprToBuildSyntaxTreesFor = exprs->Array.map(expr => {
-                        switch expr {
-                            | Error(_) => ""
-                            | Ok((_,str)) => str
-                        }
-                    })
-                    switch buildSyntaxTrees(exprToBuildSyntaxTreesFor) {
+                    let stmtTypes:array<result<int,string>> = getStatementTypes(~wrkCtx, ~stmts=params.stmts)
+                    switch buildSyntaxTrees([], params.stmts) {
                         | Error(msg) => Promise.resolve(Error(msg))
                         | Ok(exprSyntaxTrees) => {
                             getAsrtSyntaxTrees()->Promise.thenResolve(asrtSyntaxTrees => {
@@ -1202,10 +1197,10 @@ let apiFindAsrtsByUnif = (
                                     | None => asrtSyntaxTrees->Belt_HashMapString.keysToArray
                                 }
                                 let exprSyntaxTrees:array<result<(int,syntaxTreeNode),string>> = 
-                                    exprs->Array.mapWithIndex((expr,idx) => {
-                                        switch expr {
+                                    stmtTypes->Array.mapWithIndex((typ,idx) => {
+                                        switch typ {
                                             | Error(msg) => Error(msg)
-                                            | Ok((typ,_)) => {
+                                            | Ok(typ) => {
                                                 exprSyntaxTrees->Array.getUnsafe(idx)
                                                     ->Result.map(exprSyntaxTree => (typ,exprSyntaxTree))
                                             }
@@ -1254,7 +1249,7 @@ type editorData = {
     startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     canStartUnifyAll:bool,
     startUnifyAll:unit=>promise<unit>,
-    buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    buildSyntaxTrees:(array<string>,array<string>/*untyped,typed*/)=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     addAsrtByLabel: string=>promise<result<unit,string>>,
 }
@@ -1347,7 +1342,7 @@ let updateEditorData = (
     ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
-    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ):unit => {
