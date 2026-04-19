@@ -357,8 +357,8 @@ let unifyAll = (st):editorState => {
                 ~combCntMax = st.preCtxData.settingsV.val.combCntMax,
                 ~wrkCtx,
                 ~rootStmts,
-                ~syntaxTypes=st.preCtxData.syntaxTypes,
-                ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts)
+                ~stmtTypeToSyntaxType=st.preCtxData.stmtTypeToSyntaxType,
+                ~typedExprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts)
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)

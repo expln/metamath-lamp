@@ -200,7 +200,7 @@ let makeCannotBuildSyntaxTreeError = (expr:expr, msg:string, ctx:mmContext):stri
 
 let buildSyntaxTreesOfSameType = (
     ~wrkCtx:mmContext, 
-    ~syntaxTypes:array<int>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
@@ -209,13 +209,12 @@ let buildSyntaxTreesOfSameType = (
 ):result<(syntaxTreeNode,syntaxTreeNode),string> => {
     let syntaxTrees = textToSyntaxTree(
         ~wrkCtx,
-        ~syms = [ wrkCtx->ctxIntsToSymsExn(expr1), wrkCtx->ctxIntsToSymsExn(expr2) ],
-        ~syntaxTypes,
+        ~untypedSyms = [ wrkCtx->ctxIntsToSymsExn(expr1), wrkCtx->ctxIntsToSymsExn(expr2) ],
+        ~typedSyms = [],
+        ~stmtTypeToSyntaxType,
         ~frms,
         ~frameRestrict,
         ~parenCnt,
-        ~lastSyntaxType=None,
-        ~onLastSyntaxTypeChange = _ => (),
     )
     @warning("-8")
     switch syntaxTrees {
@@ -232,13 +231,12 @@ let buildSyntaxTreesOfSameType = (
                             } else {
                                 let syntaxTreeWithMatchingType = textToSyntaxTree(
                                     ~wrkCtx,
-                                    ~syms = [ wrkCtx->ctxIntsToSymsExn(expr1) ],
-                                    ~syntaxTypes=[tree2.typ],
+                                    ~untypedSyms = [ wrkCtx->ctxIntsToSymsExn(expr1) ],
+                                    ~typedSyms = [],
+                                    ~stmtTypeToSyntaxType = [(0,[tree2.typ])]->Belt_HashMapInt.fromArray,
                                     ~frms,
                                     ~frameRestrict,
                                     ~parenCnt,
-                                    ~lastSyntaxType=None,
-                                    ~onLastSyntaxTypeChange = _ => (),
                                 )
                                 @warning("-8")
                                 switch syntaxTreeWithMatchingType {
@@ -246,13 +244,12 @@ let buildSyntaxTreesOfSameType = (
                                     | _ => {
                                         let syntaxTreeWithMatchingType = textToSyntaxTree(
                                             ~wrkCtx,
-                                            ~syms = [ wrkCtx->ctxIntsToSymsExn(expr2) ],
-                                            ~syntaxTypes=[tree1.typ],
+                                            ~untypedSyms = [ wrkCtx->ctxIntsToSymsExn(expr2) ],
+                                            ~typedSyms = [],
+                                            ~stmtTypeToSyntaxType = [(0,[tree1.typ])]->Belt_HashMapInt.fromArray,
                                             ~frms,
                                             ~frameRestrict,
                                             ~parenCnt,
-                                            ~lastSyntaxType=None,
-                                            ~onLastSyntaxTypeChange = _ => (),
                                         )
                                         @warning("-8")
                                         switch syntaxTreeWithMatchingType {
@@ -283,7 +280,7 @@ let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
 let findPossibleSubsByUnif = (
     ~wrkCtx:mmContext, 
     ~allTypes:array<int>,
-    ~syntaxTypes:array<int>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
@@ -292,7 +289,7 @@ let findPossibleSubsByUnif = (
     ~metavarPrefix:string,
 ):result<array<wrkSubs>,string> => {
     let syntaxTrees = buildSyntaxTreesOfSameType( 
-        ~wrkCtx, ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt, 
+        ~wrkCtx, ~stmtTypeToSyntaxType, ~frms, ~frameRestrict, ~parenCnt, 
         ~expr1=removeTypePrefix(expr1, allTypes), 
         ~expr2=removeTypePrefix(expr2, allTypes), 
     )
@@ -334,7 +331,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                 findPossibleSubsByUnif(
                     ~wrkCtx, 
                     ~allTypes=st.preCtxData.allTypes,
-                    ~syntaxTypes=st.preCtxData.syntaxTypes,
+                    ~stmtTypeToSyntaxType=st.preCtxData.stmtTypeToSyntaxType,
                     ~frms=st.preCtxData.frms,
                     ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
                     ~parenCnt=st.preCtxData.parenCnt,

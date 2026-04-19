@@ -29,7 +29,7 @@ type props = {
     modalRef:modalRef,
 
     ctx:mmContext,
-    syntaxTypes:array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     frms: frms,
     frameRestrict:frameRestrict,
     parenCnt: parenCnt,
@@ -56,7 +56,7 @@ let propsAreSame = (a:props,b:props):bool => {
 let make = React.memoCustomCompareProps( ({
     modalRef,
     ctx,
-    syntaxTypes,
+    stmtTypeToSyntaxType,
     frms,
     frameRestrict,
     parenCnt,
@@ -154,10 +154,8 @@ let make = React.memoCustomCompareProps( ({
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
-                    ~wrkCtx=ctx, ~syms=[syms->Array.map(s => s.sym)->Array.sliceToEnd(_, ~start=1)],
-                    ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt,
-                    ~lastSyntaxType=getLastSyntaxType(),
-                    ~onLastSyntaxTypeChange=setLastSyntaxType,
+                    ~wrkCtx=ctx, ~untypedSyms=[], ~typedSyms=[syms->Array.map(s => s.sym)],
+                    ~stmtTypeToSyntaxType, ~frms, ~frameRestrict, ~parenCnt,
                 ) {
                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                     | Ok(syntaxTrees) => {

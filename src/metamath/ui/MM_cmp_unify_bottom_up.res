@@ -894,8 +894,8 @@ let make = (
                             useTranDepr:state.useTranDepr,
                         }
                     },
-                    ~syntaxTypes=None,
-                    ~exprsToSyntaxCheck=None,
+                    ~typedExprsToSyntaxCheck=None,
+                    ~stmtTypeToSyntaxType=None,
                     ~debugLevel,
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(

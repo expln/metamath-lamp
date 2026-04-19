@@ -22,7 +22,7 @@ type props = {
     settings:settings,
     preCtx:mmContext,
     symColors: Belt_HashMapString.t<string>,
-    syntaxTypes:array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     frms: frms,
     parenCnt: parenCnt,
 
@@ -56,7 +56,7 @@ let make = React.memoCustomCompareProps( ({
     settings,
     preCtx,
     symColors,
-    syntaxTypes,
+    stmtTypeToSyntaxType,
     frms,
     parenCnt,
     frame,
@@ -287,7 +287,7 @@ let make = React.memoCustomCompareProps( ({
                                     <MM_cmp_pe_stmt
                                         modalRef
                                         ctx=state.frmCtx
-                                        syntaxTypes
+                                        stmtTypeToSyntaxType
                                         frms
                                         frameRestrict=settings.allowedFrms.inSyntax
                                         parenCnt
@@ -313,7 +313,7 @@ let make = React.memoCustomCompareProps( ({
             <MM_cmp_pe_stmt
                 modalRef
                 ctx=state.frmCtx
-                syntaxTypes
+                stmtTypeToSyntaxType
                 frms
                 frameRestrict=settings.allowedFrms.inSyntax
                 parenCnt

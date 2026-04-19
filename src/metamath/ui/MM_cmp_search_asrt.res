@@ -325,7 +325,7 @@ let make = (
                     settings=preCtxData.settingsV.val
                     preCtx=preCtxData.ctxV.val.min
                     symColors=preCtxData.symColors
-                    syntaxTypes=preCtxData.syntaxTypes
+                    stmtTypeToSyntaxType=preCtxData.stmtTypeToSyntaxType
                     frms=preCtxData.frms
                     parenCnt=preCtxData.parenCnt
                     frame

@@ -857,7 +857,7 @@ let make = React.memoCustomCompareProps(({
                                 symColors=preCtxData.symColors
                                 frms=preCtxData.frms
                                 parenCnt=preCtxData.parenCnt
-                                syntaxTypes=preCtxData.syntaxTypes
+                                stmtTypeToSyntaxType=preCtxData.stmtTypeToSyntaxType
                                 labels=filteredLabels
                                 highlightMatchedSymbols
                                 highlightColor

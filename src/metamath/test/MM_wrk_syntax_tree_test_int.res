@@ -47,7 +47,7 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
         )
         let frms = prepareFrmSubsData(~ctx)
         let parenCnt = makeParenCnt(~ctx, ~parens)
-        let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
+        let (_,stmtTypeToSyntaxType) = MM_wrk_pre_ctx_data.findTypes(ctx)
         let frameRestrict:MM_wrk_settings.frameRestrict = { useDisc:false, useDepr:true, useTranDepr:true, }
 
         let startMs = getCurrMillis()
@@ -61,7 +61,7 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
             ~frms,
             ~parenCnt,
             ~allowedFrmsInSyntax = frameRestrict,
-            ~syntaxTypes,
+            ~stmtTypeToSyntaxType,
             ~onProgress = pct => {
                 let currMs = getCurrMillis()
                 log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
@@ -95,13 +95,12 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
         Expln_test.startTimer("find match")
         switch MM_wrk_editor.textToSyntaxTree(
             ~wrkCtx=ctx,
-            ~syms=[ctxExprStr->getSpaceSeparatedValuesAsArray],
-            ~syntaxTypes,
+            ~untypedSyms=[ctxExprStr->getSpaceSeparatedValuesAsArray],
+            ~typedSyms=[],
+            ~stmtTypeToSyntaxType,
             ~frms,
             ~frameRestrict,
             ~parenCnt,
-            ~lastSyntaxType=None,
-            ~onLastSyntaxTypeChange= _ => (),
         ) {
             | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
             | Ok(arr) => {

@@ -19,8 +19,8 @@ let unify: (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<MM_bottom_up_prover_params.bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
-    ~syntaxTypes:option<array<int>>,
-    ~exprsToSyntaxCheck:option<array<expr>>,
+    ~typedExprsToSyntaxCheck:option<array<expr>>,
+    ~stmtTypeToSyntaxType:option<Belt_HashMapInt.t<array<int>>>,
     ~debugLevel:int,
     ~onProgress: string => unit,
 ) => promise<result<MM_proof_tree_dto.proofTreeDto,string>>

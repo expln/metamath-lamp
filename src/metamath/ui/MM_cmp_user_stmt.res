@@ -63,14 +63,6 @@ let setVisExpanded = (st,visExpanded):state => {
 
 let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
 
-let getLastSyntaxType = ():option<string> => {
-    locStorReadString(lastSyntaxTypeLocStorKey)
-}
-
-let setLastSyntaxType = (lastSyntaxType:string):unit => {
-    locStorWriteString(lastSyntaxTypeLocStorKey, lastSyntaxType)
-}
-
 let callbackOpt = (clbkOpt:option<'a=>unit>):('a=>unit) => {
     a => clbkOpt->Belt_Option.forEach(clbk => clbk(a))
 }
@@ -588,7 +580,7 @@ type props = {
     wrkCtx:option<mmContext>,
     frms: frms,
     parenCnt: parenCnt,
-    syntaxTypes:array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     parensMap:Belt_HashMapString.t<string>,
     typeColors:Belt_HashMapString.t<string>,
     preCtxColors:Belt_HashMapString.t<string>,
@@ -675,7 +667,7 @@ let make = React.memoCustomCompareProps( ({
     wrkCtx,
     frms,
     parenCnt,
-    syntaxTypes,
+    stmtTypeToSyntaxType,
     parensMap,
     stmt,
     onLabelEditRequested,
@@ -804,12 +796,10 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms=[syms->Array.map(s => s.sym)->Array.sliceToEnd(_, ~start=1)],
-                            ~syntaxTypes, ~frms, 
+                            ~wrkCtx, ~untypedSyms=[], ~typedSyms=[syms->Array.map(s => s.sym)],
+                            ~stmtTypeToSyntaxType, ~frms, 
                             ~frameRestrict=settings.allowedFrms.inSyntax,
                             ~parenCnt,
-                            ~lastSyntaxType=getLastSyntaxType(),
-                            ~onLastSyntaxTypeChange=setLastSyntaxType,
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTrees) => {

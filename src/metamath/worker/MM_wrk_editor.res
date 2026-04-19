@@ -1860,7 +1860,7 @@ let stmtSetSyntaxTree = (
     switch stmt.cont {
         | Tree(_) => stmt
         | Text({text, syms}) => {
-            let syntaxTree = switch syntaxNodes->Belt_HashMap.get(expr->Array.sliceToEnd(~start=1)) {
+            let syntaxTree = switch syntaxNodes->Belt_HashMap.get(expr) {
                 | None => None
                 | Some(nodeDto) => Some(buildSyntaxTreeFromProofTreeDto(~ctx=wrkCtx, ~proofTreeDto, ~typeStmt=nodeDto.expr))
             }
@@ -2764,7 +2764,7 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     st.stmts->Array.forEachWithIndex((stmt,i) => {
         switch stmt.cont {
             | Tree(_) => ()
-            | Text(_) => res->Array.push((rootStmts->Array.getUnsafe(i)).expr->Array.sliceToEnd(~start=1))
+            | Text(_) => res->Array.push((rootStmts->Array.getUnsafe(i)).expr)
         }
     })
     res
@@ -2896,100 +2896,63 @@ let renumberHypothesisSteps = (state:editorState, ~goalLabel:string):result<edit
 
 let textToSyntaxProofTable = (
     ~wrkCtx:mmContext,
-    ~syms:array<array<string>>,
-    ~syntaxTypes:array<int>,
+    ~untypedSyms:array<array<string>>,
+    ~typedSyms:array<array<string>>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
 ):result<array<result<MM_proof_table.proofTable,string>>,string> => {
-    if (syntaxTypes->Array.length == 0) {
-        Error(`Could not determine syntax types.`)
-    } else {
-        let findUndefinedSym = (syms:array<string>):option<string> => 
-            syms->Array.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
-        switch Belt_Array.concatMany(syms)->findUndefinedSym {
-            | Some(unrecognizedSymbol) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
-            | None => {
-                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(ctxSymToInt(wrkCtx, _))->Belt.Option.getWithDefault(0)
-                let syntaxTypes = syntaxTypes->Array.copy->Expln_utils_common.sortInPlaceWith((a,b) => {
-                    if (a == lastSyntaxTypeInt) {
-                        -1.0
-                    } else if (b == lastSyntaxTypeInt) {
-                        1.0
-                    } else {
-                        Belt_Float.fromInt(a - b)
-                    }
-                })
-                let exprs = syms->Array.map(ctxSymsToIntsExn(wrkCtx, _))
-                let proofTree = MM_provers.proveSyntaxTypes(
-                    ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ~frameRestrict
-                )
-                let typeStmts = exprs->Array.map(expr => {
-                    switch proofTree->ptGetSyntaxProof(expr) {
-                        | None => None
-                        | Some(node) => Some(node->pnGetExpr)
-                    }
-                })
-                let proofTreeDto = proofTree->MM_proof_tree_dto.proofTreeToDto(
-                    typeStmts->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
-                )
-                switch typeStmts->Array.find(Belt_Option.isSome(_)) {
-                    | None => ()
-                    | Some(None) => ()
-                    | Some(Some(typeStmt)) => {
-                        switch lastSyntaxType {
-                            | None => wrkCtx->ctxIntToSym(typeStmt->Array.getUnsafe(0))->Belt_Option.forEach(onLastSyntaxTypeChange)
-                            | Some(lastSyntaxType) => {
-                                wrkCtx->ctxIntToSym(typeStmt->Array.getUnsafe(0))->Belt_Option.forEach(provedSyntaxType => {
-                                    if (lastSyntaxType != provedSyntaxType) {
-                                        onLastSyntaxTypeChange(provedSyntaxType)
-                                    }
-                                })
-                            }
-                        }
-                    }
+    let findUndefinedSym = (syms:array<string>):option<string> => 
+        syms->Array.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
+    switch Belt_Array.concatMany(untypedSyms)->Array.concat(Belt_Array.concatMany(typedSyms))->findUndefinedSym {
+        | Some(unrecognizedSymbol) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
+        | None => {
+            let untypedExprs = untypedSyms->Array.map(ctxSymsToIntsExn(wrkCtx, _))
+            let typedExprs = typedSyms->Array.map(ctxSymsToIntsExn(wrkCtx, _))
+            let proofTree = MM_provers.proveSyntaxTypes(
+                ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~untypedExprs, ~typedExprs, ~stmtTypeToSyntaxType, ~frameRestrict
+            )
+            let typeStmts = (untypedExprs->Array.concat(typedExprs))->Array.map(expr => {
+                switch proofTree->ptGetSyntaxProof(expr) {
+                    | None => None
+                    | Some(node) => Some(node->pnGetExpr)
                 }
-                Ok(
-                    typeStmts->Array.map(typeStmt => {
-                        switch typeStmt {
-                            | None => {
-                                Error(
-                                    `Could not prove this statement is of any of the types: ` 
-                                        ++ `${wrkCtx->ctxIntsToSymsExn(syntaxTypes)->Array.joinUnsafe(", ")}`
-                                )
-                            }
-                            | Some(typeStmt) => {
-                                buildSyntaxProofTableFromProofTreeDto( ~ctx=wrkCtx, ~proofTreeDto, ~typeStmt, )
-                            }
+            })
+            let proofTreeDto = proofTree->MM_proof_tree_dto.proofTreeToDto(
+                typeStmts->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
+            )
+            Ok(
+                typeStmts->Array.map(typeStmt => {
+                    switch typeStmt {
+                        | None => Error( `Syntax error.` )
+                        | Some(typeStmt) => {
+                            buildSyntaxProofTableFromProofTreeDto( ~ctx=wrkCtx, ~proofTreeDto, ~typeStmt, )
                         }
-                    })
-                )
-            }
+                    }
+                })
+            )
         }
     }
 }
 
 let textToSyntaxTree = (
     ~wrkCtx:mmContext,
-    ~syms:array<array<string>>,
-    ~syntaxTypes:array<int>,
+    ~untypedSyms:array<array<string>>,
+    ~typedSyms:array<array<string>>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
 ):result<array<result<syntaxTreeNode,string>>,string> => {
     let syntaxProofTables = textToSyntaxProofTable(
         ~wrkCtx,
-        ~syms,
-        ~syntaxTypes,
+        ~untypedSyms,
+        ~typedSyms,
+        ~stmtTypeToSyntaxType,
         ~frms,
         ~frameRestrict,
         ~parenCnt,
-        ~lastSyntaxType,
-        ~onLastSyntaxTypeChange,
     )
     switch syntaxProofTables {
         | Error(msg) => Error(msg)

@@ -39,7 +39,7 @@ type props = {
     wrkCtx:option<mmContext>,
     frms: frms,
     parenCnt: parenCnt,
-    syntaxTypes:array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     parensMap:Belt_HashMapString.t<string>,
     typeColors:Belt_HashMapString.t<string>,
     preCtxColors:Belt_HashMapString.t<string>,
@@ -99,7 +99,3 @@ let rndContText: (
     ~renderSelection:bool=?,
     ~title:string=?
 ) => React.element
-
-let getLastSyntaxType: unit => option<string>
-
-let setLastSyntaxType: string => unit
