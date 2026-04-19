@@ -9,7 +9,6 @@ open MM_substitution
 open MM_parenCounter
 open MM_proof_tree_dto
 open Expln_React_Modal
-open Local_storage_utils
 open Common
 open Expln_utils_promise
 
@@ -60,8 +59,6 @@ let setVisExpanded = (st,visExpanded):state => {
         visExpanded
     }
 }
-
-let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
 
 let callbackOpt = (clbkOpt:option<'a=>unit>):('a=>unit) => {
     a => clbkOpt->Belt_Option.forEach(clbk => clbk(a))
