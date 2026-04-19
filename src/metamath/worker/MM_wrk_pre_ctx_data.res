@@ -87,7 +87,7 @@ let findTypes = (ctx:mmContext): (array<int>,Belt_HashMapInt.t<array<int>>) => {
         let args = cmd.args->Array.map(arg => switch arg {| Unquoted(str) | Quoted(str) => str})
         if (args->Array.length == 1) {
             ctx->ctxSymToInt(args->Array.getUnsafe(0))->Option.forEach(typ => 
-                stmtTypeToSyntaxType->Belt_HashMapInt.set(typ, Belt_HashSetInt.fromArray([typ]))
+                syntaxTypes->Belt_HashSetInt.add(typ)
             )
         } else if (args->Array.length == 3 && args->Array.getUnsafe(1) == "as") {
             let types = [args->Array.getUnsafe(0), args->Array.getUnsafe(2)]
