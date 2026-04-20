@@ -176,7 +176,7 @@ let make = (
             wrkCtx=editorState.wrkCtx
             frms=editorState.preCtxData.frms
             parenCnt=editorState.preCtxData.parenCnt
-            syntaxTypes=editorState.preCtxData.syntaxTypes
+            stmtTypeToSyntaxType=editorState.preCtxData.stmtTypeToSyntaxType
             parensMap=editorState.preCtxData.parensMap
             stmt
             typeColors=editorState.preCtxData.typeColors

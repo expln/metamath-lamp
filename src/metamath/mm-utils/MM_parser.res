@@ -27,7 +27,7 @@ and stmt =
     | Axiom({label:string, expr:array<string>})
     | Provable({label:string, expr:array<string>, proof:option<proof>})
 
-let isWhitespace = str => str == " " || str == "\t" || str == "\n" || str == "\r"
+let isWhitespace = str => str == " " || str == "\t" || str == "\n" || str == "\r" || str == "\f"
 
 let textAt = (text,i) => {
     let textLength = text->String.length

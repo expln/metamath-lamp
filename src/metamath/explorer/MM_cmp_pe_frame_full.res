@@ -35,7 +35,7 @@ type state = {
     frmCtx:mmContext,
     frms: frms,
     parenCnt: parenCnt,
-    syntaxTypes: array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
     frame:frame,
     disjStr: option<array<array<(string,option<string>)>>>,
@@ -183,11 +183,12 @@ let createInitialState = (
     ~frame:frame
 ):state => {
     let frmCtx = frmCtx->ctxOptimizeForProver(
-        ~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false, ~updateUsageCntForFrames=true
+        ~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false, ~removeAddInfoComments=false,
+        ~updateUsageCntForFrames=true
     )
     let frms = prepareFrmSubsData( ~ctx=frmCtx )
     let parenCnt = MM_provers.makeParenCnt(~ctx=frmCtx, ~parens=settings.parens)
-    let (_, syntaxTypes) = findTypes(frmCtx)
+    let (_, stmtTypeToSyntaxType) = findTypes(frmCtx)
 
     let frmIntToCtxInt = (i:int):int => {
         switch frmCtx->ctxSymToInt(
@@ -252,7 +253,7 @@ let createInitialState = (
         frmCtx,
         frms,
         parenCnt,
-        syntaxTypes,
+        stmtTypeToSyntaxType,
         typeOrderInDisj,
         frame,
         disjStr,
@@ -840,13 +841,12 @@ let make = React.memoCustomCompareProps(({
             let ctx = st.frmCtx
             switch textToSyntaxProofTable( 
                 ~wrkCtx=ctx, 
-                ~syms = [ctx->ctxIntsToSymsExn(st.asrt->Array.sliceToEnd(_, ~start=1))],
-                ~syntaxTypes = st.syntaxTypes, 
+                ~untypedSyms=[],
+                ~typedSyms = [ctx->ctxIntsToSymsExn(st.asrt)],
+                ~stmtTypeToSyntaxType = st.stmtTypeToSyntaxType, 
                 ~frms = st.frms,
                 ~frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax, 
                 ~parenCnt = st.parenCnt, 
-                ~lastSyntaxType=MM_cmp_user_stmt.getLastSyntaxType(),
-                ~onLastSyntaxTypeChange=MM_cmp_user_stmt.setLastSyntaxType,
             ) {
                 | Error(msg) => st->setSyntaxProofTableError(Some(msg))
                 | Ok(proofTables) => {
@@ -1055,7 +1055,7 @@ let make = React.memoCustomCompareProps(({
                                     <MM_cmp_pe_stmt
                                         modalRef
                                         ctx=state.frmCtx
-                                        syntaxTypes=state.syntaxTypes
+                                        stmtTypeToSyntaxType=state.stmtTypeToSyntaxType
                                         frms=state.frms
                                         frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax
                                         parenCnt=state.parenCnt
@@ -1077,7 +1077,7 @@ let make = React.memoCustomCompareProps(({
                         <MM_cmp_pe_stmt
                             modalRef
                             ctx=state.frmCtx
-                            syntaxTypes=state.syntaxTypes
+                            stmtTypeToSyntaxType=state.stmtTypeToSyntaxType
                             frms=state.frms
                             frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax
                             parenCnt=state.parenCnt
@@ -1296,7 +1296,7 @@ let make = React.memoCustomCompareProps(({
         <MM_cmp_pe_stmt
             modalRef
             ctx=state.frmCtx
-            syntaxTypes=state.syntaxTypes
+            stmtTypeToSyntaxType=state.stmtTypeToSyntaxType
             frms=state.frms
             frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax
             parenCnt=state.parenCnt

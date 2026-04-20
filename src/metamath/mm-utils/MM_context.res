@@ -112,6 +112,7 @@ type rec mmContextContents = {
     frames: Belt_HashMapString.t<frame>,
     mutable totalNumOfFrames:int,
     deprOrTranDeprFrms:Belt_HashSetString.t,
+    addInfoComments: array<string>,
     debug:bool,
 }
 
@@ -905,6 +906,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false):mmContext =
                 | Some(parentCtx) => parentCtx.totalNumOfFrames
             },
             deprOrTranDeprFrms: Belt_HashSetString.make(~hintSize=1),
+            addInfoComments: [],
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
@@ -926,6 +928,7 @@ let closeChildContext = (ctx:mmContext):unit => {
         | Some(parent) => {
             parent.lastComment = None
             parent.totalNumOfFrames = parent.totalNumOfFrames + childCtx.frames->Belt_HashMapString.size
+            parent.addInfoComments->Array.pushMany(childCtx.addInfoComments)
             childCtx.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
             childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(parent.deprOrTranDeprFrms->Belt_HashSetString.add)
             parent
@@ -945,6 +948,16 @@ let resetToParentContext = (ctx:mmContext):unit => {
 
 let addComment = (ctx:mmContext,str:string):unit => {
     ctx.contents.lastComment = Some(str)
+    let strTrim = str->String.trim
+    if (
+        strTrim->String.startsWith("$j ")
+        || strTrim->String.startsWith("$j\n")
+        || strTrim->String.startsWith("$j\r")
+        || strTrim->String.startsWith("$j\t")
+        || strTrim->String.startsWith("$j\f")
+    ) {
+        ctx.contents.addInfoComments->Array.push(strTrim->String.substringToEnd(~start=3))
+    }
 }
 
 let assertNameIsUnique = (ctx:mmContext,name:string,tokenType:string):unit => {
@@ -1519,6 +1532,7 @@ let rec ctxUpdate = (
     ctx:mmContextContents,
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
+    ~removeAddInfoComments:bool,
     ~frmUsageCounts:Belt_HashMapString.t<ref<int>>,
 ):(mmContextContents, mmContextContents) => {
     let update = ctx => {
@@ -1536,6 +1550,7 @@ let rec ctxUpdate = (
                 | Some(parent) => parent.totalNumOfFrames + ctx.frames->Belt_HashMapString.size
             },
             deprOrTranDeprFrms:Belt_HashSetString.make(~hintSize=0),
+            addInfoComments: if removeAddInfoComments {[]} else {ctx.addInfoComments}
         }
     }
 
@@ -1546,7 +1561,9 @@ let rec ctxUpdate = (
             (res, res)
         }
         | Some(parent) => {
-            let (newRoot, newParent) = ctxUpdate(parent, ~removeAsrtDescr, ~removeProofs, ~frmUsageCounts)
+            let (newRoot, newParent) = parent->ctxUpdate(
+                ~removeAsrtDescr, ~removeProofs, ~removeAddInfoComments, ~frmUsageCounts
+            )
             let res = {
                 ...update(ctx),
                 root: Some(newRoot),
@@ -1636,6 +1653,7 @@ let ctxOptimizeForProver = (
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
     ~updateUsageCntForFrames:bool,
+    ~removeAddInfoComments:bool,
 ):mmContext => {
     let frmUsageCounts:Belt_HashMapString.t<ref<int>> = if !updateUsageCntForFrames {
         Belt_HashMapString.make(~hintSize=0)
@@ -1659,7 +1677,7 @@ let ctxOptimizeForProver = (
         })
         cnts
     }
-    let (_,ctx) = ctx.contents->ctxUpdate( ~removeAsrtDescr, ~removeProofs, ~frmUsageCounts, )
+    let (_,ctx) = ctx.contents->ctxUpdate( ~removeAsrtDescr, ~removeProofs, ~removeAddInfoComments, ~frmUsageCounts, )
     let resCtx = ref(ctx)
     let {allConsts} = resCtx->ctxGetOptimizedConstsOrder(~parens)
     resCtx->moveConstsToBegin(resCtx->ctxSymsToIntsExn(allConsts))
@@ -1714,3 +1732,5 @@ let getLabelsDependingOn = (
     })
     res
 }
+
+let getAddInfoComments = (ctx:mmContext) => ctx.contents.addInfoComments

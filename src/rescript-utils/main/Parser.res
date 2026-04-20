@@ -63,6 +63,21 @@ let match = (matcher:'t=>option<'d>):parser<'t,'d> => inp => {
     }
 }
 
+let notL = (parser:()=>parser<'t, 'd>):parser<'t, 't> => inp => {
+    if (isEmpty(inp)) {
+        None
+    } else {
+        switch parser()(inp) {
+            | Some(_) => None
+            | None => Some({
+                tokens:inp.tokens, begin:inp.begin, end:inp.begin, data:inp.tokens->Array.getUnsafe(inp.begin)
+            })
+        }
+    }
+}
+
+let not_ = (parser:parser<'t, 'd>):parser<'t, 't> => notL(_=>parser)
+
 let repL = (parser:()=>parser<'t,'d>, ~minCnt:int=0, ~maxCnt:option<int>=?):parser<'t,array<'d>> => inp => {
     let parser = parser()
     let tokens = inp.tokens
@@ -159,6 +174,41 @@ let seq3 = ( parser1:parser<'t,'d1>, parser2:parser<'t,'d2>, parser3:parser<'t,'
     seq3L(()=>parser1, ()=>parser2, ()=>parser3)
 }
 
+let seq4L = (
+    parser1:()=>parser<'t,'d1>, 
+    parser2:()=>parser<'t,'d2>, 
+    parser3:()=>parser<'t,'d3>,
+    parser4:()=>parser<'t,'d4>,
+):parser<'t,('d1,'d2,'d3,'d4)> => {
+    seq2L(() => seq3L(parser1, parser2, parser3), parser4)->map((((d1,d2,d3),d4)) => (d1,d2,d3,d4))
+}
+
+let seq4 = (
+    parser1:parser<'t,'d1>, parser2:parser<'t,'d2>, parser3:parser<'t,'d3>, parser4:parser<'t,'d4>
+):parser<'t,('d1,'d2,'d3,'d4)> => {
+    seq4L(()=>parser1, ()=>parser2, ()=>parser3, ()=>parser4)
+}
+
+let seq5L = (
+    parser1:()=>parser<'t,'d1>, 
+    parser2:()=>parser<'t,'d2>, 
+    parser3:()=>parser<'t,'d3>,
+    parser4:()=>parser<'t,'d4>,
+    parser5:()=>parser<'t,'d5>,
+):parser<'t,('d1,'d2,'d3,'d4,'d5)> => {
+    seq2L(() => seq4L(parser1, parser2, parser3, parser4), parser5)->map((((d1,d2,d3,d4),d5)) => (d1,d2,d3,d4,d5))
+}
+
+let seq5 = (
+    parser1:parser<'t,'d1>,
+    parser2:parser<'t,'d2>,
+    parser3:parser<'t,'d3>,
+    parser4:parser<'t,'d4>,
+    parser5:parser<'t,'d5>
+):parser<'t,('d1,'d2,'d3,'d4,'d5)> => {
+    seq5L(()=>parser1, ()=>parser2, ()=>parser3, ()=>parser4, ()=>parser5)
+}
+
 let anyL = (parsers:array<()=>parser<'t,'d>>):parser<'t,'d> => inp => {
     parsers->Array.reduce(
         None,
@@ -217,4 +267,16 @@ let withCallbacks = (
             None
         }
     }
+}
+
+let inpToStr = (inp:parserInput<'t>, ~tokensToPrint:int, ~tokenSep:string):string => {
+    inp.tokens->Array.slice(~start=inp.begin, ~end=inp.begin+tokensToPrint)->Array.joinUnsafe(tokenSep)
+}
+
+let log = (parser:parser<'t,'d>, name:string, ~tokensToPrint:int=100, ~tokenSep:string=" "):parser<'t,'d> => {
+    parser->withCallbacks(
+        ~before=inp=>Console.log(`${name} trying: '${inpToStr(inp, ~tokensToPrint, ~tokenSep)}'`),
+        ~onSuccess=parsed=>Console.log(`${name} parsed: ${Expln_utils_common.stringify(parsed.data)}`),
+        ~onFail=inp=>Console.log(`${name} failed: '${inpToStr(inp, ~tokensToPrint, ~tokenSep)}'`),
+    )
 }

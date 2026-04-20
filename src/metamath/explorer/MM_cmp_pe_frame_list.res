@@ -21,7 +21,7 @@ type props = {
     symColors: Belt_HashMapString.t<string>,
     frms: frms,
     parenCnt: parenCnt,
-    syntaxTypes:array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
 
     labels:array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,
@@ -52,7 +52,7 @@ let make = React.memoCustomCompareProps(({
     settings,
     preCtx,
     symColors,
-    syntaxTypes,
+    stmtTypeToSyntaxType,
     typeOrderInDisj,
     frms,
     parenCnt,
@@ -127,7 +127,7 @@ let make = React.memoCustomCompareProps(({
                     settings
                     preCtx
                     symColors
-                    syntaxTypes
+                    stmtTypeToSyntaxType
                     frms
                     parenCnt
                     frame

@@ -18,7 +18,7 @@ let doBuildSyntaxTreesForAllAssertions: (
   ~frms: MM_substitution.frms,
   ~parenCnt: MM_parenCounter.parenCnt,
   ~allowedFrmsInSyntax:MM_wrk_settings.frameRestrict,
-  ~syntaxTypes: array<int>,
+  ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
   ~onProgress: float => unit=?,
 ) => array<(string, MM_syntax_tree.syntaxTreeNode)>
 

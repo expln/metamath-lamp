@@ -782,8 +782,9 @@ let proveSyntaxTypes = (
     ~frms: option<frms>=?,
     ~frameRestrict:frameRestrict,
     ~parenCnt: option<parenCnt>=?,
-    ~exprs: array<expr>,
-    ~syntaxTypes: array<int>,
+    ~untypedExprs: array<expr>,
+    ~typedExprs: array<expr>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~onProgress:option<float=>unit>=?
 ):proofTree => {
     if (
@@ -794,6 +795,7 @@ let proveSyntaxTypes = (
     }
 
     let progressState = progressTrackerMake( ~step=0.01, ~onProgress? )
+    let numOfExprsToProcess = untypedExprs->Array.length + typedExprs->Array.length
 
     let tree = switch proofTree {
         | Some(tree) => tree
@@ -805,13 +807,14 @@ let proveSyntaxTypes = (
             )
         }
     }
-    if (syntaxTypes->Array.length == 0) {
-        tree
-    } else {
-        let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
-        let lastType = ref(syntaxTypes->Array.getUnsafe(0))
-        for ei in 0 to exprs->Array.length-1 {
-            let expr = exprs->Array.getUnsafe(ei)
+    let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
+
+    //process untyped expressions
+    let defaultSyntaxTypes: array<int> = stmtTypeToSyntaxType->Belt_HashMapInt.get(0)->Option.getOr([])
+    if (defaultSyntaxTypes->Array.length != 0) {
+        let lastType = ref(defaultSyntaxTypes->Array.getUnsafe(0))
+        for ei in 0 to untypedExprs->Array.length-1 {
+            let expr = untypedExprs->Array.getUnsafe(ei)
             let node = ref(tree->ptGetNode([lastType.contents]->Array.concat(expr)))
             proveFloating( 
                 ~tree, 
@@ -820,8 +823,8 @@ let proveSyntaxTypes = (
                 ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
             )
             let ti = ref(0)
-            while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Array.length ) {
-                let typ = syntaxTypes->Array.getUnsafe(ti.contents)
+            while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < defaultSyntaxTypes->Array.length ) {
+                let typ = defaultSyntaxTypes->Array.getUnsafe(ti.contents)
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
                     node := tree->ptGetNode([typ]->Array.concat(expr))
@@ -841,12 +844,42 @@ let proveSyntaxTypes = (
                 }
             }
             progressState->progressTrackerSetCurrPct( 
-                (ei+1)->Belt_Int.toFloat /. exprs->Array.length->Belt_Int.toFloat
+                (ei+1)->Belt_Int.toFloat /. numOfExprsToProcess->Belt_Int.toFloat
             )
         }
-
-        tree
     }
+
+    //process typed expressions
+    for ei in 0 to typedExprs->Array.length-1 {
+        let typedExpr = typedExprs->Array.getUnsafe(ei)
+        let stmtType = typedExpr->Array.getUnsafe(0)
+        let syntaxTypes: array<int> = stmtTypeToSyntaxType->Belt_HashMapInt.get(stmtType)->Option.getOr(defaultSyntaxTypes)
+        if (syntaxTypes->Array.length != 0) {
+            let expr = typedExpr->Array.sliceToEnd(~start=1)
+            let node = ref(tree->ptGetNode([syntaxTypes->Array.getUnsafe(0)]->Array.concat(expr)))
+            let ti = ref(0)
+            while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Array.length) {
+                let typ = syntaxTypes->Array.getUnsafe(ti.contents)
+                ti := ti.contents + 1
+                node := tree->ptGetNode([typ]->Array.concat(expr))
+                proveFloating( 
+                    ~tree, 
+                    ~node=node.contents, 
+                    ~frameRestrict,
+                    ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
+                )
+            }
+            switch node.contents->pnGetProof {
+                | None => ()
+                | Some(_) => tree->ptAddSyntaxProof(typedExpr, node.contents)
+            }
+            progressState->progressTrackerSetCurrPct( 
+                (untypedExprs->Array.length+ei+1)->Belt_Int.toFloat /. numOfExprsToProcess->Belt_Int.toFloat
+            )
+        }
+    }
+
+    tree
 }
 
 let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => {
@@ -867,8 +900,8 @@ let unifyAll = (
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
-    ~syntaxTypes:option<array<int>>=?,
-    ~exprsToSyntaxCheck:option<array<expr>>=?,
+    ~typedExprsToSyntaxCheck:option<array<expr>>=?,
+    ~stmtTypeToSyntaxType: option<Belt_HashMapInt.t<array<int>>>=?,
     ~debugLevel:int=0,
     ~onProgress:option<string=>unit>=?
 ):proofTree => {
@@ -887,23 +920,22 @@ let unifyAll = (
         ~parenCnt,
     )
 
-    switch syntaxTypes {
+    switch stmtTypeToSyntaxType {
         | None => ()
-        | Some(syntaxTypes) => {
-            if (syntaxTypes->Array.length > 0) {
-                switch exprsToSyntaxCheck {
-                    | None => ()
-                    | Some(exprsToSyntaxCheck) => {
-                        proveSyntaxTypes(
-                            ~proofTree=tree,
-                            ~syntaxTypes,
-                            ~exprs=exprsToSyntaxCheck,
-                            ~frameRestrict = allowedFrms.inSyntax,
-                            ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
-                                pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
-                            })
-                        )->ignore
-                    }
+        | Some(stmtTypeToSyntaxType) => {
+            switch typedExprsToSyntaxCheck {
+                | None => ()
+                | Some(typedExprsToSyntaxCheck) => {
+                    proveSyntaxTypes(
+                        ~proofTree=tree,
+                        ~untypedExprs=[],
+                        ~typedExprs=typedExprsToSyntaxCheck,
+                        ~stmtTypeToSyntaxType,
+                        ~frameRestrict = allowedFrms.inSyntax,
+                        ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
+                            pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
+                        })
+                    )->ignore
                 }
             }
         }

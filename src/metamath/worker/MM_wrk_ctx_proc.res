@@ -48,7 +48,7 @@ type wrkPrecalcData = {
     wrkParenCnt: parenCnt,
     wrkCtx: mmContext,
     allFramesInDeclarationOrder: array<frame>,
-    syntaxTypes: array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
 }
 
 let wrkPrecalcData = ref(None)
@@ -88,10 +88,10 @@ let getAllFramesInDeclarationOrderExn = () => {
     }
 }
 
-let getSyntaxTypesExn = ():array<int> => {
+let getStmtTypeToSyntaxTypeExn = ():Belt_HashMapInt.t<array<int>> => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`syntaxTypes are not created in the worker thread.`}))
-        | Some({syntaxTypes}) => syntaxTypes
+        | None => raise(MmException({msg:`stmtTypeToSyntaxType are not created in the worker thread.`}))
+        | Some({stmtTypeToSyntaxType}) => stmtTypeToSyntaxType
     }
 }
 
@@ -124,10 +124,10 @@ let allFramesInDeclarationOrderCache = cacheMake(
     ~depVerEq = (ctxV1,ctxV2) => ctxV1 == ctxV2
 )
 
-let syntaxTypesCache = cacheMake(
+let stmtTypeToSyntaxTypeCache = cacheMake(
     ~recalc = ctx => {
-        let (_,syntaxTypes) = findTypes(ctx)
-        syntaxTypes
+        let (_,stmtTypeToSyntaxType) = findTypes(ctx)
+        stmtTypeToSyntaxType
     },
     ~depVerEq = (ctxV1,ctxV2) => ctxV1 == ctxV2
 )
@@ -155,7 +155,7 @@ let makeWrkPrecalcData = (
                                 wrkCtx,
                                 allFramesInDeclarationOrder:
                                     allFramesInDeclarationOrderCache->cacheGet(preCtxVer, wrkFrms),
-                                syntaxTypes: syntaxTypesCache->cacheGet(preCtxVer, preCtx),
+                                stmtTypeToSyntaxType: stmtTypeToSyntaxTypeCache->cacheGet(preCtxVer, preCtx),
                             })
                         }
                     }

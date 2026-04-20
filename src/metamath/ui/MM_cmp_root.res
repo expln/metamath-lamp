@@ -35,6 +35,7 @@ type tabData =
         initReferencedByTranFilter:bool,
     })
     | ExplorerFrame({label:string})
+    | DbInfo
 
 type state = {
     preCtxData:preCtxData,
@@ -205,7 +206,7 @@ let getNewEditorId = (~existingTabs: array<Expln_React_UseTabs.tab<'a>>):int => 
     existingTabs->Array.forEach(t => {
         switch t.data {
             | Editor({editorId}) => existingIds->Array.push(editorId)
-            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => ()
+            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => ()
         }
     })
     let newId = ref(0)
@@ -249,7 +250,7 @@ let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a
     existingTabs->Array.forEach(tab => {
         switch tab.data {
             | Editor({editorId}) => editorsOrder->Array.push({editorId:editorId})
-            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => ()
+            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => ()
         }
     })
     saveEditorsOrderToLocStor(editorsOrder)
@@ -266,7 +267,7 @@ let make = () => {
     let beforeTabRemove = (tab:Expln_React_UseTabs.tab<'a>) => {
         switch tab.data {
             | Settings | TabsManager => Promise.resolve(false)
-            | ExplorerIndex(_) | ExplorerFrame(_) => Promise.resolve(true)
+            | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => Promise.resolve(true)
             | Editor({editorId}) => {
                 openOkCancelDialog(
                     ~modalRef, 
@@ -465,6 +466,18 @@ let make = () => {
         })
     }
 
+    let actOpenDbInfo = ():unit => {
+        updateTabs(tabsSt => {
+            let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
+                ~label="DB Info",
+                ~closable=true, 
+                ~data=DbInfo, 
+                ~doOpen=true
+            )
+            tabsSt
+        })
+    }
+
     let setTabTitle = (
         ~editorStateLocStor:MM_wrk_editor_json.editorStateLocStor,
         ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
@@ -624,6 +637,7 @@ let make = () => {
                             onTabClose=actCloseTab
                             onOpenEditor={()=>actOpenEditor()}
                             onOpenExplorer={()=>actOpenExplorer()}
+                            onOpenDbInfo={()=>actOpenDbInfo()}
                         />
                     | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle}) => 
                         <MM_cmp_editor
@@ -676,6 +690,7 @@ let make = () => {
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
+                    | DbInfo => <MM_cmp_db_info preCtxData=state.preCtxData />
                 }
             }
         </div>

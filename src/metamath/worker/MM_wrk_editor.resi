@@ -261,24 +261,22 @@ let renumberHypothesisSteps: (editorState, ~goalLabel:string) => result<editorSt
 
 let textToSyntaxProofTable: (
     ~wrkCtx:mmContext,
-    ~syms:array<array<string>>,
-    ~syntaxTypes:array<int>,
+    ~untypedSyms:array<array<string>>,
+    ~typedSyms:array<array<string>>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
 ) => result<array<result<MM_proof_table.proofTable,string>>,string>
 
 let textToSyntaxTree: (
     ~wrkCtx:mmContext,
-    ~syms:array<array<string>>,
-    ~syntaxTypes:array<int>,
+    ~untypedSyms:array<array<string>>,
+    ~typedSyms:array<array<string>>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
 ) => result<array<result<syntaxTreeNode,string>>,string>
 
 let recalcWrkColors: editorState => editorState

@@ -28,7 +28,7 @@ type preCtxData = {
     frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
-    syntaxTypes:array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
     typeColors: Belt_HashMapString.t<string>,
@@ -44,6 +44,6 @@ let preCtxDataUpdate: (
     ~ctx: (array<mmCtxSrcDto>, mmContext)=?,
 ) => preCtxData
 
-let findTypes: mmContext => (array<int>,array<int>)
+let findTypes: mmContext => (array<int>,Belt_HashMapInt.t<array<int>>)
 
 let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>

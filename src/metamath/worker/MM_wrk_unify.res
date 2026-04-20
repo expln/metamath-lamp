@@ -18,8 +18,8 @@ type request =
         bottomUpProverParams:option<bottomUpProverParams>,
         allowedFrms:allowedFrms,
         combCntMax:int,
-        syntaxTypes:option<array<int>>,
-        exprsToSyntaxCheck:option<array<expr>>,
+        stmtTypeToSyntaxType:option<Belt_HashMapInt.t<array<int>>>,
+        typedExprsToSyntaxCheck:option<array<expr>>,
         debugLevel:int,
     })
 
@@ -68,8 +68,8 @@ let unify = (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
-    ~syntaxTypes:option<array<int>>,
-    ~exprsToSyntaxCheck:option<array<expr>>,
+    ~typedExprsToSyntaxCheck:option<array<expr>>,
+    ~stmtTypeToSyntaxType:option<Belt_HashMapInt.t<array<int>>>,
     ~debugLevel:int,
     ~onProgress:string=>unit,
 ): promise<result<proofTreeDto,string>> => {
@@ -87,8 +87,8 @@ let unify = (
                 bottomUpProverParams, 
                 allowedFrms,
                 combCntMax:settings.combCntMax,
-                syntaxTypes,
-                exprsToSyntaxCheck,
+                stmtTypeToSyntaxType,
+                typedExprsToSyntaxCheck,
                 debugLevel,
             }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
@@ -162,7 +162,7 @@ let parseFunc = (funcStr:string):result<'a,string> => {
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
+        | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, stmtTypeToSyntaxType, typedExprsToSyntaxCheck, debugLevel}) => {
             let bottomUpProverParams:result<option<bottomUpProverParams>,string> = switch bottomUpProverParams {
                 | None => Ok(None)
                 | Some(bottomUpProverParams) => {
@@ -196,8 +196,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         ~bottomUpProverParams?,
                         ~allowedFrms,
                         ~combCntMax,
-                        ~syntaxTypes?, 
-                        ~exprsToSyntaxCheck?,
+                        ~typedExprsToSyntaxCheck?,
+                        ~stmtTypeToSyntaxType?, 
                         ~debugLevel,
                         ~onProgress = msg => sendToClient(OnProgress(msg))
                     )

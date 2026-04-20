@@ -170,7 +170,7 @@ let make = (
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
             parenCnt=state.preCtxData.parenCnt
-            syntaxTypes=state.preCtxData.syntaxTypes
+            stmtTypeToSyntaxType=state.preCtxData.stmtTypeToSyntaxType
             parensMap=state.preCtxData.parensMap
             stmt
             typeColors=state.preCtxData.typeColors

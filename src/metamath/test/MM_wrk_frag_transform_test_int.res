@@ -49,13 +49,14 @@ let testTransform = (
     let wrkCtx = editorState.wrkCtx->Belt.Option.getExn
     let syntaxTree = MM_wrk_editor.textToSyntaxTree(
         ~wrkCtx,
-        ~syms=[selectedFragment->getSpaceSeparatedValuesAsArray],
-        ~syntaxTypes=["wff", "class", "setvar"]->Array.map(ctxSymToIntExn(wrkCtx, _)),
+        ~untypedSyms=[selectedFragment->getSpaceSeparatedValuesAsArray],
+        ~typedSyms=[],
+        ~stmtTypeToSyntaxType=Belt_HashMapInt.fromArray([
+            (0, ["wff", "class", "setvar"]->Array.map(ctxSymToIntExn(wrkCtx, _)))
+        ]),
         ~frms=editorState.preCtxData.frms,
         ~frameRestrict=editorState.preCtxData.settingsV.val.allowedFrms.inSyntax,
         ~parenCnt=editorState.preCtxData.parenCnt,
-        ~lastSyntaxType=None,
-        ~onLastSyntaxTypeChange=_=>(),
     )
     let syntaxTreeNode = switch syntaxTree {
         | Ok([Ok(syntaxTreeNode)]) => syntaxTreeNode

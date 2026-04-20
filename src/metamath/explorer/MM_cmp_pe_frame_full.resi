@@ -19,7 +19,7 @@ type state = {
     frmCtx: MM_context.mmContext,
     frms: MM_substitution.frms,
     parenCnt: MM_parenCounter.parenCnt,
-    syntaxTypes: array<int>,
+    stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     typeOrderInDisj: Belt_HashMapInt.t<int>,
     frame: MM_context.frame,
     disjStr: option<array<array<(string, option<string>)>>>,

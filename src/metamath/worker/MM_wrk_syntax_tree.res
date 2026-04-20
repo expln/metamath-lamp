@@ -66,7 +66,7 @@ let doBuildSyntaxTreesForAllAssertions = (
     ~frms:frms,
     ~parenCnt:parenCnt,
     ~allowedFrmsInSyntax:frameRestrict,
-    ~syntaxTypes:array<int>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~onProgress:option<float=>unit>=?,
 ):array<(string,syntaxTreeNode)> => {
     let ctx = createContext(~parent=ctx)
@@ -107,7 +107,6 @@ let doBuildSyntaxTreesForAllAssertions = (
     })->ignore
     let exprsToSyntaxProve = asrtExprsWithCtxVars->Belt_HashMapString.valuesToArray
         ->Expln_utils_common.sortInPlaceWith(comparatorByInt(Array.length(_))->cmpRev)
-        ->Array.map(expr => expr->Array.sliceToEnd(~start=1))
 
     // let asrtExprStr = asrtExprsWithCtxVars->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
     // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
@@ -117,8 +116,9 @@ let doBuildSyntaxTreesForAllAssertions = (
         ~frms,
         ~frameRestrict=allowedFrmsInSyntax,
         ~parenCnt,
-        ~exprs=exprsToSyntaxProve,
-        ~syntaxTypes,
+        ~untypedExprs=[],
+        ~typedExprs=exprsToSyntaxProve,
+        ~stmtTypeToSyntaxType,
         ~onProgress?,
     )
 
@@ -164,7 +164,7 @@ let doBuildSyntaxTreesForAllAssertions = (
         switch asrtExprsWithCtxVars->Belt_HashMapString.get(frame.label) {
             | None => ()
             | Some(asrtExprWithCtxVars) => {
-                switch proofTree->ptGetSyntaxProof(asrtExprWithCtxVars->Array.sliceToEnd(~start=1)) {
+                switch proofTree->ptGetSyntaxProof(asrtExprWithCtxVars) {
                     | None => ()
                     | Some(proofNode) => {
                         switch MM_asrt_syntax_tree.buildSyntaxTree(
@@ -195,7 +195,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                     ~frms=getWrkFrmsExn(),
                     ~parenCnt=getWrkParenCntExn(),
                     ~allowedFrmsInSyntax=getSettingsExn().allowedFrms.inSyntax,
-                    ~syntaxTypes=getSyntaxTypesExn(),
+                    ~stmtTypeToSyntaxType=getStmtTypeToSyntaxTypeExn(),
                     ~onProgress = pct => sendToClient(OnProgress(pct))
                 )
             ))

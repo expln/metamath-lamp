@@ -54,7 +54,7 @@ let buildSyntaxTreeForTest = (
     let ctx = ctxUpdate->Belt_Option.map(update => update(ctx))->Belt.Option.getWithDefault(ctx)
     let parens = "( ) { } [ ]"
     let ctx = ctx->ctxOptimizeForProver(
-        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~updateUsageCntForFrames=false
+        ~parens, ~removeAsrtDescr=true, ~removeProofs=true, ~removeAddInfoComments=true, ~updateUsageCntForFrames=false
     )
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let expr = exprStr->Array.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))

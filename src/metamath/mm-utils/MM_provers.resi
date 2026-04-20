@@ -21,8 +21,9 @@ let proveSyntaxTypes: (
     ~frms:frms=?,
     ~frameRestrict:frameRestrict,
     ~parenCnt:parenCnt=?,
-    ~exprs: array<expr>,
-    ~syntaxTypes: array<int>,
+    ~untypedExprs: array<expr>,
+    ~typedExprs: array<expr>,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~onProgress:float=>unit=?
 ) => proofTree
 
@@ -35,8 +36,8 @@ let unifyAll: (
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
-    ~syntaxTypes:array<int>=?,
-    ~exprsToSyntaxCheck:array<expr>=?,
+    ~typedExprsToSyntaxCheck:array<expr>=?,
+    ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>=?,
     ~debugLevel:int=?,
     ~onProgress: string=>unit=?,
 ) => proofTree
