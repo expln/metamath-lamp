@@ -1,12 +1,10 @@
 open MM_context
-open Expln_React_Modal
 open MM_wrk_pre_ctx_data
 open Common
 open Expln_React_Mui
 open Expln_React_common
 
 type props = {
-    modalRef:modalRef,
     preCtxData:preCtxData,
 }
 
@@ -15,7 +13,6 @@ let propsAreSame = (a:props, b:props):bool => {
 }
 
 let make = React.memoCustomCompareProps(({
-    modalRef,
     preCtxData,
 }:props) => {
     let ctx = preCtxData.ctxV.val.full

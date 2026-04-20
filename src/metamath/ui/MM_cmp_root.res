@@ -690,7 +690,7 @@ let make = () => {
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
-                    | DbInfo => <MM_cmp_db_info modalRef preCtxData=state.preCtxData />
+                    | DbInfo => <MM_cmp_db_info preCtxData=state.preCtxData />
                 }
             }
         </div>
