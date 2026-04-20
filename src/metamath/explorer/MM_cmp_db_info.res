@@ -22,7 +22,7 @@ let make = React.memoCustomCompareProps(({
 
     let monospaceFontStyle = ReactDOM.Style.make(
         ~fontFamily="monospace",
-        ~fontSize="1.08em",
+        ~fontSize="1.05em",
         ()
     )
     let baseTableStyle = ReactDOM.Style.make(
@@ -53,7 +53,7 @@ let make = React.memoCustomCompareProps(({
             ctx->getAllConsts->Array.toSorted(String.compare)
                 ->Array.map(const => 
                     <span key=const 
-                        style=ReactDOM.Style.make(~marginRight="10px",~fontFamily="monospace",~fontSize="1.2em",())
+                        style=ReactDOM.Style.make(~marginRight="10px",~fontFamily="monospace",~fontSize="1.1em",())
                     >
                         {(const++" ")->React.string}
                     </span>
@@ -111,7 +111,7 @@ let make = React.memoCustomCompareProps(({
             ->Array.map(ctxIntToSymExn(ctx, _))->Array.toSorted(String.compare)
         let defaultTypesElem = defaultTypes->Array.map(typ => 
             <span key=typ 
-                style=ReactDOM.Style.make(~marginLeft="10px",~fontFamily="monospace",~fontSize="1.2em",())
+                style=ReactDOM.Style.make(~marginLeft="10px",~fontFamily="monospace",~fontSize="1.15em",())
             >
                 {(" "++typ)->React.string}
             </span>
