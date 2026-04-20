@@ -3,6 +3,7 @@ open Expln_React_Modal
 open MM_wrk_pre_ctx_data
 open Common
 open Expln_React_Mui
+open Expln_React_common
 
 type props = {
     modalRef:modalRef,
@@ -17,6 +18,8 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
 }:props) => {
+    let ctx = preCtxData.ctxV.val.full
+
     let baseStyle = ReactDOM.Style.make(
         ~borderCollapse="collapse", 
         ~border="1px solid black", 
@@ -29,8 +32,18 @@ let make = React.memoCustomCompareProps(({
     let rowStyle = baseStyle
     let tableStyle = baseStyle
 
+    let rndSection = (title: string, content: reElem):reElem => {
+        <Accordion slotProps={{ "transition": { "timeout": 50 } }}>
+            <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} >
+                {title->React.string}
+            </AccordionSummaryStyled>
+            <AccordionDetails>
+                content
+            </AccordionDetails>
+        </Accordion>
+    }
+
     let rndVariables = () => {
-        let ctx = preCtxData.ctxV.val.full
         let typToVars = Belt_HashMapInt.make(~hintSize=10)
         ctx->getAllHyps->Belt_MapString.forEach((_,hyp) => {
             if (hyp.typ == F) {
@@ -51,37 +64,32 @@ let make = React.memoCustomCompareProps(({
                     )->React.array
             )
         })->Array.toSorted(((a,_),(b,_)) => String.compare(a,b))
-        <Accordion>
-            <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} >
-                {"Variables"->React.string}
-            </AccordionSummaryStyled>
-            <AccordionDetails>
-                <table style=tableStyle>
-                    <thead>
-                        <tr style=rowStyle>
-                            <th style=tdStyle>{"Type"->React.string}</th>
-                            <th style=tdStyle>{"Variables"->React.string}</th>
+        rndSection(
+            "Variables",
+            <table style=tableStyle>
+                <thead>
+                    <tr style=rowStyle>
+                        <th style=tdStyle>{"Type"->React.string}</th>
+                        <th style=tdStyle>{"Variables"->React.string}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {
+                    allVariables->Array.mapWithIndex(((typ,vars),idx) => {
+                        <tr key={idx->Int.toString} style=rowStyle>
+                            <td style=tdStyle>{typ->React.string}</td>
+                            <td style=tdStyle>vars</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                    {
-                        allVariables->Array.mapWithIndex(((typ,vars),idx) => {
-                            <tr key={idx->Int.toString} style=rowStyle>
-                                <td style=tdStyle>{typ->React.string}</td>
-                                <td style=tdStyle>vars</td>
-                            </tr>
-                        })->React.array
-                    }
-                    </tbody>
-                </table>
-            </AccordionDetails>
-        </Accordion>
+                    })->React.array
+                }
+                </tbody>
+            </table>
+        )
     }
 
     let rndSyntaxTypes = () => {
-        let ctx = preCtxData.ctxV.val.full
         let defaultTypes = preCtxData.stmtTypeToSyntaxType->Belt_HashMapInt.get(0)
-            ->Option.getExn
+            ->Option.getOr([])
             ->Array.map(ctxIntToSymExn(ctx, _))->Array.toSorted(String.compare)
         let defaultTypesElem = defaultTypes->Array.map(typ => (typ++" ")->React.string)->React.array
         let stmtTypeToSyntaxType = preCtxData.stmtTypeToSyntaxType->Belt_HashMapInt.toArray
@@ -93,11 +101,8 @@ let make = React.memoCustomCompareProps(({
                         ->Array.map(syntaxType => (syntaxType++" ")->React.string)->React.array
                 )
             })->Array.toSorted(((a,_),(b,_)) => String.compare(a,b))
-        <Accordion>
-            <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} >
-                {"Syntax Types"->React.string}
-            </AccordionSummaryStyled>
-            <AccordionDetails>
+        rndSection(
+            "Syntax Types",
             <Col>
                 {
                     if (stmtTypeToSyntaxType->Array.length > 0) {
@@ -134,25 +139,14 @@ let make = React.memoCustomCompareProps(({
                     }
                 }
             </Col>
-            </AccordionDetails>
-        </Accordion>
+        )
     }
 
     let rndAddComments = () => {
-        <Accordion>
-            <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} >
-                {"Additional Information Comments"->React.string}
-            </AccordionSummaryStyled>
-            <AccordionDetails>
-                <pre>
-                    {
-                        (
-                            preCtxData.ctxV.val.full->getAddInfoComments->Array.join("\n\n")
-                        )->React.string
-                    }
-                </pre>
-            </AccordionDetails>
-        </Accordion>
+        rndSection(
+            "Additional Information Comments",
+            <pre> { ctx->getAddInfoComments->Array.join("\n\n")->React.string } </pre>
+        )
     }
 
     <>
