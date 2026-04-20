@@ -20,17 +20,21 @@ let make = React.memoCustomCompareProps(({
 }:props) => {
     let ctx = preCtxData.ctxV.val.full
 
-    let baseStyle = ReactDOM.Style.make(
+    let monospaceFontStyle = ReactDOM.Style.make(
+        ~fontFamily="monospace",
+        ~fontSize="1.08em",
+        ()
+    )
+    let baseTableStyle = ReactDOM.Style.make(
         ~borderCollapse="collapse", 
         ~border="1px solid black", 
         ~padding="5px",
         ~verticalAlign="verticalAlign",
-        ~fontFamily="monospace",
         ()
     )
-    let tdStyle = baseStyle
-    let rowStyle = baseStyle
-    let tableStyle = baseStyle
+    let tdStyle = ReactDOM.Style.combine(baseTableStyle, monospaceFontStyle)
+    let rowStyle = tdStyle
+    let tableStyle = tdStyle
 
     let rndSection = (title: string, content: reElem):reElem => {
         <Accordion slotProps={{ "transition": { "timeout": 50 } }}>
@@ -41,6 +45,20 @@ let make = React.memoCustomCompareProps(({
                 content
             </AccordionDetails>
         </Accordion>
+    }
+
+    let rndConstants = () => {
+        rndSection(
+            "Constants",
+            ctx->getAllConsts->Array.toSorted(String.compare)
+                ->Array.map(const => 
+                    <span key=const 
+                        style=ReactDOM.Style.make(~marginRight="10px",~fontFamily="monospace",~fontSize="1.2em",())
+                    >
+                        {(const++" ")->React.string}
+                    </span>
+                )->React.array
+        )
     }
 
     let rndVariables = () => {
@@ -91,7 +109,13 @@ let make = React.memoCustomCompareProps(({
         let defaultTypes = preCtxData.stmtTypeToSyntaxType->Belt_HashMapInt.get(0)
             ->Option.getOr([])
             ->Array.map(ctxIntToSymExn(ctx, _))->Array.toSorted(String.compare)
-        let defaultTypesElem = defaultTypes->Array.map(typ => (typ++" ")->React.string)->React.array
+        let defaultTypesElem = defaultTypes->Array.map(typ => 
+            <span key=typ 
+                style=ReactDOM.Style.make(~marginLeft="10px",~fontFamily="monospace",~fontSize="1.2em",())
+            >
+                {(" "++typ)->React.string}
+            </span>
+        )->React.array
         let stmtTypeToSyntaxType = preCtxData.stmtTypeToSyntaxType->Belt_HashMapInt.toArray
             ->Array.filter(((typ,_)) => typ != 0)
             ->Array.map(((stmtType,syntaxTypes)) => {
@@ -150,6 +174,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     <>
+        {rndConstants()}
         {rndVariables()}
         {rndSyntaxTypes()}
         {rndAddComments()}
