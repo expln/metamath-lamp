@@ -10,9 +10,15 @@ type userStmtLocStor = {
     jstfText: string,
 }
 
+type locationLocStor = {
+    place: string,
+    label: string,
+}
+
 type editorStateLocStor = {
     tabTitle: string,
     srcs: array<mmCtxSrcDto>,
+    loc: locationLocStor,
     descr: string,
     varsText: string,
     disjText: string,
@@ -53,6 +59,7 @@ let makeEmptyEditorStateLocStor = (~tabTitle:option<string>=?):editorStateLocSto
     {
         tabTitle: tabTitle->Option.getOr(""),
         srcs: [],
+        loc: {place: locationToPlaceStr(Last), label: ""},
         descr: "",
         varsText: "",
         disjText: "",
@@ -69,10 +76,17 @@ let createInitialEditorState = (
         | Some(stateLocStor) => stateLocStor
         | None => makeEmptyEditorStateLocStor()
     }
+    let loc = makeLocation(~place=stateLocStor.loc.place, ~label=stateLocStor.loc.label)
+    let (maxFrmOrd, locErr) = getMaxFrmOrd(preCtxData, loc)
     let st = {
         preCtxData:preCtxData,
 
         tabTitle: stateLocStor.tabTitle,
+
+        loc: makeLocation(~place=stateLocStor.loc.place, ~label=stateLocStor.loc.label),
+        locEditMode: false,
+        locErr,
+        maxFrmOrd,
 
         descr: stateLocStor.descr,
         descrEditMode: false,
@@ -108,6 +122,7 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
     {
         srcs: state.preCtxData.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
         tabTitle:state.tabTitle,
+        loc: { place: locationToPlaceStr(state.loc), label: locationToLabel(state.loc) },
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
@@ -169,6 +184,12 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                 }
             }), ~default=()=>[]),
             tabTitle: d->str("tabTitle", ~default=()=>""),
+            loc: d->obj("loc", d =>{
+                {
+                    place: d->str("place", ~default=()=>locationToPlaceStr(Last)),
+                    label: d->str("label", ~default=()=>""),
+                }
+            }, ~default=()=>{place:locationToPlaceStr(Last), label:""}),
             descr: d->str("descr", ~default=()=>""),
             varsText: d->str("varsText", ~default=()=>""),
             disjText: d->str("disjText", ~default=()=>""),

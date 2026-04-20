@@ -666,6 +666,7 @@ let frameProofDataToEditorStateLocStor = (
     {
         tabTitle: frameProofData.frame.label,
         srcs,
+        loc:{place:locationToPlaceStr(Before("")), label:frameProofData.frame.label},
         descr: frameProofData.frame.descr->Belt.Option.getWithDefault(""),
         varsText: vars->Array.joinUnsafe("\n"),
         disjText: disjArr->Array.joinUnsafe("\n"),

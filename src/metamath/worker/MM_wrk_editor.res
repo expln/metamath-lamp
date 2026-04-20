@@ -26,6 +26,55 @@ type mmFileSource =
     | Local({fileName:string})
     | Web(webSource)
 
+type location = 
+    | Before(string)
+    | After(string)
+    | Last
+
+let locationToPlaceStr = (loc:location):string => {
+    switch loc {
+        | Before(_) => "before"
+        | After(_) => "after"
+        | Last => "last"
+    }
+}
+
+let locationToLabel = (loc:location):string => {
+    switch loc {
+        | Before(label) | After(label) => label
+        | Last => ""
+    }
+}
+
+let makeLocation = (~place:string, ~label:string): location => {
+    switch place {
+        | "before" => Before(label)
+        | "after" => After(label)
+        | _ => Last
+    }
+}
+
+let getMaxFrmOrd = (preCtxData:preCtxData, loc:location):(int,option<string>) => {
+    let frm = switch loc {
+        | Before(label) | After(label) => preCtxData.frms->frmsGetByLabel(label)
+        | Last => None
+    }
+    let locErr = switch loc {
+        | Before(label) | After(label) => 
+            frm->Option.isNone ? Some(`Cannot find an assertion with label ${label}`) : None
+        | Last => None
+    }
+    let maxFrmOrd = switch loc {
+        | Before(_) => frm->Option.map(frm=>frm.frame.ord-1)->Option.getOr(-1)
+        | After(_) => frm->Option.map(frm=>frm.frame.ord)->Option.getOr(-1)
+        | Last => preCtxData.frms->frmsSize-1
+    }
+    switch locErr {
+        | None => (maxFrmOrd, None)
+        | Some(msg) => (-1, Some(msg))
+    }
+}
+
 type stmtSym = {
     sym: string,
     color: option<string>,
@@ -219,6 +268,11 @@ type editorState = {
     preCtxData:preCtxData,
 
     tabTitle: string,
+
+    loc: location,
+    locEditMode: bool,
+    locErr: option<string>,
+    maxFrmOrd: int,
 
     descr: string,
     descrEditMode: bool,
@@ -695,6 +749,13 @@ let canGoEditModeForStmt = (st:editorState,stmtId) => {
     ))
 }
 
+let setLocEditMode = st => {
+    {
+        ...st,
+        locEditMode: true
+    }
+}
+
 let setDescrEditMode = st => {
     {
         ...st,
@@ -852,6 +913,17 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
     st
 }
 
+let completeLocEditMode = (st, newLoc:location):editorState => {
+    let (maxFrmOrd, locErr) = getMaxFrmOrd(st.preCtxData, newLoc)
+    {
+        ...st,
+        loc:newLoc,
+        locEditMode: false,
+        locErr,
+        maxFrmOrd
+    }
+}
+
 let completeDescrEditMode = (st, newDescr) => {
     {
         ...st,
@@ -936,7 +1008,7 @@ let removeAllTempData = st => {
 }
 
 let isEditMode = (st:editorState): bool => {
-    st.descrEditMode || st.varsEditMode || st.disjEditMode ||
+    st.locEditMode || st.descrEditMode || st.varsEditMode || st.disjEditMode ||
         st.stmts->Array.some(stmt => 
             stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode 
         )
@@ -953,13 +1025,15 @@ let userStmtHasAnyErrors = stmt => {
 }
 
 let editorStateHasCriticalErrors = st => {
-    st.varsErr->Belt_Option.isSome 
+    st.locErr->Belt_Option.isSome 
+        || st.varsErr->Belt_Option.isSome 
         || st.disjErr->Belt_Option.isSome 
         || st.stmts->Array.some(userStmtHasCriticalErrors)
 }
 
 let editorStateGetTextDescriptionOfAllCriticalErrors = (st:editorState):string => {
     let res = []
+    st.locErr->Option.forEach(msg => res->Array.push(`Location error: ${msg}`))
     st.varsErr->Option.forEach(msg => res->Array.push(`Variable definition error: ${msg}`))
     st.disjErr->Option.forEach(msg => res->Array.push(`Disjoints error: ${msg}`))
     if (st.stmts->Array.some(userStmtHasCriticalErrors)) {
@@ -1062,6 +1136,7 @@ let setStmtJstf = (stmt:userStmt):userStmt => {
 }
 
 let isLabelDefined = (label:string, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t) => {
+    /* bug: wrkCtx->isHyp(label) doesn't account for editorState.loc */
     definedUserLabels->Belt_HashSetString.has(label) || wrkCtx->isHyp(label)
 }
 
@@ -1070,6 +1145,7 @@ let validateStmtJstf = (
     wrkCtx:mmContext, 
     definedUserLabels:Belt_HashSetString.t,
     frms: frms,
+    maxFrmOrd:int,
 ):userStmt => {
     if (userStmtHasCriticalErrors(stmt)) {
         stmt
@@ -1088,29 +1164,36 @@ let validateStmtJstf = (
                             switch frms->frmsGetByLabel(label) {
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
                                 | Some(frm) => {
-                                    let expectedNumberOfArgs = frm.numOfHypsE
-                                    let providedNumberOfArgs = args->Array.length
-                                    if (providedNumberOfArgs != expectedNumberOfArgs) {
-                                        let eHypsText = if (expectedNumberOfArgs == 1) {
-                                            "essential hypothesis"
-                                        } else {
-                                            "essential hypotheses"
-                                        }
-                                        let isAreText = if (providedNumberOfArgs == 1) {
-                                            "is"
-                                        } else {
-                                            "are"
-                                        }
-                                        {
-                                            ...stmt, 
-                                            stmtErr:Some({
-                                                code:someStmtErrCode, 
-                                                msg:`'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
-                                                    ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
-                                            })
-                                        }
+                                    if (frm.frame.ord > maxFrmOrd) {
+                                        Console.log("----------------")
+                                        Console.log2("frm.frame.ord", frm.frame.ord)
+                                        Console.log2("maxFrmOrd", maxFrmOrd)
+                                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' is outside of the local scope.`})}
                                     } else {
-                                        stmt
+                                        let expectedNumberOfArgs = frm.numOfHypsE
+                                        let providedNumberOfArgs = args->Array.length
+                                        if (providedNumberOfArgs != expectedNumberOfArgs) {
+                                            let eHypsText = if (expectedNumberOfArgs == 1) {
+                                                "essential hypothesis"
+                                            } else {
+                                                "essential hypotheses"
+                                            }
+                                            let isAreText = if (providedNumberOfArgs == 1) {
+                                                "is"
+                                            } else {
+                                                "are"
+                                            }
+                                            {
+                                                ...stmt, 
+                                                stmtErr:Some({
+                                                    code:someStmtErrCode, 
+                                                    msg:`'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
+                                                        ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
+                                                })
+                                            }
+                                        } else {
+                                            stmt
+                                        }
                                     }
                                 }
                             }
@@ -1236,7 +1319,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                 setStmtExpr(_, wrkCtx),
                 validateStmtIsGoal(_, goalLabel),
                 setStmtJstf,
-                validateStmtJstf(_, wrkCtx, definedUserLabels, st.preCtxData.frms),
+                validateStmtJstf(_, wrkCtx, definedUserLabels, st.preCtxData.frms, st.maxFrmOrd),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
             ]
             st.stmts->Array.reduce(
@@ -2970,8 +3053,15 @@ let textToSyntaxTree = (
 }
 
 let resetEditorContent = (st:editorState):editorState => {
+    let loc = Last
+    let (maxFrmOrd, locErr) = getMaxFrmOrd(st.preCtxData, loc)
     {
         ...st,
+
+        loc,
+        locEditMode: false,
+        locErr,
+        maxFrmOrd,
 
         descr: "",
         descrEditMode: false,

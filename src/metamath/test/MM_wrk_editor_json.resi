@@ -10,9 +10,15 @@ type userStmtLocStor = {
     jstfText: string,
 }
 
+type locationLocStor = {
+    place: string,
+    label: string,
+}
+
 type editorStateLocStor = {
     tabTitle: string,
     srcs: array<mmCtxSrcDto>,
+    loc: locationLocStor,
     descr: string,
     varsText: string, 
     disjText: string, 

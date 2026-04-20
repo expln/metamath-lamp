@@ -69,10 +69,17 @@ let createEditorState = (
     }
     let preCtx = ctx
     let preCtxData = preCtxDataMake(~settings)->preCtxDataUpdate( ~settings, ~ctx=([], preCtx) )
+    let loc = Last
+    let (maxFrmOrd, locErr) = getMaxFrmOrd(preCtxData, loc)
     let st = {
         preCtxData:preCtxData,
 
         tabTitle: "",
+
+        loc,
+        locEditMode: false,
+        locErr,
+        maxFrmOrd,
 
         descr: "",
         descrEditMode: false,
