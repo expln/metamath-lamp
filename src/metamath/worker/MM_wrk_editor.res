@@ -1166,7 +1166,10 @@ let validateStmtJstf = (
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
                                 | Some(frm) => {
                                     if (frm.frame.ord > maxFrmOrd) {
-                                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' is outside of the local scope.`})}
+                                        {...stmt, stmtErr:Some({
+                                            code:someStmtErrCode, 
+                                            msg:`The assertion '${label}' is outside of this editor's scope.`
+                                        })}
                                     } else {
                                         let expectedNumberOfArgs = frm.numOfHypsE
                                         let providedNumberOfArgs = args->Array.length

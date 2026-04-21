@@ -953,6 +953,7 @@ let make = (
                         <MM_cmp_search_asrt
                             modalRef
                             preCtxData=state.preCtxData
+                            maxFrmOrd=state.maxFrmOrd
                             wrkCtx
                             initialTyp={getLastUsedTyp(state.preCtxData.ctxV.val.min)}
                             onTypChange={saveLastUsedTyp(state.preCtxData.ctxV.val.min, _)}
