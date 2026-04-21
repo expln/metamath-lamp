@@ -1822,7 +1822,7 @@ let make = (
 
     let rndError = (msgOpt,color) => {
         switch msgOpt {
-            | None => <></>
+            | None => React.null
             | Some(msg) => <pre style=ReactDOM.Style.make(~color, ~whiteSpace="pre-wrap", ())>{React.string(msg)}</pre>
         }
     }
@@ -2176,8 +2176,27 @@ let make = (
         </Col>
     }
 
-    let rndDescr = () => {
+    let rndLoc = () => {
         <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="12px", ())>
+            <span onClick={_=>actBeginEdit0(setLocEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+                {React.string("Location")}
+            </span>
+            <Col>
+                <MM_cmp_location_selector
+                    loc=state.loc
+                    editMode=state.locEditMode
+                    onEditRequested={() => actBeginEdit0(setLocEditMode)}
+                    onEditDone={newLoc => setState(completeLocEditMode(_, newLoc))}
+                    onEditCancel={() => setState(completeLocEditMode(_, state.loc))}
+                    preCtxData=state.preCtxData
+                />
+                {rndError(state.locErr, "red")}
+            </Col>
+        </Row>
+    }
+
+    let rndDescr = () => {
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ())>
             <span onClick={_=>actBeginEdit0(setDescrEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Description")}
             </span>
@@ -2487,6 +2506,7 @@ let make = (
                         rndShowContentBtn()
                     } else {
                         <Col spacing=0. >
+                            {rndLoc()}
                             {rndDescr()}
                             {rndVars()}
                             {rndDisj()}

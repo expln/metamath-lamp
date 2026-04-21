@@ -61,7 +61,7 @@ let getMaxFrmOrd = (preCtxData:preCtxData, loc:location):(int,option<string>) =>
     }
     let locErr = switch loc {
         | Before(label) | After(label) => 
-            frm->Option.isNone ? Some(`Cannot find an assertion with label ${label}`) : None
+            frm->Option.isNone ? Some(`Cannot find an assertion with label '${label}'`) : None
         | Last => None
     }
     let maxFrmOrd = switch loc {
@@ -908,8 +908,8 @@ let recalcWrkColors = (st:editorState):editorState => {
 }
 
 let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
-    let (maxFrmOrd, _) = getMaxFrmOrd(preCtxData, st.loc)
-    let st = { ...st, preCtxData:preCtxData, maxFrmOrd}
+    let (maxFrmOrd, locErr) = getMaxFrmOrd(preCtxData, st.loc)
+    let st = { ...st, preCtxData:preCtxData, maxFrmOrd, locErr}
     let st = recalcWrkColors(st)
     st
 }
