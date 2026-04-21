@@ -83,7 +83,7 @@ let createInitialEditorState = (
 
         tabTitle: stateLocStor.tabTitle,
 
-        loc: makeLocation(~place=stateLocStor.loc.place, ~label=stateLocStor.loc.label),
+        loc,
         locEditMode: false,
         locErr,
         maxFrmOrd,

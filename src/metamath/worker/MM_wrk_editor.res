@@ -908,7 +908,8 @@ let recalcWrkColors = (st:editorState):editorState => {
 }
 
 let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
-    let st = { ...st, preCtxData:preCtxData, }
+    let (maxFrmOrd, _) = getMaxFrmOrd(preCtxData, st.loc)
+    let st = { ...st, preCtxData:preCtxData, maxFrmOrd}
     let st = recalcWrkColors(st)
     st
 }
@@ -1165,9 +1166,6 @@ let validateStmtJstf = (
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
                                 | Some(frm) => {
                                     if (frm.frame.ord > maxFrmOrd) {
-                                        Console.log("----------------")
-                                        Console.log2("frm.frame.ord", frm.frame.ord)
-                                        Console.log2("maxFrmOrd", maxFrmOrd)
                                         {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' is outside of the local scope.`})}
                                     } else {
                                         let expectedNumberOfArgs = frm.numOfHypsE
