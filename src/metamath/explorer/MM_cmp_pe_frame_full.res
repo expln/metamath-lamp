@@ -413,46 +413,6 @@ let rndIconButton = (
     </span>
 }
 
-let convertMmScopesToMmCtxSrcDtos = (
-    ~origMmCtxSrcDtos:array<mmCtxSrcDto>,
-    ~mmScopes:array<mmScope>,
-):option<array<mmCtxSrcDto>> => {
-    let canConvert = mmScopes->Array.length <= origMmCtxSrcDtos->Array.length 
-                        && mmScopes->Array.everyWithIndex((mmScope,i) => {
-                            (origMmCtxSrcDtos->Array.getUnsafe(i)).ast
-                                ->Belt_Option.map(origAst => origAst == mmScope.ast)
-                                ->Belt.Option.getWithDefault(false)
-                        })
-    if (!canConvert) {
-        None
-    } else {
-        Some(
-            mmScopes->Array.mapWithIndex((mmScope,i) => {
-                let origMmCtxSrcDto = origMmCtxSrcDtos->Array.getUnsafe(i)
-                let (readInstr,label) = switch mmScope.stopBefore {
-                    | Some(label) => (readInstrToStr(StopBefore), label)
-                    | None => {
-                        switch mmScope.stopAfter {
-                            | Some(label) => (readInstrToStr(StopAfter), label)
-                            | None => (readInstrToStr(ReadAll), "")
-                        }
-                    }
-                }
-                {
-                    typ: origMmCtxSrcDto.typ,
-                    fileName: origMmCtxSrcDto.fileName,
-                    url: origMmCtxSrcDto.url,
-                    readInstr,
-                    label,
-                    resetNestingLevel:true,
-                    ast: origMmCtxSrcDto.ast,
-                    allLabels: origMmCtxSrcDto.allLabels,
-                }
-            })
-        )
-    }
-}
-
 let makeFrameProofData = (
     ~preCtxData:preCtxData,
     ~label:string,
