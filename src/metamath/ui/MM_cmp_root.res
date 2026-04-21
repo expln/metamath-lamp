@@ -21,6 +21,7 @@ type editorTabData = {
     initialStateLocStor:MM_wrk_editor_json.editorStateLocStor,
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     updateTabTitle: ref<option<string=>unit>>,
+    maxFrmOrd: ref<int>,
 }
 
 type tabData =
@@ -263,6 +264,8 @@ let contextFromUrlHasBeenReloaded = ref(false)
 let make = () => {
     let modalRef = useModalRef()
     let (lastOpenedEditorId, setLastOpenedEditorId) = React.useState(() => None)
+    let globalAddAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
+    let globalMaxFrmOrd: React.ref<option<ref<int>>> = React.useRef(None)
 
     let beforeTabRemove = (tab:Expln_React_UseTabs.tab<'a>) => {
         switch tab.data {
@@ -276,6 +279,8 @@ let make = () => {
                 )->Promise.thenResolve(confirmed => {
                     if (confirmed) {
                         MM_api_editor.deleteEditor(editorId)
+                        globalAddAsrtByLabel.current = None
+                        globalMaxFrmOrd.current = None
                         if (lastOpenedEditorId == Some(editorId)) {
                             setLastOpenedEditorId(_ => None)
                         }
@@ -294,7 +299,6 @@ let make = () => {
     let (showTabs, setShowTabs) = React.useState(() => true)
 
     let reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(None)
-    let addAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let toggleCtxSelector = React.useRef(Nullable.null)
 
     let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
@@ -326,10 +330,10 @@ let make = () => {
             | Some(tab) => {
                 switch isEditorTab(tab.data) {
                     | None => ()
-                    | Some({editorId, addAsrtByLabel:addAsrtByLabelRef}) => {
+                    | Some({editorId, addAsrtByLabel, maxFrmOrd}) => {
                         setLastOpenedEditorId(_ => Some(editorId))
                         MM_api_editor.setLastOpenedEditorId(editorId)
-                        addAsrtByLabel.current = addAsrtByLabelRef.contents->Option.map(addAsrtByLabelOrig => {
+                        globalAddAsrtByLabel.current = addAsrtByLabel.contents->Option.map(addAsrtByLabelOrig => {
                             str => {
                                 addAsrtByLabelOrig(str)->Promise.thenResolve(res => {
                                     switch res {
@@ -340,6 +344,7 @@ let make = () => {
                                 })
                             }
                         })
+                        globalMaxFrmOrd.current = Some(maxFrmOrd)
                     }
                 }
             }
@@ -520,6 +525,7 @@ let make = () => {
                     initialStateLocStor,
                     addAsrtByLabel:ref(None),
                     updateTabTitle:ref(None),
+                    maxFrmOrd:ref(-1),
                 }),
                 ~doOpen=true
             )
@@ -561,6 +567,7 @@ let make = () => {
                                             initialStateLocStor:editorStateLocStor,
                                             addAsrtByLabel:ref(None),
                                             updateTabTitle:ref(None),
+                                            maxFrmOrd:ref(-1),
                                         }), 
                                     )
                                     st
@@ -639,7 +646,7 @@ let make = () => {
                             onOpenExplorer={()=>actOpenExplorer()}
                             onOpenDbInfo={()=>actOpenDbInfo()}
                         />
-                    | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle}) => 
+                    | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle, maxFrmOrd}) => 
                         <MM_cmp_editor
                             editorId
                             top
@@ -648,6 +655,7 @@ let make = () => {
                             reloadCtx
                             addAsrtByLabel
                             updateTabTitle
+                            maxFrmOrd
                             initialStateLocStor=Some(initialStateLocStor)
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
@@ -673,7 +681,8 @@ let make = () => {
                             initDependsOnFilter
                             initReferencedByFilter
                             initReferencedByTranFilter
-                            addAsrtByLabel
+                            addAsrtByLabel=globalAddAsrtByLabel
+                            maxFrmOrd={globalMaxFrmOrd.current->Option.map(ref=>ref.contents)->Option.getOr(-1)}
                             onTabTitleChange={newTitle=>actRenameTab(tab.id, newTitle)}
                         />
                     | ExplorerFrame({label}) => 

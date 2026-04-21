@@ -31,6 +31,7 @@ type props = {
     openExplorer:Common.openExplorer,
     asrtsPerPage:int,
     addAsrtByLabel:string=>promise<result<unit,string>>,
+    maxFrmOrd: int,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -43,6 +44,7 @@ let propsAreSame = (a:props, b:props):bool => {
     && a.highlightMatchedSymbols === b.highlightMatchedSymbols
     && a.highlightColor === b.highlightColor
     && a.asrtsPerPage === b.asrtsPerPage
+    && a.maxFrmOrd === b.maxFrmOrd
 }
 
 let make = React.memoCustomCompareProps(({
@@ -63,6 +65,7 @@ let make = React.memoCustomCompareProps(({
     openExplorer,
     asrtsPerPage,
     addAsrtByLabel,
+    maxFrmOrd
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
@@ -139,7 +142,8 @@ let make = React.memoCustomCompareProps(({
                     editStmtsByLeftClick
                     openFrameExplorer=Some(openFrameExplorer)
                     openExplorer=Some(openExplorer)
-                    addAsrtByLabel=Some(addAsrtByLabel)
+                    addAsrtByLabel={frame.ord <= maxFrmOrd ? Some(addAsrtByLabel) : None}
+                    maxFrmOrd
                 />
             }
         }

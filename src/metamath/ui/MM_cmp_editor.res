@@ -162,6 +162,7 @@ let make = (
     ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,
     ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     ~updateTabTitle: ref<option<string=>unit>>,
+    ~maxFrmOrd: ref<int>,
     ~initialStateLocStor:option<editorStateLocStor>,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ~ctxSelectorIsExpanded:bool,
@@ -860,6 +861,11 @@ let make = (
         })
         None
     })
+
+    React.useEffect1(() => {
+        maxFrmOrd := state.maxFrmOrd
+        None
+    }, [state.maxFrmOrd])
 
     let actWrkSubsSelected = wrkSubs => {
         setState(st => st->applySubstitutionForEditor(wrkSubs))

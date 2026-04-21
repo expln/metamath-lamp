@@ -336,6 +336,7 @@ let make = (
             openFrameExplorer=None
             openExplorer=None
             addAsrtByLabel={frame.ord <= maxFrmOrd ? Some(addAsrtByLabel) : None}
+            maxFrmOrd
         />
     }
 

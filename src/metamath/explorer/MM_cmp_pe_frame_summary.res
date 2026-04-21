@@ -33,6 +33,7 @@ type props = {
     openFrameExplorer:option<string=>unit>,
     openExplorer:option<openExplorer>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
+    maxFrmOrd:int,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -46,6 +47,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.order === b.order
     && a.matchedIdxs === b.matchedIdxs
     && a.highlightColor === b.highlightColor
+    && a.maxFrmOrd === b.maxFrmOrd
 }
 
 let make = React.memoCustomCompareProps( ({
