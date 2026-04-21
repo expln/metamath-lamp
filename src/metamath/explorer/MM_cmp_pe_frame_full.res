@@ -655,18 +655,13 @@ let frameProofDataToEditorStateLocStor = (
                 })
         }
     }
-    let srcs = if (adjustContext) {
-        switch convertMmScopesToMmCtxSrcDtos(~origMmCtxSrcDtos=preCtxData.srcs, ~mmScopes=frameProofData.frmMmScopes) {
-            | None => []
-            | Some(srcs) => srcs
-        }
-    } else {
-        []
-    }
     {
         tabTitle: frameProofData.frame.label,
-        srcs,
-        loc:{place:locationToPlaceStr(Before("")), label:frameProofData.frame.label},
+        srcs: [],
+        loc: {
+            place: adjustContext ? locationToPlaceStr(Before("")) : locationToPlaceStr(Last), 
+            label: frameProofData.frame.label
+        },
         descr: frameProofData.frame.descr->Belt.Option.getWithDefault(""),
         varsText: vars->Array.joinUnsafe("\n"),
         disjText: disjArr->Array.joinUnsafe("\n"),
