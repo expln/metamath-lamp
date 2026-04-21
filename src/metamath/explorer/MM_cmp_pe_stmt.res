@@ -155,7 +155,7 @@ let make = React.memoCustomCompareProps( ({
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
                     ~wrkCtx=ctx, ~untypedSyms=[], ~typedSyms=[syms->Array.map(s => s.sym)],
-                    ~stmtTypeToSyntaxType, ~frms, ~frameRestrict, ~parenCnt,
+                    ~stmtTypeToSyntaxType, ~frms, ~frameRestrict, ~maxFrmOrd=frms->frmsSize-1, ~parenCnt,
                 ) {
                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                     | Ok(syntaxTrees) => {

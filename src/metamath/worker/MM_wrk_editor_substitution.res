@@ -8,7 +8,9 @@ open MM_substitution
 open MM_provers
 open Common
 
-let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
+let verifyTypesForSubstitution = (
+    ~parenCnt, ~ctx, ~frms, ~frameRestrict, ~maxFrmOrd:int, ~wrkSubs:wrkSubs
+):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
     let typesToProve = varToExprArr->Array.map(((var,expr)) => 
         [ctx->getTypeOfVarExn(var)]->Array.concat(expr)
@@ -17,6 +19,7 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSu
         ~wrkCtx=ctx,
         ~frms,
         ~frameRestrict,
+        ~maxFrmOrd,
         ~floatingsToProve=typesToProve,
         ~parenCnt,
     )
@@ -203,6 +206,7 @@ let buildSyntaxTreesOfSameType = (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
     ~expr1:expr, 
     ~expr2:expr,
@@ -214,6 +218,7 @@ let buildSyntaxTreesOfSameType = (
         ~stmtTypeToSyntaxType,
         ~frms,
         ~frameRestrict,
+        ~maxFrmOrd,
         ~parenCnt,
     )
     @warning("-8")
@@ -236,6 +241,7 @@ let buildSyntaxTreesOfSameType = (
                                     ~stmtTypeToSyntaxType = [(0,[tree2.typ])]->Belt_HashMapInt.fromArray,
                                     ~frms,
                                     ~frameRestrict,
+                                    ~maxFrmOrd,
                                     ~parenCnt,
                                 )
                                 @warning("-8")
@@ -249,6 +255,7 @@ let buildSyntaxTreesOfSameType = (
                                             ~stmtTypeToSyntaxType = [(0,[tree1.typ])]->Belt_HashMapInt.fromArray,
                                             ~frms,
                                             ~frameRestrict,
+                                            ~maxFrmOrd,
                                             ~parenCnt,
                                         )
                                         @warning("-8")
@@ -283,13 +290,14 @@ let findPossibleSubsByUnif = (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
     ~expr1:expr, 
     ~expr2:expr,
     ~metavarPrefix:string,
 ):result<array<wrkSubs>,string> => {
     let syntaxTrees = buildSyntaxTreesOfSameType( 
-        ~wrkCtx, ~stmtTypeToSyntaxType, ~frms, ~frameRestrict, ~parenCnt, 
+        ~wrkCtx, ~stmtTypeToSyntaxType, ~frms, ~frameRestrict, ~maxFrmOrd, ~parenCnt, 
         ~expr1=removeTypePrefix(expr1, allTypes), 
         ~expr2=removeTypePrefix(expr2, allTypes), 
     )
@@ -334,6 +342,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                     ~stmtTypeToSyntaxType=st.preCtxData.stmtTypeToSyntaxType,
                     ~frms=st.preCtxData.frms,
                     ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
+                    ~maxFrmOrd=st.maxFrmOrd,
                     ~parenCnt=st.preCtxData.parenCnt,
                     ~expr1=frmExpr, 
                     ~expr2=expr,
@@ -352,6 +361,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                                 ~ctx=wrkCtx, 
                                 ~frms=st.preCtxData.frms, 
                                 ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
+                                ~maxFrmOrd=st.maxFrmOrd,
                                 ~wrkSubs
                             )
                         }

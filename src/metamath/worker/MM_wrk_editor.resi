@@ -283,6 +283,7 @@ let textToSyntaxProofTable: (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
 ) => result<array<result<MM_proof_table.proofTable,string>>,string>
 
@@ -293,6 +294,7 @@ let textToSyntaxTree: (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
 ) => result<array<result<syntaxTreeNode,string>>,string>
 

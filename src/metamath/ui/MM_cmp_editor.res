@@ -1154,6 +1154,7 @@ let make = (
                                     settings
                                     preCtxVer=state.preCtxData.ctxV.ver
                                     preCtx=state.preCtxData.ctxV.val.min
+                                    maxFrmOrd=state.maxFrmOrd
                                     frms=state.preCtxData.frms parenCnt=state.preCtxData.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
@@ -1206,6 +1207,7 @@ let make = (
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
                                 ~allowedFrms=settings.allowedFrms,
+                                ~maxFrmOrd=state.maxFrmOrd,
                                 ~stmtTypeToSyntaxType=Some(state.preCtxData.stmtTypeToSyntaxType),
                                 ~typedExprsToSyntaxCheck=
                                     if (settings.checkSyntax) {
@@ -2111,6 +2113,7 @@ let make = (
             settingsVer=state.preCtxData.settingsV.ver
             settings
             preCtxVer=state.preCtxData.ctxV.ver
+            maxFrmOrd=state.maxFrmOrd
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
@@ -2405,10 +2408,11 @@ let make = (
                 switch unrecognizedSymbol {
                     | Some(sym) => Error(`Unrecognized symbol '${sym}'`)
                     | None => {
-                        textToSyntaxTree( 
+                        textToSyntaxTree(
                             ~wrkCtx, ~untypedSyms, ~typedSyms, 
                             ~stmtTypeToSyntaxType=state.preCtxData.stmtTypeToSyntaxType, ~frms=state.preCtxData.frms, 
                             ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
+                            ~maxFrmOrd=state.maxFrmOrd,
                             ~parenCnt=state.preCtxData.parenCnt,
                         )
                     }

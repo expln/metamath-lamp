@@ -35,6 +35,7 @@ type props = {
     settingsVer:int,
     settings:settings,
     preCtxVer:int,
+    maxFrmOrd: int,
     varsText:string,
     wrkCtx:option<mmContext>,
     frms: frms,

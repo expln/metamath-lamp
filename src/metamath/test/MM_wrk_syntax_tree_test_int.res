@@ -100,6 +100,7 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
             ~stmtTypeToSyntaxType,
             ~frms,
             ~frameRestrict,
+            ~maxFrmOrd=frms->frmsSize-1,
             ~parenCnt,
         ) {
             | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)

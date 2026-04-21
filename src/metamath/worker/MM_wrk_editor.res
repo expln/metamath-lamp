@@ -2982,6 +2982,7 @@ let textToSyntaxProofTable = (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
 ):result<array<result<MM_proof_table.proofTable,string>>,string> => {
     let findUndefinedSym = (syms:array<string>):option<string> => 
@@ -2992,7 +2993,8 @@ let textToSyntaxProofTable = (
             let untypedExprs = untypedSyms->Array.map(ctxSymsToIntsExn(wrkCtx, _))
             let typedExprs = typedSyms->Array.map(ctxSymsToIntsExn(wrkCtx, _))
             let proofTree = MM_provers.proveSyntaxTypes(
-                ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~untypedExprs, ~typedExprs, ~stmtTypeToSyntaxType, ~frameRestrict
+                ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~untypedExprs, ~typedExprs, ~stmtTypeToSyntaxType,
+                ~frameRestrict, ~maxFrmOrd:int,
             )
             let typeStmts = (untypedExprs->Array.concat(typedExprs))->Array.map(expr => {
                 switch proofTree->ptGetSyntaxProof(expr) {
@@ -3024,6 +3026,7 @@ let textToSyntaxTree = (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
 ):result<array<result<syntaxTreeNode,string>>,string> => {
     let syntaxProofTables = textToSyntaxProofTable(
@@ -3033,6 +3036,7 @@ let textToSyntaxTree = (
         ~stmtTypeToSyntaxType,
         ~frms,
         ~frameRestrict,
+        ~maxFrmOrd,
         ~parenCnt,
     )
     switch syntaxProofTables {

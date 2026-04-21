@@ -172,6 +172,7 @@ let make = (
                 }
             }
             preCtxVer=editorState.preCtxData.ctxV.ver
+            maxFrmOrd=editorState.maxFrmOrd
             varsText=editorState.varsText
             wrkCtx=editorState.wrkCtx
             frms=editorState.preCtxData.frms

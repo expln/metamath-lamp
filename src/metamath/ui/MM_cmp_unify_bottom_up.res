@@ -659,6 +659,7 @@ let make = (
     ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
+    ~maxFrmOrd:int,
     ~frms: frms,
     ~parenCnt: parenCnt,
     ~varsText: string,
@@ -894,6 +895,7 @@ let make = (
                             useTranDepr:state.useTranDepr,
                         }
                     },
+                    ~maxFrmOrd,
                     ~typedExprsToSyntaxCheck=None,
                     ~stmtTypeToSyntaxType=None,
                     ~debugLevel,

@@ -354,6 +354,7 @@ let unifyAll = (st):editorState => {
                 ~parenCnt = st.preCtxData.parenCnt,
                 ~frms = st.preCtxData.frms,
                 ~allowedFrms = st.preCtxData.settingsV.val.allowedFrms,
+                ~maxFrmOrd = st.maxFrmOrd,
                 ~combCntMax = st.preCtxData.settingsV.val.combCntMax,
                 ~wrkCtx,
                 ~rootStmts,
@@ -432,6 +433,7 @@ let unifyBottomUp = (
                         useTranDepr: useTranDepr->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useTranDepr),
                     }
                 },
+                ~maxFrmOrd=st.maxFrmOrd,
                 ~combCntMax,
                 //~onProgress = msg => Console.log(msg)
             )

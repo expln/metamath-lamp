@@ -842,6 +842,7 @@ let make = React.memoCustomCompareProps(({
                 ~stmtTypeToSyntaxType = st.stmtTypeToSyntaxType, 
                 ~frms = st.frms,
                 ~frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax, 
+                ~maxFrmOrd=st.frms->frmsSize-1,
                 ~parenCnt = st.parenCnt, 
             ) {
                 | Error(msg) => st->setSyntaxProofTableError(Some(msg))
