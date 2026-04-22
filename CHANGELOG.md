@@ -1,5 +1,6 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
 * Take information about typecodes from "syntax" commands. https://github.com/expln/metamath-lamp/issues/253
+* Local scopes for editors https://github.com/expln/metamath-lamp/issues/255
 ### [Version 31](https://expln.github.io/lamp/v31/index.html)
 * Make the search by pattern more flexible. 
 [Search by pattern version 2](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/dev/explorer/search_by_pattern_v2.md)
