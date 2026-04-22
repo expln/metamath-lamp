@@ -166,6 +166,7 @@ let make = (
             settingsVer=state.preCtxData.settingsV.ver
             settings
             preCtxVer=state.preCtxData.ctxV.ver
+            maxFrmOrd=state.maxFrmOrd
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms

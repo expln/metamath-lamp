@@ -111,6 +111,7 @@ let toggleResultChecked = (st,idx) => {
 let make = (
     ~modalRef:modalRef,
     ~preCtxData:preCtxData,
+    ~maxFrmOrd:int,
     ~wrkCtx: mmContext,
     ~initialTyp:option<int>,
     ~onTypChange:int=>unit,
@@ -315,32 +316,28 @@ let make = (
         Promise.resolve(Ok(()))
     }
 
-    let rndFrameSummary = ((label,matchedIdxs):(string,option<MM_wrk_pattern_search.matchedIndices>)) => {
-        switch preCtxData.ctxV.val.min->getFrame(label) {
-            | None => React.null
-            | Some(frame) => {
-                <MM_cmp_pe_frame_summary
-                    key={`${frame.ord->Belt.Int.toString}-${label}`}
-                    modalRef
-                    settings=preCtxData.settingsV.val
-                    preCtx=preCtxData.ctxV.val.min
-                    symColors=preCtxData.symColors
-                    stmtTypeToSyntaxType=preCtxData.stmtTypeToSyntaxType
-                    frms=preCtxData.frms
-                    parenCnt=preCtxData.parenCnt
-                    frame
-                    order=None
-                    matchedIdxs
-                    highlightColor
-                    typeColors=preCtxData.typeColors
-                    typeOrderInDisj=preCtxData.typeOrderInDisj
-                    editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-                    openFrameExplorer=None
-                    openExplorer=None
-                    addAsrtByLabel=Some(addAsrtByLabel)
-                />
-            }
-        }
+    let rndFrameSummary = ((frame,matchedIdxs):(frame,option<MM_wrk_pattern_search.matchedIndices>)) => {
+        <MM_cmp_pe_frame_summary
+            key={`${frame.ord->Belt.Int.toString}-${frame.label}`}
+            modalRef
+            settings=preCtxData.settingsV.val
+            preCtx=preCtxData.ctxV.val.min
+            symColors=preCtxData.symColors
+            stmtTypeToSyntaxType=preCtxData.stmtTypeToSyntaxType
+            frms=preCtxData.frms
+            parenCnt=preCtxData.parenCnt
+            frame
+            order=None
+            matchedIdxs
+            highlightColor
+            typeColors=preCtxData.typeColors
+            typeOrderInDisj=preCtxData.typeOrderInDisj
+            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+            openFrameExplorer=None
+            openExplorer=None
+            addAsrtByLabel={frame.ord <= maxFrmOrd ? Some(addAsrtByLabel) : None}
+            maxFrmOrd
+        />
     }
 
     let rndResults = () => {
@@ -358,23 +355,29 @@ let make = (
                     {rndResultButtons()}
                     {rndPagination(totalNumOfResults)}
                     {
-                        labelsToRender->Array.mapWithIndex((label,i) => {
+                        labelsToRender->Array.mapWithIndex(((label,matchedIdxs),i) => {
                             let resIdx = minI + i
-                            <table key={resIdx->Belt_Int.toString}>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <Checkbox
-                                                checked={state.checkedResultsIdx->Array.includes(resIdx)}
-                                                onChange={_ => actToggleResultChecked(resIdx)}
-                                            />
-                                        </td>
-                                        <td>
-                                            {rndFrameSummary(label)}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            switch preCtxData.ctxV.val.min->getFrame(label) {
+                                | None => React.null
+                                | Some(frame) => {
+                                    <table key={resIdx->Belt_Int.toString}>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <Checkbox
+                                                        checked={state.checkedResultsIdx->Array.includes(resIdx)}
+                                                        onChange={_ => actToggleResultChecked(resIdx)}
+                                                        disabled={maxFrmOrd < frame.ord}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    {rndFrameSummary((frame,matchedIdxs))}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                }
+                            }
                         })->React.array
                     }
                     {rndPagination(totalNumOfResults)}

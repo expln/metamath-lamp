@@ -413,46 +413,6 @@ let rndIconButton = (
     </span>
 }
 
-let convertMmScopesToMmCtxSrcDtos = (
-    ~origMmCtxSrcDtos:array<mmCtxSrcDto>,
-    ~mmScopes:array<mmScope>,
-):option<array<mmCtxSrcDto>> => {
-    let canConvert = mmScopes->Array.length <= origMmCtxSrcDtos->Array.length 
-                        && mmScopes->Array.everyWithIndex((mmScope,i) => {
-                            (origMmCtxSrcDtos->Array.getUnsafe(i)).ast
-                                ->Belt_Option.map(origAst => origAst == mmScope.ast)
-                                ->Belt.Option.getWithDefault(false)
-                        })
-    if (!canConvert) {
-        None
-    } else {
-        Some(
-            mmScopes->Array.mapWithIndex((mmScope,i) => {
-                let origMmCtxSrcDto = origMmCtxSrcDtos->Array.getUnsafe(i)
-                let (readInstr,label) = switch mmScope.stopBefore {
-                    | Some(label) => (readInstrToStr(StopBefore), label)
-                    | None => {
-                        switch mmScope.stopAfter {
-                            | Some(label) => (readInstrToStr(StopAfter), label)
-                            | None => (readInstrToStr(ReadAll), "")
-                        }
-                    }
-                }
-                {
-                    typ: origMmCtxSrcDto.typ,
-                    fileName: origMmCtxSrcDto.fileName,
-                    url: origMmCtxSrcDto.url,
-                    readInstr,
-                    label,
-                    resetNestingLevel:true,
-                    ast: origMmCtxSrcDto.ast,
-                    allLabels: origMmCtxSrcDto.allLabels,
-                }
-            })
-        )
-    }
-}
-
 let makeFrameProofData = (
     ~preCtxData:preCtxData,
     ~label:string,
@@ -655,17 +615,13 @@ let frameProofDataToEditorStateLocStor = (
                 })
         }
     }
-    let srcs = if (adjustContext) {
-        switch convertMmScopesToMmCtxSrcDtos(~origMmCtxSrcDtos=preCtxData.srcs, ~mmScopes=frameProofData.frmMmScopes) {
-            | None => []
-            | Some(srcs) => srcs
-        }
-    } else {
-        []
-    }
     {
         tabTitle: frameProofData.frame.label,
-        srcs,
+        srcs: [],
+        loc: {
+            place: adjustContext ? locationToPlaceStr(Before("")) : locationToPlaceStr(Last), 
+            label: frameProofData.frame.label
+        },
         descr: frameProofData.frame.descr->Belt.Option.getWithDefault(""),
         varsText: vars->Array.joinUnsafe("\n"),
         disjText: disjArr->Array.joinUnsafe("\n"),
@@ -846,6 +802,7 @@ let make = React.memoCustomCompareProps(({
                 ~stmtTypeToSyntaxType = st.stmtTypeToSyntaxType, 
                 ~frms = st.frms,
                 ~frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax, 
+                ~maxFrmOrd=st.frms->frmsSize-1,
                 ~parenCnt = st.parenCnt, 
             ) {
                 | Error(msg) => st->setSyntaxProofTableError(Some(msg))

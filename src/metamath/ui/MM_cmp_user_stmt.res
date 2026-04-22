@@ -573,6 +573,7 @@ type props = {
     settingsVer:int,
     settings:settings,
     preCtxVer:int,
+    maxFrmOrd: int,
     varsText:string,
     wrkCtx:option<mmContext>,
     frms: frms,
@@ -624,6 +625,7 @@ let propsAreSame = (a:props,b:props):bool => {
     a.settingsVer == b.settingsVer
     && a.settings.customTransforms == b.settings.customTransforms
     && a.preCtxVer == b.preCtxVer
+    && a.maxFrmOrd == b.maxFrmOrd
     && a.varsText == b.varsText
 
     && a.viewOptions.showCheckbox == b.viewOptions.showCheckbox
@@ -662,6 +664,7 @@ let make = React.memoCustomCompareProps( ({
     modalRef,
     settings,
     wrkCtx,
+    maxFrmOrd,
     frms,
     parenCnt,
     stmtTypeToSyntaxType,
@@ -795,7 +798,7 @@ let make = React.memoCustomCompareProps( ({
                         switch textToSyntaxTree( 
                             ~wrkCtx, ~untypedSyms=[], ~typedSyms=[syms->Array.map(s => s.sym)],
                             ~stmtTypeToSyntaxType, ~frms, 
-                            ~frameRestrict=settings.allowedFrms.inSyntax,
+                            ~frameRestrict=settings.allowedFrms.inSyntax, ~maxFrmOrd,
                             ~parenCnt,
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))

@@ -21,6 +21,16 @@ type mmFileSource =
     | Local({fileName:string})
     | Web(webSource)
 
+type location = 
+    | Before(string)
+    | After(string)
+    | Last
+
+let locationToPlaceStr: location => string
+let locationToLabel: location => string
+let makeLocation: (~place:string, ~label:string) => location
+let getMaxFrmOrd: (preCtxData, location) => (int,option<string>)
+
 type stmtSym = {
     sym: string,
     color: option<string>,
@@ -119,6 +129,11 @@ type editorState = {
 
     tabTitle: string,
 
+    loc: location,
+    locEditMode: bool,
+    locErr: option<string>,
+    maxFrmOrd: int,
+
     descr: string,
     descrEditMode: bool,
 
@@ -174,6 +189,8 @@ let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool, ~isBkm:bool=?) => editorState
 let bookmarkCheckedStmts: (editorState, bool) => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
+let setLocEditMode: editorState => editorState
+let completeLocEditMode: (editorState, location) => editorState
 let setDescrEditMode: editorState => editorState
 let completeDescrEditMode: (editorState, string) => editorState
 let setVarsEditMode: editorState => editorState
@@ -266,6 +283,7 @@ let textToSyntaxProofTable: (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
 ) => result<array<result<MM_proof_table.proofTable,string>>,string>
 
@@ -276,6 +294,7 @@ let textToSyntaxTree: (
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: parenCnt,
 ) => result<array<result<syntaxTreeNode,string>>,string>
 

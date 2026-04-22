@@ -115,6 +115,7 @@ let doBuildSyntaxTreesForAllAssertions = (
         ~wrkCtx=ctx,
         ~frms,
         ~frameRestrict=allowedFrmsInSyntax,
+        ~maxFrmOrd=frms->frmsSize-1,
         ~parenCnt,
         ~untypedExprs=[],
         ~typedExprs=exprsToSyntaxProve,

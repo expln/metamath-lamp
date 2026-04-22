@@ -23,7 +23,7 @@ let make = (
                         onChange={evt2bool(b => setAdjustContext(_ => b))}
                     />
                 }
-                label="Adjust the context"
+                label="Adjust local scope"
             />
             <FormControlLabel
                 control={

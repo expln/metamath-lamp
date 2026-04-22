@@ -56,6 +56,7 @@ let testTransform = (
         ]),
         ~frms=editorState.preCtxData.frms,
         ~frameRestrict=editorState.preCtxData.settingsV.val.allowedFrms.inSyntax,
+        ~maxFrmOrd=editorState.maxFrmOrd,
         ~parenCnt=editorState.preCtxData.parenCnt,
     )
     let syntaxTreeNode = switch syntaxTree {

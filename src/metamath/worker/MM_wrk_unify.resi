@@ -19,6 +19,7 @@ let unify: (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<MM_bottom_up_prover_params.bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~typedExprsToSyntaxCheck:option<array<expr>>,
     ~stmtTypeToSyntaxType:option<Belt_HashMapInt.t<array<int>>>,
     ~debugLevel:int,

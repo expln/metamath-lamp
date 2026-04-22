@@ -162,6 +162,7 @@ let make = (
     ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,
     ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     ~updateTabTitle: ref<option<string=>unit>>,
+    ~maxFrmOrd: ref<int>,
     ~initialStateLocStor:option<editorStateLocStor>,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ~ctxSelectorIsExpanded:bool,
@@ -861,6 +862,11 @@ let make = (
         None
     })
 
+    React.useEffect1(() => {
+        maxFrmOrd := state.maxFrmOrd
+        None
+    }, [state.maxFrmOrd])
+
     let actWrkSubsSelected = wrkSubs => {
         setState(st => st->applySubstitutionForEditor(wrkSubs))
     }
@@ -953,6 +959,7 @@ let make = (
                         <MM_cmp_search_asrt
                             modalRef
                             preCtxData=state.preCtxData
+                            maxFrmOrd=state.maxFrmOrd
                             wrkCtx
                             initialTyp={getLastUsedTyp(state.preCtxData.ctxV.val.min)}
                             onTypChange={saveLastUsedTyp(state.preCtxData.ctxV.val.min, _)}
@@ -1154,6 +1161,7 @@ let make = (
                                     settings
                                     preCtxVer=state.preCtxData.ctxV.ver
                                     preCtx=state.preCtxData.ctxV.val.min
+                                    maxFrmOrd=state.maxFrmOrd
                                     frms=state.preCtxData.frms parenCnt=state.preCtxData.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
@@ -1206,6 +1214,7 @@ let make = (
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
                                 ~allowedFrms=settings.allowedFrms,
+                                ~maxFrmOrd=state.maxFrmOrd,
                                 ~stmtTypeToSyntaxType=Some(state.preCtxData.stmtTypeToSyntaxType),
                                 ~typedExprsToSyntaxCheck=
                                     if (settings.checkSyntax) {
@@ -1822,7 +1831,7 @@ let make = (
 
     let rndError = (msgOpt,color) => {
         switch msgOpt {
-            | None => <></>
+            | None => React.null
             | Some(msg) => <pre style=ReactDOM.Style.make(~color, ~whiteSpace="pre-wrap", ())>{React.string(msg)}</pre>
         }
     }
@@ -2111,6 +2120,7 @@ let make = (
             settingsVer=state.preCtxData.settingsV.ver
             settings
             preCtxVer=state.preCtxData.ctxV.ver
+            maxFrmOrd=state.maxFrmOrd
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
@@ -2176,8 +2186,27 @@ let make = (
         </Col>
     }
 
-    let rndDescr = () => {
+    let rndLoc = () => {
         <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="12px", ())>
+            <span onClick={_=>actBeginEdit0(setLocEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+                {React.string("Location")}
+            </span>
+            <Col>
+                <MM_cmp_location_selector
+                    loc=state.loc
+                    editMode=state.locEditMode
+                    onEditRequested={() => actBeginEdit0(setLocEditMode)}
+                    onEditDone={newLoc => setState(completeLocEditMode(_, newLoc))}
+                    onEditCancel={() => setState(completeLocEditMode(_, state.loc))}
+                    preCtxData=state.preCtxData
+                />
+                {rndError(state.locErr, "red")}
+            </Col>
+        </Row>
+    }
+
+    let rndDescr = () => {
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ())>
             <span onClick={_=>actBeginEdit0(setDescrEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Description")}
             </span>
@@ -2386,10 +2415,11 @@ let make = (
                 switch unrecognizedSymbol {
                     | Some(sym) => Error(`Unrecognized symbol '${sym}'`)
                     | None => {
-                        textToSyntaxTree( 
+                        textToSyntaxTree(
                             ~wrkCtx, ~untypedSyms, ~typedSyms, 
                             ~stmtTypeToSyntaxType=state.preCtxData.stmtTypeToSyntaxType, ~frms=state.preCtxData.frms, 
                             ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
+                            ~maxFrmOrd=state.maxFrmOrd,
                             ~parenCnt=state.preCtxData.parenCnt,
                         )
                     }
@@ -2487,6 +2517,7 @@ let make = (
                         rndShowContentBtn()
                     } else {
                         <Col spacing=0. >
+                            {rndLoc()}
                             {rndDescr()}
                             {rndVars()}
                             {rndDisj()}

@@ -29,11 +29,12 @@ let findAsrtParentsWithoutNewVars = (
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~onResult: exprSrc => unit,
 ):unit => {
     let exprLen = expr->Array.length
     tree->ptGetFrms->frmsForEach(~typ=expr->Array.getUnsafe(0), frm => {
-        if (frm.frame->frameIsAllowed(frameRestrict)) {
+        if (frm.frame.ord <= maxFrmOrd && frm.frame->frameIsAllowed(frameRestrict)) {
             let frmExpr = frm.frame.asrt
             iterateSubstitutions(
                 ~frmExpr,
@@ -93,6 +94,7 @@ let proveFloating = (
     ~tree:proofTree, 
     ~node:proofNode,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~nodesToCreateParentsFor:arrayQueue<proofNode>,
 ) => {
     /*
@@ -156,6 +158,7 @@ let proveFloating = (
                             parentFound := false
                             findAsrtParentsWithoutNewVars(
                                 ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict,
+                                ~maxFrmOrd,
                                 ~onResult = parent => {
                                     curNode->pnAddParent(parent, false, false)
                                     saveArgs(parent)
@@ -187,6 +190,7 @@ let findAsrtParentsWithNewVars = (
     ~allowNewDisjForExistingVars:bool,
     ~frmsToUse:option<array<string>>=?,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~combCntMax:int,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
@@ -196,7 +200,7 @@ let findAsrtParentsWithNewVars = (
     let applResults = []
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
-    let isFrameAllowed = (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
+    let isFrameAllowed = (frame:frame) => frame.ord <= maxFrmOrd && frame->frameIsAllowed(allowedFrms.inEssen)
 
     let maxVarBeforeSearch = tree->ptGetMaxVar
     applyAssertions(
@@ -289,6 +293,7 @@ let findAsrtParentsWithNewVars = (
                             ~tree, 
                             ~node=argNode,
                             ~frameRestrict=allowedFrms.inSyntax,
+                            ~maxFrmOrd,
                             ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
                         )
                         if (argNode->pnGetProof->Belt.Option.isNone) {
@@ -317,7 +322,9 @@ let findAsrtParentsWithNewVars = (
     foundParents
 }
 
-let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allowedFrms, ~combCntMax:int,):proofNode => {
+let proveWithoutJustification = (
+    ~tree:proofTree, ~expr:expr, ~allowedFrms:allowedFrms, ~maxFrmOrd:int, ~combCntMax:int,
+):proofNode => {
     let node = tree->ptGetNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
         let parents = findAsrtParentsWithNewVars(
@@ -329,6 +336,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allow
             ~allowNewVars=false,
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
+            ~maxFrmOrd,
             ~combCntMax 
         )
         parents->Expln_utils_common.arrForEach(parent => {
@@ -370,6 +378,7 @@ let proveWithJustification = (
     ~expr:expr, 
     ~jstf: jstf,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~combCntMax:int,
 ):proofNode => {
     let findAsrtParents = (args,debugLevel) => {
@@ -383,6 +392,7 @@ let proveWithJustification = (
             ~frmsToUse=[jstf.label],
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
+            ~maxFrmOrd,
             ~combCntMax,
             ~debugLevel
         )
@@ -612,6 +622,7 @@ let proveStmtBottomUp = (
     ~expr:expr, 
     ~params:bottomUpProverParams,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~combCntMax:int,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
@@ -639,6 +650,7 @@ let proveStmtBottomUp = (
                     ~allowNewVars=paramsI.allowNewVars,
                     ~allowNewDisjForExistingVars=paramsI.allowNewDisjForExistingVars,
                     ~allowedFrms,
+                    ~maxFrmOrd,
                     ~combCntMax,
                     ~debugLevel,
                     ~maxNumberOfResults=?paramsI.maxNumberOfBranches,
@@ -711,6 +723,7 @@ let proveStmt = (
     ~jstf:option<jstf>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~combCntMax:int,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
@@ -718,13 +731,13 @@ let proveStmt = (
     switch bottomUpProverParams {
         | Some(params) => {
             proveStmtBottomUp( 
-                ~tree, ~expr, ~params, ~allowedFrms, ~combCntMax, ~debugLevel, ~onProgress, 
+                ~tree, ~expr, ~params, ~allowedFrms, ~maxFrmOrd, ~combCntMax, ~debugLevel, ~onProgress, 
             )->ignore
         }
         | None => {
             switch jstf {
-                | None => proveWithoutJustification( ~tree, ~expr, ~allowedFrms, ~combCntMax )->ignore
-                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, ~allowedFrms, ~combCntMax )->ignore
+                | None => proveWithoutJustification( ~tree, ~expr, ~allowedFrms, ~maxFrmOrd, ~combCntMax )->ignore
+                | Some(jstf) => proveWithJustification(~tree, ~expr, ~jstf, ~allowedFrms, ~maxFrmOrd, ~combCntMax)->ignore
             }
         }
     }
@@ -755,6 +768,7 @@ let proveFloatings = (
     ~wrkCtx: mmContext,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
 ):proofTree => {
@@ -770,6 +784,7 @@ let proveFloatings = (
             ~tree, 
             ~node=tree->ptGetNode(expr), 
             ~frameRestrict, 
+            ~maxFrmOrd,
             ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor
         )
     })
@@ -781,6 +796,7 @@ let proveSyntaxTypes = (
     ~wrkCtx: option<mmContext>=?,
     ~frms: option<frms>=?,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt: option<parenCnt>=?,
     ~untypedExprs: array<expr>,
     ~typedExprs: array<expr>,
@@ -820,6 +836,7 @@ let proveSyntaxTypes = (
                 ~tree, 
                 ~node=node.contents, 
                 ~frameRestrict,
+                ~maxFrmOrd,
                 ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
             )
             let ti = ref(0)
@@ -832,6 +849,7 @@ let proveSyntaxTypes = (
                         ~tree, 
                         ~node=node.contents, 
                         ~frameRestrict,
+                        ~maxFrmOrd,
                         ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
                     )
                 }
@@ -866,6 +884,7 @@ let proveSyntaxTypes = (
                     ~tree, 
                     ~node=node.contents, 
                     ~frameRestrict,
+                    ~maxFrmOrd,
                     ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
                 )
             }
@@ -899,6 +918,7 @@ let unifyAll = (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~combCntMax:int,
     ~typedExprsToSyntaxCheck:option<array<expr>>=?,
     ~stmtTypeToSyntaxType: option<Belt_HashMapInt.t<array<int>>>=?,
@@ -932,6 +952,7 @@ let unifyAll = (
                         ~typedExprs=typedExprsToSyntaxCheck,
                         ~stmtTypeToSyntaxType,
                         ~frameRestrict = allowedFrms.inSyntax,
+                        ~maxFrmOrd:int,
                         ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
                             pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
                         })
@@ -951,6 +972,7 @@ let unifyAll = (
             ~jstf=stmt.jstf,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
             ~allowedFrms,
+            ~maxFrmOrd:int,
             ~combCntMax,
             ~debugLevel,
             ~onProgress =

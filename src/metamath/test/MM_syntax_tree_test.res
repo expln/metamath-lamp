@@ -58,10 +58,12 @@ let buildSyntaxTreeForTest = (
     )
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let expr = exprStr->Array.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
+    let frms = prepareFrmSubsData(~ctx)
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
-        ~frms=prepareFrmSubsData(~ctx),
+        ~frms,
         ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
+        ~maxFrmOrd=frms->frmsSize,
         ~floatingsToProve = expr,
         ~parenCnt,
     )

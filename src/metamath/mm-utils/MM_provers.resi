@@ -11,6 +11,7 @@ let proveFloatings: (
     ~wrkCtx: mmContext,
     ~frms: frms,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
 ) => proofTree
@@ -20,6 +21,7 @@ let proveSyntaxTypes: (
     ~wrkCtx:mmContext=?,
     ~frms:frms=?,
     ~frameRestrict:frameRestrict,
+    ~maxFrmOrd:int,
     ~parenCnt:parenCnt=?,
     ~untypedExprs: array<expr>,
     ~typedExprs: array<expr>,
@@ -35,6 +37,7 @@ let unifyAll: (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~combCntMax:int,
     ~typedExprsToSyntaxCheck:array<expr>=?,
     ~stmtTypeToSyntaxType: Belt_HashMapInt.t<array<int>>=?,

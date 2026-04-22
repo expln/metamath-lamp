@@ -25,6 +25,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
         ~wrkCtx=ctx,
         ~frms,
         ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
+        ~maxFrmOrd=frms->frmsSize-1,
         ~floatingsToProve = [expr],
         ~parenCnt=MM_provers.makeParenCnt(~ctx, ~parens),
     )

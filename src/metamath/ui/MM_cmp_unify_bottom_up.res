@@ -141,10 +141,11 @@ let getAvailableAsrtLabels = (
     ~frms: frms, 
     ~parenCnt: parenCnt, 
     ~exprToProve:expr,
+    ~maxFrmOrd:int,
 ) => {
     let availableAsrtLabels = []
     frms->frmsForEach(frm => {
-        if ( exprMayMatchAsrt(~expr=exprToProve, ~frm, ~parenCnt) ) {
+        if (frm.frame.ord <= maxFrmOrd && exprMayMatchAsrt(~expr=exprToProve, ~frm, ~parenCnt) ) {
             availableAsrtLabels->Array.push(frm.frame.label)
         }
     })
@@ -158,6 +159,7 @@ let makeInitialState = (
     ~initialParams: option<bottomUpProverParams>,
     ~initialDebugLevel: option<int>,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~bottomUpProverDefaults: bottomUpProverDefaults,
 ) => {
     let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
@@ -213,7 +215,7 @@ let makeInitialState = (
             frameParamsLen > 1 && (frameParams->Array.getUnsafe(1)).deriveFrom->Array.some(arg => arg->exprEq(possibleArg))
         }),
         args1EqArgs0:false,
-        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
+        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ~maxFrmOrd, ),
         label:
             if (frameParamsLen > 0) {
                 (frameParams->Array.getUnsafe(0)).frmsToUse
@@ -659,6 +661,7 @@ let make = (
     ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
+    ~maxFrmOrd:int,
     ~frms: frms,
     ~parenCnt: parenCnt,
     ~varsText: string,
@@ -677,7 +680,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
         ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel, 
-        ~allowedFrms=settings.allowedFrms, ~bottomUpProverDefaults=settings.bottomUpProverDefaults,
+        ~allowedFrms=settings.allowedFrms, ~maxFrmOrd, ~bottomUpProverDefaults=settings.bottomUpProverDefaults,
     ))
 
     let isApiCall = apiCallStartTime->Belt.Option.isSome
@@ -894,6 +897,7 @@ let make = (
                             useTranDepr:state.useTranDepr,
                         }
                     },
+                    ~maxFrmOrd,
                     ~typedExprsToSyntaxCheck=None,
                     ~stmtTypeToSyntaxType=None,
                     ~debugLevel,

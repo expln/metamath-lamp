@@ -25,6 +25,7 @@ type props = {
     initReferencedByFilter:string,
     initReferencedByTranFilter:bool,
     addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
+    maxFrmOrd: int,
     onTabTitleChange:string=>unit,
 }
 
@@ -34,6 +35,7 @@ let propsAreSame = (a:props, b:props):bool => {
     a.preCtxData === b.preCtxData
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
     && a.tabTitle == b.tabTitle
+    && a.maxFrmOrd == b.maxFrmOrd
 }
 
 type sorting = {
@@ -55,6 +57,7 @@ let make = React.memoCustomCompareProps(({
     initReferencedByFilter,
     initReferencedByTranFilter,
     addAsrtByLabel,
+    maxFrmOrd,
     onTabTitleChange,
 }:props) => {
     let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
@@ -871,6 +874,7 @@ let make = React.memoCustomCompareProps(({
                                         | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
                                     }
                                 }}
+                                maxFrmOrd
                             />
                         }
                     }

@@ -17,6 +17,7 @@ type request =
         rootStmts: array<rootStmt>, 
         bottomUpProverParams:option<bottomUpProverParams>,
         allowedFrms:allowedFrms,
+        maxFrmOrd:int,
         combCntMax:int,
         stmtTypeToSyntaxType:option<Belt_HashMapInt.t<array<int>>>,
         typedExprsToSyntaxCheck:option<array<expr>>,
@@ -68,6 +69,7 @@ let unify = (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
+    ~maxFrmOrd:int,
     ~typedExprsToSyntaxCheck:option<array<expr>>,
     ~stmtTypeToSyntaxType:option<Belt_HashMapInt.t<array<int>>>,
     ~debugLevel:int,
@@ -86,6 +88,7 @@ let unify = (
                 rootStmts:rootStmts, 
                 bottomUpProverParams, 
                 allowedFrms,
+                maxFrmOrd,
                 combCntMax:settings.combCntMax,
                 stmtTypeToSyntaxType,
                 typedExprsToSyntaxCheck,
@@ -162,7 +165,10 @@ let parseFunc = (funcStr:string):result<'a,string> => {
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, stmtTypeToSyntaxType, typedExprsToSyntaxCheck, debugLevel}) => {
+        | Unify({
+            rootStmts, bottomUpProverParams, allowedFrms, maxFrmOrd,
+            combCntMax, stmtTypeToSyntaxType, typedExprsToSyntaxCheck, debugLevel
+        }) => {
             let bottomUpProverParams:result<option<bottomUpProverParams>,string> = switch bottomUpProverParams {
                 | None => Ok(None)
                 | Some(bottomUpProverParams) => {
@@ -195,6 +201,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         ~rootStmts,
                         ~bottomUpProverParams?,
                         ~allowedFrms,
+                        ~maxFrmOrd,
                         ~combCntMax,
                         ~typedExprsToSyntaxCheck?,
                         ~stmtTypeToSyntaxType?, 
