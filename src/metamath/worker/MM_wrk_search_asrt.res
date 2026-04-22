@@ -15,7 +15,6 @@ type request =
         label:string, 
         pattern:string,
         patternVersion:int,
-        ctx:mmContext,
         isDisc:option<bool>,
         isDepr:option<bool>,
         isTranDepr:option<bool>,
@@ -64,7 +63,7 @@ let searchAssertions = (
             ~disjText="",
             ~procName,
             ~initialRequest = FindAssertions({
-                isAxiom, typ, label, pattern, patternVersion, ctx:preCtx, isDisc, isDepr, isTranDepr
+                isAxiom, typ, label, pattern, patternVersion, isDisc, isDepr, isTranDepr
             }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
@@ -188,7 +187,7 @@ let doSearchAssertions = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({isAxiom, typ, label, pattern, patternVersion, ctx, isDisc, isDepr, isTranDepr}) => {
+        | FindAssertions({isAxiom, typ, label, pattern, patternVersion, isDisc, isDepr, isTranDepr}) => {
             let filteredFrames = doSearchAssertions(
                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
                 ~isAxiom,
@@ -196,7 +195,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~label,
                 ~pattern,
                 ~patternVersion,
-                ~ctx,
+                ~ctx=getWrkCtxExn(),
                 ~isDisc,
                 ~isDepr,
                 ~isTranDepr,
