@@ -473,7 +473,7 @@ let proveBottomUp = (
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
-    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => () ))
+    let progressState = ref(progressTrackerMake( ~step=0.1, ~onProgress = _ => () ))
 
     tree->ptClearDists
     let rootNode = tree->ptGetNode(expr)
@@ -500,7 +500,7 @@ let proveBottomUp = (
                         lastDist.contents = curDist
                         let curDistStr = curDist->Belt.Int.toString
                         progressState.contents = progressTrackerMake(
-                            ~step=0.01,
+                            ~step=0.1,
                             ~onProgress= pct => {
                                 let pctStr = (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString
                                 onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
@@ -810,7 +810,7 @@ let proveSyntaxTypes = (
         raise(MmException({msg:`Either proofTree or (wrkCtx and frms and parenCnt) should be passed.`}))
     }
 
-    let progressState = progressTrackerMake( ~step=0.01, ~onProgress? )
+    let progressState = progressTrackerMake( ~step=0.1, ~onProgress? )
     let numOfExprsToProcess = untypedExprs->Array.length + typedExprs->Array.length
 
     let tree = switch proofTree {
@@ -926,7 +926,7 @@ let unifyAll = (
     ~onProgress:option<string=>unit>=?
 ):proofTree => {
     let progressState = progressTrackerMake(
-        ~step=0.01, 
+        ~step=0.1, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
             pct => onProgress(`Unifying all: ${pct->floatToPctStr}`)
         })
