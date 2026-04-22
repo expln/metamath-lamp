@@ -826,7 +826,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?):array<i
 
     let maxC = allConsts->Array.length - 2
     let maxCF = maxC->Belt_Int.toFloat
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
+    let progressState = progressTrackerMake(~step=0.1, ~onProgress?)
     let foundParens = []
     for c in 0 to maxC {
         let openParen = allConsts->Array.getUnsafe(c)

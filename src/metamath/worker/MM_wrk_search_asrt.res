@@ -148,7 +148,7 @@ let doSearchAssertions = (
     ~isTranDepr:option<bool>,
     ~onProgress:option<float=>unit>=?
 ):array<(frame,option<matchedIndices>)> => {
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
+    let progressState = progressTrackerMake(~step=0.1, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat
     let pattern = switch parsePattern(~patternStr=pattern, ~patternVersion, ~ctx) {
