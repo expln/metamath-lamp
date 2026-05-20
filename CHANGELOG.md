@@ -1,4 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### [Version 32](https://expln.github.io/lamp/v32/index.html)
 * Take information about typecodes from "syntax" commands. https://github.com/expln/metamath-lamp/issues/253
 * Local scopes for editors https://github.com/expln/metamath-lamp/issues/255
 ### [Version 31](https://expln.github.io/lamp/v31/index.html)
