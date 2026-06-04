@@ -129,3 +129,44 @@ See the [Optimizations to consider](#optimizations-to-consider) section
 for the specifics on how to use this attribute.
 
 ### Optimizations to consider
+
+#### Skip explicit justifications
+
+In most cases mm-lamp can find justifications for steps itself if all the required steps to use in justification
+are present in the editor (and precede the step to prove).
+This mean you don't have to provide justifications when adding new steps.
+Skipping explicit justifications will decrease number of errors when an incorrect assertion label is used
+(caused by your hallucination or if the assertion was renamed recently).
+So, try not to provide explicit justifications and let mm-lamp to figure out them.
+
+#### Use bottom-up prover
+
+Additionally to the skipping explicit justifications technique, you can skip some intermediate steps 
+and use the bottom-up prover to let mm-lamp to find some simple obvious steps. 
+For example the bottom-up prover can prove `|- A e. CC` from `|- A e. RR`, 
+and `|- ( X = ( A + ( B + C ) ) )` from `|- ( X = ( ( A + B ) + C  ) )`.
+Usually you will have some intuition what other existing steps should participate in the proof of a given step.
+In such cases you can use the `stepsToDeriveFrom` input parameter of the botton-up prover.
+However, steps provided in the `stepsToDeriveFrom` will be used on the first level of the proof tree.
+In other words, whatever you specify in the `stepsToDeriveFrom` will be used as the arguments of the 
+justification of the step being proved, but not the other new steps found by the bottom-up prover.
+Puttinf a lot of labels to the `stepsToDeriveFrom` may significantly slow down the bottom-up prover.
+Usually up to 5 labels is an optimal chose for the `stepsToDeriveFrom`.
+This also should give you an idea how many "obvious" steps you can skip when planning how you are
+going to use the bottom-up prover.
+In many cases omitting the `stepsToDeriveFrom` will not lead to succes.
+Omitting the `stepsToDeriveFrom` makes sense usually when the step to prove can be proved from existing
+axioms only, like `|- ( 7 + 2 ) e. CC`.
+
+#### Keep minimal number of visible steps
+
+
+
+#### Meaningful variable names
+#### 
+#### 
+#### 
+#### 
+#### 
+#### 
+#### 
