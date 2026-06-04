@@ -6,6 +6,10 @@ function exn(msg) {
     throw new Error(msg)
 }
 
+function hasNoValue(value) {
+    return value === null || value === undefined
+}
+
 function getResponse(apiResponse) {
     if (apiResponse.isOk) {
         return apiResponse.res
@@ -212,6 +216,27 @@ async function setMmProve() {
     })
 }
 
+const AVAILABLE_ACTIONS = {
+    getEditorState: async params => await copyEditorStateForLlmToClipboard(params)
+}
+
+async function runLlmSuggestedAction() {
+    const {okClicked, text:actionText} = getResponse(await api.multilineTextInput({prompt:'Enter LLM suggested action in JSON format:'}))
+    if (okClicked) {
+        const {functionName, params} = JSON.parse(actionText)
+        if (hasNoValue(functionName)) {
+            await showErrMsg("No function name was specified.")
+            return
+        }
+        const func = AVAILABLE_ACTIONS[functionName]
+        if (hasNoValue(func)) {
+            await showErrMsg(`The specified function '${functionName}' is not defined.`)
+            return
+        }
+        await func(params)
+    }
+}
+
 function makeMacro(name, func) {
     return {
         name,
@@ -231,5 +256,6 @@ await api.macro.registerMacroModule({
     macros: [
         makeMacro('Prove', setMmProve),
         makeMacro('Copy editor state for LLM to clipboard', copyEditorStateForLlmToClipboard),
+        makeMacro('Run LLM suggested action', runLlmSuggestedAction),
     ]
 })
