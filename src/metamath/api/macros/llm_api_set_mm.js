@@ -122,9 +122,9 @@ async function addSteps({beforeLabel, afterLabel, variables, steps}) {
         vars: variables,
         steps: steps.map(step => ({
             label: step.label,
-            type: step.typ,
-            stmt: step.statement,
+            typ: step.type,
             jstf: step.justification,
+            stmt: step.statement,
             isBkm: true,
         })),
     }))
@@ -256,6 +256,7 @@ async function prove({stepToProve, stepsToDeriveFrom}) {
 }
 
 const AVAILABLE_ACTIONS = {
+    getState: async params => await copyEditorStateForLlmToClipboard(params),
     addSteps: async params => await addSteps(params),
     updateSteps: async params => await updateSteps(params),
     deleteSteps: async params => await deleteSteps(params),
@@ -265,7 +266,7 @@ const AVAILABLE_ACTIONS = {
 async function runLlmSuggestedAction() {
     const {okClicked, text:actionText} = getResponse(await api.multilineTextInput({prompt:'Enter LLM suggested action in JSON format:'}))
     if (okClicked) {
-        const {functionName, params} = JSON.parse(actionText)
+        const {functionName, parameters} = JSON.parse(actionText)
         if (hasNoValue(functionName)) {
             await showErrMsg("No function name was specified.")
             return
@@ -275,7 +276,7 @@ async function runLlmSuggestedAction() {
             await showErrMsg(`The specified function '${functionName}' is not defined.`)
             return
         }
-        await func(params)
+        await func(parameters)
     }
 }
 
