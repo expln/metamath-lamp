@@ -112,7 +112,7 @@ function getIdxOfLabel(st, label) {
 
 async function addSteps({beforeLabel, afterLabel, variables, steps}) {
     const label = hasValue(beforeLabel) ? beforeLabel : afterLabel
-    const st = getEditorState()
+    const st = await getEditorState()
     const atIdx = hasValue(label) ? getIdxOfLabel(st, label) : null
     if (hasValue(label) && atIdx < 0) {
         showErrMsg(`No step with label '${label}' exists.`)
@@ -245,7 +245,7 @@ async function prove({stepToProve, stepsToDeriveFrom}) {
         showErrMsg(`Steps to derive from ${stepsToDeriveFrom} must not include the step to prove '${stepToProve}'`)
         return
     }
-    const st = getEditorState()
+    const st = await getEditorState()
     const unknownLabels = [stepToProve, ...(stepsToDeriveFrom??[])].filter(lbl => getIdxOfLabel(st, lbl) < 0)
     if (unknownLabels.length > 0) {
         showErrMsg(`No steps exist for labels: ${unknownLabels}`)

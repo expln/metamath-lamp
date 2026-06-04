@@ -60,6 +60,8 @@ If both `beforeLabel` and `afterLabel` are specified then only `beforeLabel` wil
 Each element of this array is a two-element sub-array of strings.
 The first string in such a sub-array is the type of the variable to add.
 The second string in a sub-array is the name of the variable.
+You don't need to add existing variables. 
+You always can use existing (predefined) variables when you need them in the proof.
 It makes sense to add only variables which are used in statements.
 Unused variables will be removed automatically.
 See the [Optimizations to consider](#optimizations-to-consider) section to understand when adding new variables
