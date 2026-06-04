@@ -298,7 +298,6 @@ function makeMacro(name, func) {
 await api.macro.registerMacroModule({
     moduleName,
     macros: [
-        makeMacro('Prove', setMmProve),
         makeMacro('Copy editor state for LLM to clipboard', copyEditorStateForLlmToClipboard),
         makeMacro('Run LLM suggested action', runLlmSuggestedAction),
     ]
