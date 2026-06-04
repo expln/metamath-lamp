@@ -131,6 +131,26 @@ async function addSteps({beforeLabel, afterLabel, variables, steps}) {
     await copyEditorStateForLlmToClipboard()
 }
 
+async function updateSteps({steps}) {
+    getResponse(await api.editor().updateSteps({
+        steps: steps.map(step => ({
+            label: step.label,
+            type: step.typ,
+            stmt: step.statement,
+            jstf: step.justification,
+            isBkm: step.isBookmarked,
+        })),
+    }))
+    await copyEditorStateForLlmToClipboard()
+}
+
+async function deleteSteps({labels}) {
+    getResponse(await api.editor().deleteSteps({
+        labels,
+    }))
+    await copyEditorStateForLlmToClipboard()
+}
+
 async function resetEditorContent() {
     getResponse(await api.editor().resetEditorContent())
 }
@@ -241,6 +261,8 @@ async function setMmProve() {
 const AVAILABLE_ACTIONS = {
     getEditorState: async params => await copyEditorStateForLlmToClipboard(params),
     addSteps: async params => await addSteps(params),
+    updateSteps: async params => await updateSteps(params),
+    deleteSteps: async params => await deleteSteps(params),
 }
 
 async function runLlmSuggestedAction() {
