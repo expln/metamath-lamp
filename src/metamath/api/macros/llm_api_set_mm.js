@@ -10,6 +10,10 @@ function hasNoValue(value) {
     return value === null || value === undefined
 }
 
+function hasValue(value) {
+    return !hasNoValue(value)
+}
+
 function getResponse(apiResponse) {
     if (apiResponse.isOk) {
         return apiResponse.res
@@ -37,18 +41,19 @@ function stepIsVisibleToLlm(step) {
 }
 
 function getStepTypeForLlm({isGoal, isHyp}) {
-    if (isGoal) return "goal"
-    if (isHyp) return "hypothesis"
-    return "provable"
+    if (isGoal) return 'g'
+    if (isHyp) return 'h'
+    return 'p'
 }
 
 function getStepStatusForLlm({isHyp, status}) {
     if (isHyp) return null
-    if (status === 'v') return 'proved'
-    if (status === '?') return 'unproved'
-    if (status === '~') return 'jstf_is_correct'
-    if (status === 'x') return 'jstf_is_incorrect'
-    return 'undefined'
+    return status
+    // if (status === 'v') return 'proved'
+    // if (status === '?') return 'unproved'
+    // if (status === '~') return 'jstf_is_correct'
+    // if (status === 'x') return 'jstf_is_incorrect'
+    // return 'undefined'
 }
 
 function minimizeStepForLlm(step) {
@@ -101,16 +106,33 @@ function undefToNull(value) {
     return value === undefined ? null : value
 }
 
-async function addSteps({atIdx, steps, vars}) {
-    return getResponse(await api.editor().addSteps({atIdx:undefToNull(atIdx), steps, vars:undefToNull(vars)}))
+function getIdxOfLabel(st, label) {
+    return st.steps.findIndex(step => step.label === label)
+}
+
+async function addSteps({beforeLabel, afterLabel, variables, steps}) {
+    const label = hasValue(beforeLabel) ? beforeLabel : afterLabel
+    const atIdx = hasValue(label) ? getIdxOfLabel(label) : null
+    if (hasValue(label) && atIdx < 0) {
+        showErrMsg(`No step with label '${label}' exists.`)
+        return
+    }
+    getResponse(await api.editor().addSteps({
+        atIdx:hasValue(label) ? atIdx : null,
+        vars: variables,
+        steps: steps.map(step => ({
+            label: step.label,
+            type: step.typ,
+            stmt: step.statement,
+            jstf: step.justification,
+            isBkm: true,
+        })),
+    }))
+    await copyEditorStateForLlmToClipboard()
 }
 
 async function resetEditorContent() {
     getResponse(await api.editor().resetEditorContent())
-}
-
-async function addStepsToEditor({steps,vars}) {
-    getResponse(await api.editor().addSteps({steps,vars}))
 }
 
 function updateParams(params, expr, dist, intToSym, symToInt) {
@@ -217,7 +239,8 @@ async function setMmProve() {
 }
 
 const AVAILABLE_ACTIONS = {
-    getEditorState: async params => await copyEditorStateForLlmToClipboard(params)
+    getEditorState: async params => await copyEditorStateForLlmToClipboard(params),
+    addSteps: async params => await addSteps(params),
 }
 
 async function runLlmSuggestedAction() {
