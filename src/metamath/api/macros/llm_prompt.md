@@ -1,6 +1,6 @@
 ### The task
 Your task is to help me to develop a Metamath proof using metamath-lamp (mm-lamp) tool.
-Mm-lamp has built-in API functions which you can call to add/update/delete statements in the editor 
+Mm-lamp has built-in API functions which you can call to add/update/delete steps in the editor 
 and invoke different features of mm-lamp like bottom-up prover, etc.
 Each API function accepts at most one JSON object as a parameter.
 Each such JSON object has a predefined structure depending on the function.
@@ -63,7 +63,7 @@ The second string in a sub-array is the name of the variable.
 It makes sense to add only variables which are used in statements.
 Unused variables will be removed automatically.
 See the [Optimizations to consider](#optimizations-to-consider) section to understand when adding new variables
-may make sense.
+may be needed.
 Example value of `variables`: `[["setvar","set_of_all_sets"], ["class","number_of_apples"]]`
 * `steps` is an array of steps to add.
   * `label` is the label of a step. It is optional. If it is omitted then a new unique label will be generated.
@@ -93,7 +93,7 @@ The format of the parameter object it accepts is as follows:
 }
 ```
 `steps` is an array of steps to update. 
-Meaning of all attributes of a step element is the same as for the `addSteps` function.
+Meaning of all attributes of a step object is the same as for the `addSteps` function.
 `label` is a required attribute. It must be a label of an existing statement.
 All other attributes are optional.
 If any of the optional attributes is missing then it will not change for the step.
@@ -114,8 +114,8 @@ The format of the parameter object it accepts is as follows:
 `prove` starts a bottom-up prover for the specified steps.
 If a proof is found then this function returns the state of the editor with the found proof applied 
 (saved in the editor).
-If no proof founs then this function doesn't return anything.
-In such case I will write you that no proof found.
+If no proof found then this function doesn't return anything.
+In such cases I will write you that no proof found. And you will need to think what to do next.
 The format of the parameter object the `prove` function accepts is as follows:
 ```json
 {
@@ -132,9 +132,9 @@ for the specifics on how to use this attribute.
 
 #### Skip explicit justifications
 
-In most cases mm-lamp can find justifications for steps itself if all the required steps to use in justification
+In most cases mm-lamp can find justifications for steps itself if all the required steps to use in the justification
 are present in the editor (and precede the step to prove).
-This mean you don't have to provide justifications when adding new steps.
+This means you don't have to provide justifications when adding new steps.
 Skipping explicit justifications will decrease number of errors when an incorrect assertion label is used
 (caused by your hallucination or if the assertion was renamed recently).
 So, try not to provide explicit justifications and let mm-lamp to figure out them.
@@ -149,13 +149,15 @@ and `|- ( X = ( A + ( B + C ) ) )` from `|- ( X = ( ( A + B ) + C  ) )`.
 Usually you will have some intuition what other existing steps should participate in the proof of a given step.
 In such cases you can use the `stepsToDeriveFrom` input parameter of the botton-up prover.
 However, steps provided in the `stepsToDeriveFrom` will be used on the first level of the proof tree.
-In other words, whatever you specify in the `stepsToDeriveFrom` will be used as the arguments of the 
+In other words, whatever you specify in the `stepsToDeriveFrom` will be used as the potentinal arguments of the 
 justification of the step being proved, but not for the other new steps found by the bottom-up prover.
 
 Putting a lot of labels to the `stepsToDeriveFrom` may significantly slow down the bottom-up prover.
 Usually up to 5 labels is an optimal choice for the `stepsToDeriveFrom`.
 This also should give you an idea how many "obvious" steps you can skip when planning how you are
 going to use the bottom-up prover.
+But if you are sure a bigger number of labels in the `stepsToDeriveFrom` will be fine, then feel free to use
+that amount of labels.
 
 On the other hand, omitting the `stepsToDeriveFrom` in many cases will not lead to success.
 Usually omitting the `stepsToDeriveFrom` makes sense when the step to prove can be proved from existing
@@ -178,5 +180,5 @@ You can hide steps by setting `"isBookmarked": false` for them in the `updateSte
 Sometimes you can make a proof more readable by using meaningful variable names.
 For example, instead of using the predefined in set.mm variable `x`,
 you can use a meaningful name like `set_of_all_sets`.
-Whenever you think I or you will benefit of using meaningful variable names,
+Whenever you think I or you will benefit from using meaningful variable names,
 you can introduce them via the `variables` input parameter of the `addSteps` function.
