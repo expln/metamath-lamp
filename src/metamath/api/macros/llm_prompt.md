@@ -142,31 +142,41 @@ So, try not to provide explicit justifications and let mm-lamp to figure out the
 #### Use bottom-up prover
 
 Additionally to the skipping explicit justifications technique, you can skip some intermediate steps 
-and use the bottom-up prover to let mm-lamp to find some simple obvious steps. 
-For example the bottom-up prover can prove `|- A e. CC` from `|- A e. RR`, 
+and use the bottom-up prover to let mm-lamp to find some simple/obvious intermediate steps. 
+For example, the bottom-up prover can prove `|- A e. CC` from `|- A e. RR`, 
 and `|- ( X = ( A + ( B + C ) ) )` from `|- ( X = ( ( A + B ) + C  ) )`.
+
 Usually you will have some intuition what other existing steps should participate in the proof of a given step.
 In such cases you can use the `stepsToDeriveFrom` input parameter of the botton-up prover.
 However, steps provided in the `stepsToDeriveFrom` will be used on the first level of the proof tree.
 In other words, whatever you specify in the `stepsToDeriveFrom` will be used as the arguments of the 
-justification of the step being proved, but not the other new steps found by the bottom-up prover.
-Puttinf a lot of labels to the `stepsToDeriveFrom` may significantly slow down the bottom-up prover.
-Usually up to 5 labels is an optimal chose for the `stepsToDeriveFrom`.
+justification of the step being proved, but not for the other new steps found by the bottom-up prover.
+
+Putting a lot of labels to the `stepsToDeriveFrom` may significantly slow down the bottom-up prover.
+Usually up to 5 labels is an optimal choice for the `stepsToDeriveFrom`.
 This also should give you an idea how many "obvious" steps you can skip when planning how you are
 going to use the bottom-up prover.
-In many cases omitting the `stepsToDeriveFrom` will not lead to succes.
-Omitting the `stepsToDeriveFrom` makes sense usually when the step to prove can be proved from existing
+
+On the other hand, omitting the `stepsToDeriveFrom` in many cases will not lead to success.
+Usually omitting the `stepsToDeriveFrom` makes sense when the step to prove can be proved from existing
 axioms only, like `|- ( 7 + 2 ) e. CC`.
 
 #### Keep minimal number of visible steps
 
-
+Very often Metamath proofs become too lengthy.
+Sending a lot of proved steps to you each time is not desired because it will make the conversation difficult
+to read. Also, you probably don't need to always see all the steps because you can remember the idea of the
+proof. Probably you will need to see only some recent proved and unproved steps.
+Another problem with long proofs is that they will consume my token quota.
+So, you need to keep number of visible steps at a minimum level.
+Whenever a step becomes proved, and you anticipate you will not need to explicitly reference it in the
+further proof, then hide such step.
+You can hide steps by setting `"isBookmarked": false` for them in the `updateSteps` function.
 
 #### Meaningful variable names
-#### 
-#### 
-#### 
-#### 
-#### 
-#### 
-#### 
+
+Sometimes you can make a proof more readable by using meaningful variable names.
+For example, instead of using the predefined in set.mm variable `x`,
+you can use a meaningful name like `set_of_all_sets`.
+Whenever you think I or you will benefit of using meaningful variable names,
+you can introduce them via the `variables` input parameter of the `addSteps` function.
