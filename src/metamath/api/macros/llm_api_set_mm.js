@@ -67,8 +67,7 @@ function minimizeStepForLlm(step) {
 }
 
 async function getEditorStateForLlm(){
-    //unselect all steps
-    getResponse(await api.editor().markStepsChecked({labels:[]}))
+    await unselectAllSteps()
     //assign statuses for all steps
     getResponse(await api.editor().unifyAll())
     //get full editor state
@@ -112,7 +111,8 @@ function getIdxOfLabel(st, label) {
 
 async function addSteps({beforeLabel, afterLabel, variables, steps}) {
     const label = hasValue(beforeLabel) ? beforeLabel : afterLabel
-    const atIdx = hasValue(label) ? getIdxOfLabel(label) : null
+    const st = getEditorState()
+    const atIdx = hasValue(label) ? getIdxOfLabel(st, label) : null
     if (hasValue(label) && atIdx < 0) {
         showErrMsg(`No step with label '${label}' exists.`)
         return
@@ -234,35 +234,32 @@ async function provePriv({stepToProve, stepsToDeriveFrom, debugLevel}) {
     }))
 }
 
+async function unselectAllSteps() {
+    getResponse(await api.editor().markStepsChecked({labels:[]}))
+}
+
 async function prove({stepToProve, stepsToDeriveFrom}) {
-    return await provePriv({stepToProve, stepsToDeriveFrom, debugLevel:1})
-}
-
-function getLabelsOfSelectedProvableSteps(editorState) {
-    return editorState.steps
-        .filter(step => !step.isHyp && editorState.selectedSteps.includes(step.label))
-        .map(step => step.label)
-}
-
-async function setMmProve() {
-    const editorState = await getEditorState()
-    const labelsOfSelectedProvableSteps = getLabelsOfSelectedProvableSteps(editorState)
-    if (labelsOfSelectedProvableSteps.length === 0) {
-        await showErrMsg('Select at least one provable step.')
+    await unselectAllSteps()
+    if (hasValue(stepsToDeriveFrom) && stepsToDeriveFrom.includes(stepToProve)) {
+        showErrMsg(`Steps to derive from ${stepsToDeriveFrom} must not include the step to prove '${stepToProve}'`)
         return
     }
-    const stepToProve = labelsOfSelectedProvableSteps[labelsOfSelectedProvableSteps.length-1]
-    await prove({
-        stepToProve,
-        stepsToDeriveFrom: editorState.selectedSteps.filter(label => label !== stepToProve)
-    })
+    const st = getEditorState()
+    const unknownLabels = [stepToProve, ...(stepsToDeriveFrom??[])].filter(lbl => getIdxOfLabel(st, lbl) < 0)
+    if (unknownLabels.length > 0) {
+        showErrMsg(`No steps exist for labels: ${unknownLabels}`)
+        return
+    }
+    //run bottom-up prover for the specified steps
+    await provePriv({stepToProve, stepsToDeriveFrom, debugLevel:1})
+
 }
 
 const AVAILABLE_ACTIONS = {
-    getEditorState: async params => await copyEditorStateForLlmToClipboard(params),
     addSteps: async params => await addSteps(params),
     updateSteps: async params => await updateSteps(params),
     deleteSteps: async params => await deleteSteps(params),
+    prove: async params => await prove(params),
 }
 
 async function runLlmSuggestedAction() {
