@@ -14,7 +14,7 @@ To ask me to execute an API function, put a JSON object at the end of your reply
 ```
 `parameters` is an optional attribute.
 You should not include it if an API function doesn't accept any parameters.
-Make sure that JSON object is at the very end of your reply.
+Always put your request to execute an API function at the very end of your reply.
 I will execute the function you asked and reply to you with the output of the function.
 The output of the function and all the previous our conversation should help you to come up with the next action 
 to do to get the proof complete.
@@ -25,12 +25,16 @@ to do to get the proof complete.
 
 The `getState` function doesn't accept any parameters.
 It returns the current state of the editor.
+Not all steps will be returned.
+Unbookmarked proved steps will not be returned.
+All other steps will be returned 
+(hypotheses, bookmarked steps, the goal step, unproved steps, and steps with errors).
 
 #### addSteps
 
 The `addSteps` function accepts new steps to add to the editor.
-It returns the state of the editor after the steps have been added.
-The format of the parameter it accepts is as follows:
+It returns the state of the editor after the steps have been added (the output of the `getState` function).
+The format of the parameter object it accepts is as follows:
 
 ```json
 {
@@ -38,10 +42,11 @@ The format of the parameter it accepts is as follows:
   "afterLabel":  string, 
   "variables": [[variableType:string, variableName:string]], 
   "steps": [{
-        "label": string,
-        "type": string,
-        "justification": string,
-        "statement": string,
+    "label": string,
+    "type": string,
+    "justification": string,
+    "statement": string,
+    "isBookmarked": boolean
   }]
 }
 ```
@@ -68,10 +73,59 @@ Example value of `variables`: `[["setvar","set_of_all_sets"], ["class","number_o
   * `justification` is the justification of a step. It is optional. 
   If it is omitted then the step will not have a justification.
   * `statement` is the statement itself (the content of the step). It is a required attribute of a step object.
+  * `isBookmarked` is a boolean value indicating if the step should be bookmarked. It is optional. 
+  The default value is `true`.
 
 #### updateSteps
 
 `updateSteps` modifies existing steps.
-It returns the state of the editor after the steps have been modified.
+It returns the state of the editor after the steps have been modified (the output of the `getState` function).
+The format of the parameter object it accepts is as follows:
+```json
+{
+  "steps": [{
+    "label": string,
+    "type": string,
+    "justification": string,
+    "statement": string,
+    "isBookmarked": boolean
+  }]
+}
+```
+`steps` is an array of steps to update. 
+Meaning of all attributes of a step element is the same as for the `addSteps` function.
+`label` is a required attribute. It must be a label of an existing statement.
+All other attributes are optional.
+If any of the optional attributes is missing then it will not change for the step.
+So, only attributes which need to be changed should be provided.
+
+#### deleteSteps
+`deleteSteps` deletes existing steps.
+It returns the state of the editor after the steps have been deleted (the output of the `getState` function).
+The format of the parameter object it accepts is as follows:
+```json
+{
+  "labels": [string]
+}
+```
+`labels` is an array of labels of steps to delete.
+
+#### prove
+`prove` starts a bottom-up prover for the specified steps.
+If a proof is found then this function returns the state of the editor with the found proof applied 
+(saved in the editor).
+If no proof founs then this function doesn't return anything.
+In such case I will write you that no proof found.
+The format of the parameter object the `prove` function accepts is as follows:
+```json
+{
+  "stepToProve": string,
+  "stepsToDeriveFrom": [string]
+}
+```
+* `stepToProve` is a label of an existing step which needs to be proved. This is a required attribute.
+* `stepsToDeriveFrom` is an optional array of existing labels which may be used to prove the `stepToProve`.
+See the [Optimizations to consider](#optimizations-to-consider) section 
+for the specifics on how to use this attribute.
 
 ### Optimizations to consider

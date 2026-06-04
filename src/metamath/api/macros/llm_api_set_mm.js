@@ -63,6 +63,7 @@ function minimizeStepForLlm(step) {
         type: getStepTypeForLlm(step),
         justification: step.jstfText,
         statement: step.stmt,
+        isBookmarked: step.isBkm,
     }
 }
 
@@ -125,7 +126,7 @@ async function addSteps({beforeLabel, afterLabel, variables, steps}) {
             typ: step.type,
             jstf: step.justification,
             stmt: step.statement,
-            isBkm: true,
+            isBkm: hasValue(step.isBookmarked) ? step.isBookmarked : true,
         })),
     }))
     await copyEditorStateForLlmToClipboard()
