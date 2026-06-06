@@ -34,7 +34,7 @@ If the editor state has any errors then only steps with errors will be returned.
 
 If there are no steps with errors but there is an error in variables declaration or in disjoints,
 then this counts as the editor state has an error.
-But since there are no steps with errors, the empty array will be returned instead of actual steps.
+But since there are no steps with errors, an empty array will be returned instead of actual steps.
 So, if you see there is an error in variables or in disjoints, you need to suggest how to fix that error first.
 
 #### addSteps
