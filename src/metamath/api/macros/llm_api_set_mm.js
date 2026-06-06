@@ -1,4 +1,4 @@
-const moduleName = 'LLM driven proofs'
+const moduleName = "LLM driven proofs"
 
 await api.setLogApiCallsToConsole(true)
 await api.settings.setMarkFirstProvableStepAsGoal(false)
@@ -270,8 +270,11 @@ async function prove({stepToProve, stepsToDeriveFrom}) {
     }
     const stepToProveIdx = getIdxOfLabel(st, stepToProve)
     const misplacedStepsToDeriveFrom = stepsToDeriveFrom.filter(lbl => stepToProveIdx < getIdxOfLabel(st, lbl))
-    if (unknownLabels.length > 0) {
-        panic(`Some steps to derive from are located after the step to prove: ${misplacedStepsToDeriveFrom}`)
+    if (misplacedStepsToDeriveFrom.length > 0) {
+        panic(
+            `Some steps to derive from ${misplacedStepsToDeriveFrom} ` +
+            `are located after the step to prove ${stepToProve}.`
+        )
     }
     //run the bottom-up prover for the specified steps
     const proved = await provePriv({stepToProve, stepsToDeriveFrom, debugLevel:1})
