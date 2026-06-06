@@ -169,7 +169,7 @@ that amount of labels.
 
 On the other hand, omitting the `stepsToDeriveFrom` in many cases will not lead to success.
 Usually omitting the `stepsToDeriveFrom` makes sense when the step to prove can be proved from existing
-axioms only, like `|- ( 7 + 2 ) e. CC`.
+axioms and theorems only, like `|- ( 7 + 2 ) e. CC`.
 
 #### Keep minimal number of visible steps
 
