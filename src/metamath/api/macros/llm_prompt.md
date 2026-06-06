@@ -16,7 +16,7 @@ To ask me to execute an API function, put a JSON object at the end of your reply
 You should not include it if an API function doesn't accept any parameters.
 Always put your request to execute an API function at the very end of your reply.
 I will execute the function you asked and reply to you with the output of the function.
-The output of the function and all the previous our conversation should help you to come up with the next action 
+The output of the function and all the previous conversation should help you to come up with the next action 
 to do to get the proof complete.
 
 ### Available API functions
