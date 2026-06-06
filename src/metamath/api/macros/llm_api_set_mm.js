@@ -1,25 +1,14 @@
-const moduleName = 'LLM driven proofs'
+const moduleName = "LLM driven proofs"
 
 await api.setLogApiCallsToConsole(true)
-
-function exn(msg) {
-    throw new Error(msg)
-}
+await api.settings.setMarkFirstProvableStepAsGoal(false)
 
 function hasNoValue(value) {
-    return value === null || value === undefined
+    return value === undefined || value === null
 }
 
 function hasValue(value) {
     return !hasNoValue(value)
-}
-
-function getResponse(apiResponse) {
-    if (apiResponse.isOk) {
-        return apiResponse.res
-    } else {
-        exn(apiResponse.err)
-    }
 }
 
 async function showInfoMsg(msg) {
@@ -30,14 +19,60 @@ async function showErrMsg(msg) {
     getResponse(await api.showErrMsg({msg:String(msg)}))
 }
 
+function panic(msg) {
+    throw new Error(msg)
+}
+
+function getResponse(apiResponse) {
+    if (apiResponse.isOk) {
+        return apiResponse.res
+    } else {
+        panic(apiResponse.err)
+    }
+}
+
 async function getEditorState() {
     return getResponse(await api.editor().getState())
 }
 
+/*
+* Invoke "Unify All" and return the editor state after that.
+* "Unify All" validates the editor for errors and assigns statuses to steps (proved, unproved, partially proved, etc.).
+* */
+async function unifyAll() {
+    getResponse(await api.editor().unifyAll())
+    return await getEditorState()
+}
+
+/*
+* Unselect all selected steps.
+* */
+async function unselectAllSteps() {
+    getResponse(await api.editor().markStepsChecked({labels:[]}))
+}
+
+function stepHasError(step) {
+    return hasValue(step.stmtErr) || hasValue(step.syntaxErr) || hasValue(step.unifErr)
+}
+
+function editorStateHasError(st) {
+    return hasValue(st.varsErr) || hasValue(st.disjErr) || st.steps.some(stepHasError)
+}
+
+function getIdxOfLabel(st, label) {
+    return st.steps.findIndex(step => step.label === label)
+}
+
+/*
+* Decide if a step should be shown to an LLM.
+* Invoke "Unify All" before using this function, as steps must have the 'status' attribute assigned.
+* */
 function stepIsVisibleToLlm(step) {
     return step.isBkm /* show all bookmarked steps */
+        || step.isHyp /* show all hypothesis steps */
+        || step.isGoal /* show all goal steps */
         || step.status !== 'v' /* show all unproved steps */
-        || step.stmtErr || step.syntaxErr || step.unifErr /* show all steps having any error */
+        || stepHasError(step) /* show all steps having any error */
 }
 
 function getStepTypeForLlm({isGoal, isHyp}) {
@@ -53,9 +88,11 @@ function getStepStatusForLlm({isHyp, status}) {
     // if (status === '?') return 'unproved'
     // if (status === '~') return 'jstf_is_correct'
     // if (status === 'x') return 'jstf_is_incorrect'
-    // return 'undefined'
 }
 
+/*
+* Convert a step object returned by unifyAll() to a new step object to be sent to an LLM.
+* */
 function minimizeStepForLlm(step) {
     return {
         status: getStepStatusForLlm(step),
@@ -64,50 +101,36 @@ function minimizeStepForLlm(step) {
         justification: step.jstfText,
         statement: step.stmt,
         isBookmarked: step.isBkm,
+        errors: [step.stmtErr, step.syntaxErr, step.unifErr].filter(hasValue)
     }
 }
 
 async function getEditorStateForLlm(){
-    await unselectAllSteps()
-    //assign statuses for all steps
-    getResponse(await api.editor().unifyAll())
-    //get full editor state
-    const st = await getEditorState()
+    //unify all and get the full editor state
+    const st = await unifyAll()
+    let stepsToSendToLlm
+    if (editorStateHasError(st)) {
+        //if there are errors, then statuses are not set for steps. In that case only steps with errors will be
+        // sent to an LLM
+        stepsToSendToLlm = st.steps.filter(stepHasError)
+    } else {
+        stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
+    }
     //prepare minimized editor state for an LLM
     const stLlm = {
         variables: st.varsText,
+        variablesError: st.varsErr,
         disjoints: st.disjText,
         disjointsError: st.disjErr,
-        steps: st.steps.filter(stepIsVisibleToLlm).map(minimizeStepForLlm)
+        steps: stepsToSendToLlm.map(minimizeStepForLlm)
     }
     //return editor state as a pretty printed JSON
-    return JSON.stringify(stLlm, null, 4)
+    return JSON.stringify(stLlm, null, 2)
 }
 
-async function copyEditorStateForLlmToClipboard() {
+async function putEditorStateForLlmToClipboard() {
     await navigator.clipboard.writeText(await getEditorStateForLlm());
-    console.log('The editor state has been copied to clipboard.')
-}
-
-async function unifyAll() {
-    getResponse(await api.editor().unifyAll())
-    return await getEditorState()
-}
-
-async function updateSteps(steps) {
-    return getResponse(await api.editor().updateSteps({steps}))
-}
-
-async function deleteSteps(labels) {
-    return getResponse(await api.editor().deleteSteps({labels}))
-}
-
-function undefToNull(value) {
-    return value === undefined ? null : value
-}
-
-function getIdxOfLabel(st, label) {
-    return st.steps.findIndex(step => step.label === label)
+    console.log('The editor state has been copied to the clipboard.')
 }
 
 async function addSteps({beforeLabel, afterLabel, variables, steps}) {
@@ -115,47 +138,46 @@ async function addSteps({beforeLabel, afterLabel, variables, steps}) {
     const st = await getEditorState()
     const atIdx = hasValue(label) ? getIdxOfLabel(st, label) : null
     if (hasValue(label) && atIdx < 0) {
-        showErrMsg(`No step with label '${label}' exists.`)
-        return
+        panic(`No step with label '${label}' exists.`)
     }
     getResponse(await api.editor().addSteps({
-        atIdx:hasValue(label) ? atIdx : null,
+        atIdx,
         vars: variables,
         steps: steps.map(step => ({
             label: step.label,
-            typ: step.type,
+            type: step.type,
             jstf: step.justification,
             stmt: step.statement,
-            isBkm: hasValue(step.isBookmarked) ? step.isBookmarked : true,
+            isBkm: true,
         })),
     }))
-    await copyEditorStateForLlmToClipboard()
+    await putEditorStateForLlmToClipboard()
 }
 
 async function updateSteps({steps}) {
     getResponse(await api.editor().updateSteps({
         steps: steps.map(step => ({
             label: step.label,
-            type: step.typ,
+            typ: step.type,
             stmt: step.statement,
             jstf: step.justification,
             isBkm: step.isBookmarked,
         })),
     }))
-    await copyEditorStateForLlmToClipboard()
+    await putEditorStateForLlmToClipboard()
 }
 
 async function deleteSteps({labels}) {
     getResponse(await api.editor().deleteSteps({
         labels,
     }))
-    await copyEditorStateForLlmToClipboard()
+    await putEditorStateForLlmToClipboard()
 }
 
-async function resetEditorContent() {
-    getResponse(await api.editor().resetEditorContent())
-}
-
+/*
+* This function is passed as an input parameter to the bottom-up prover.
+* It dynamically changes the bottom-up prover parameters in some special cases during the proving process.
+* */
 function updateParams(params, expr, dist, intToSym, symToInt) {
     if (params.customParams === undefined) {
         params = {
@@ -235,29 +257,35 @@ async function provePriv({stepToProve, stepsToDeriveFrom, debugLevel}) {
     }))
 }
 
-async function unselectAllSteps() {
-    getResponse(await api.editor().markStepsChecked({labels:[]}))
-}
-
 async function prove({stepToProve, stepsToDeriveFrom}) {
     await unselectAllSteps()
-    if (hasValue(stepsToDeriveFrom) && stepsToDeriveFrom.includes(stepToProve)) {
-        showErrMsg(`Steps to derive from ${stepsToDeriveFrom} must not include the step to prove '${stepToProve}'`)
-        return
+    stepsToDeriveFrom = stepsToDeriveFrom??[]
+    if (stepsToDeriveFrom.includes(stepToProve)) {
+        panic(`Steps to derive from ${stepsToDeriveFrom} must not include the step to prove '${stepToProve}'`)
     }
     const st = await getEditorState()
-    const unknownLabels = [stepToProve, ...(stepsToDeriveFrom??[])].filter(lbl => getIdxOfLabel(st, lbl) < 0)
+    const unknownLabels = [stepToProve, ...stepsToDeriveFrom].filter(lbl => getIdxOfLabel(st, lbl) < 0)
     if (unknownLabels.length > 0) {
-        showErrMsg(`No steps exist for labels: ${unknownLabels}`)
-        return
+        panic(`No steps exist for labels: ${unknownLabels}`)
     }
-    //run bottom-up prover for the specified steps
-    await provePriv({stepToProve, stepsToDeriveFrom, debugLevel:1})
+    const stepToProveIdx = getIdxOfLabel(st, stepToProve)
+    const misplacedStepsToDeriveFrom = stepsToDeriveFrom.filter(lbl => stepToProveIdx < getIdxOfLabel(st, lbl))
+    if (misplacedStepsToDeriveFrom.length > 0) {
+        panic(
+            `Some steps to derive from ${misplacedStepsToDeriveFrom} ` +
+            `are located after the step to prove ${stepToProve}.`
+        )
+    }
+    //run the bottom-up prover for the specified steps
+    const proved = await provePriv({stepToProve, stepsToDeriveFrom, debugLevel:1})
+    if (proved) {
+        await putEditorStateForLlmToClipboard()
+    }
 
 }
 
 const AVAILABLE_ACTIONS = {
-    getState: async params => await copyEditorStateForLlmToClipboard(params),
+    getState: async params => await putEditorStateForLlmToClipboard(params),
     addSteps: async params => await addSteps(params),
     updateSteps: async params => await updateSteps(params),
     deleteSteps: async params => await deleteSteps(params),
@@ -265,17 +293,17 @@ const AVAILABLE_ACTIONS = {
 }
 
 async function runLlmSuggestedAction() {
-    const {okClicked, text:actionText} = getResponse(await api.multilineTextInput({prompt:'Enter LLM suggested action in JSON format:'}))
+    const {okClicked, text:actionText} = getResponse(await api.multilineTextInput({
+        prompt:'Enter an LLM suggested action in JSON format:'
+    }))
     if (okClicked) {
         const {functionName, parameters} = JSON.parse(actionText)
         if (hasNoValue(functionName)) {
-            await showErrMsg("No function name was specified.")
-            return
+            panic("No function name was specified.")
         }
         const func = AVAILABLE_ACTIONS[functionName]
         if (hasNoValue(func)) {
-            await showErrMsg(`The specified function '${functionName}' is not defined.`)
-            return
+            panic(`The specified function '${functionName}' is not defined.`)
         }
         await func(parameters)
     }
@@ -288,7 +316,7 @@ function makeMacro(name, func) {
             try {
                 await func()
             } catch (ex) {
-                await showErrMsg(`${ex.message}\n${ex.stack}`)
+                showErrMsg(`${ex.message}\n\n${ex.stack}`)
                 throw ex
             }
         }
@@ -298,7 +326,7 @@ function makeMacro(name, func) {
 await api.macro.registerMacroModule({
     moduleName,
     macros: [
-        makeMacro('Copy editor state for LLM to clipboard', copyEditorStateForLlmToClipboard),
+        makeMacro('Copy editor state for LLM to clipboard', putEditorStateForLlmToClipboard),
         makeMacro('Run LLM suggested action', runLlmSuggestedAction),
     ]
 })

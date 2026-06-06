@@ -30,6 +30,13 @@ Unbookmarked proved steps will not be returned.
 All other steps will be returned 
 (hypotheses, bookmarked steps, the goal step, unproved steps, and steps with errors).
 
+If the editor state has any errors then only steps with errors will be returned.
+
+If there are no steps with errors but there is an error in variables declaration or in disjoints,
+then this counts as the editor state has an error.
+But since there are no steps with errors, an empty array will be returned instead of actual steps.
+So, if you see there is an error in variables or in disjoints, you need to suggest how to fix that error first.
+
 #### addSteps
 
 The `addSteps` function accepts new steps to add to the editor.
@@ -45,8 +52,7 @@ The format of the parameter object it accepts is as follows:
     "label": string,
     "type": string,
     "justification": string,
-    "statement": string,
-    "isBookmarked": boolean
+    "statement": string
   }]
 }
 ```
@@ -75,8 +81,8 @@ Example value of `variables`: `[["setvar","set_of_all_sets"], ["class","number_o
   * `justification` is the justification of a step. It is optional. 
   If it is omitted then the step will not have a justification.
   * `statement` is the statement itself (the content of the step). It is a required attribute of a step object.
-  * `isBookmarked` is a boolean value indicating if the step should be bookmarked. It is optional. 
-  The default value is `true`.
+
+All steps added by the `addSteps` function are bookmarked by default.
 
 #### updateSteps
 
