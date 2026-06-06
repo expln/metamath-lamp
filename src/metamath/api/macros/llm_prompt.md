@@ -45,8 +45,7 @@ The format of the parameter object it accepts is as follows:
     "label": string,
     "type": string,
     "justification": string,
-    "statement": string,
-    "isBookmarked": boolean
+    "statement": string
   }]
 }
 ```
@@ -75,8 +74,8 @@ Example value of `variables`: `[["setvar","set_of_all_sets"], ["class","number_o
   * `justification` is the justification of a step. It is optional. 
   If it is omitted then the step will not have a justification.
   * `statement` is the statement itself (the content of the step). It is a required attribute of a step object.
-  * `isBookmarked` is a boolean value indicating if the step should be bookmarked. It is optional. 
-  The default value is `true`.
+
+All steps added by the `addSteps` function are bookmarked by default.
 
 #### updateSteps
 
