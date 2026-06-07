@@ -396,6 +396,29 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertProof(st, trgtStmtId, "proof")
     })
 
+    it("new unproved stmts are placed near bottom when applying bottom-up results", _ => {
+        //https://github.com/expln/metamath-lamp/issues/264
+        setTestDataDir("bottom-up-places-new-stmts-at-bottom")
+        let st = createEditorState(
+            ~mmFilePath=setMmPath, ~stopBefore="speimfw", ~debug, ~editorState="editor-initial-state"
+        )
+
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="speimfw"),
+            ~asrtLabel="syl5com",
+            ~maxSearchDepth=1,
+            ~allowNewVars=true,
+            ~chooseLabel="syl5com",
+            ~chooseResult=stmtsDto => stmtsDto.newVars->Array.length > 0
+        )
+        let st = st->addNewStmts(stmts->getSingleStmtsDto)
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+    })
+
     it("bottom-up prover should be able to restore missing disjoints", _ => {
         setTestDataDir("restore-missing-disjoints")
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state")

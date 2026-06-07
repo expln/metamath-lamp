@@ -1625,9 +1625,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
     })
     let st = createNewDisj(st, newCtxDisj)
 
-    let checkedStmt = st->getLowestCheckedStmt
     let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
-
     let replaceDtoLabelsWithCtxLabels = jstf => {
         {
             ...jstf,
@@ -1640,6 +1638,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
     let mergeWillBeNeeded = newStmts.stmts->Array.some(stmtDto => {
         st.stmts->Array.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
     })
+    let checkedStmt = st->getLowestCheckedStmt
     let placeAtMaxIdxByDefault = checkedStmt->Belt.Option.isSome && !mergeWillBeNeeded
 
     let stMut = ref(st)
