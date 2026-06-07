@@ -1,0 +1,53 @@
+{
+  "tabTitle": "speimfw",
+  "srcs": [ { "typ": "Local", "fileName": "set._mm", "url": "", "readInstr": "ReadAll", "label": "", "resetNestingLevel": true, "allLabels": [] } ],
+  "loc": {
+    "place": "last",
+    "label": ""
+  },
+  "descr": "",
+  "varsText": "",
+  "disjText": "",
+  "stmts": [
+    {
+      "label": "speimfw.2",
+      "typ": "e",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( x = y -> ( ph -> ps ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "1",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( E. x x = y <-> -. A. x -. x = y )",
+      "jstfText": ": df-ex"
+    },
+    {
+      "label": "2",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( -. A. x -. x = y -> E. x x = y )",
+      "jstfText": "1 : biimpri"
+    },
+    {
+      "label": "4",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( ph -> ( x = y -> ps ) )",
+      "jstfText": "speimfw.2 : com12"
+    },
+    {
+      "label": "speimfw",
+      "typ": "p",
+      "isGoal": true,
+      "isBkm": false,
+      "cont": "|- ( -. A. x -. x = y -> ( A. x ph -> E. x ps ) )",
+      "jstfText": ""
+    }
+  ]
+}

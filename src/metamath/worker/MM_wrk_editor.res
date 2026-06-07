@@ -1625,9 +1625,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
     })
     let st = createNewDisj(st, newCtxDisj)
 
-    let checkedStmt = st->getLowestCheckedStmt
     let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
-
     let replaceDtoLabelsWithCtxLabels = jstf => {
         {
             ...jstf,
@@ -1637,11 +1635,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
         }
     }
 
-    let mergeWillBeNeeded = newStmts.stmts->Array.some(stmtDto => {
-        st.stmts->Array.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
-    })
-    let placeAtMaxIdxByDefault = checkedStmt->Belt.Option.isSome && !mergeWillBeNeeded
-
+    let checkedStmt = st->getLowestCheckedStmt
     let stMut = ref(st)
     newStmts.stmts->Array.forEach(stmtDto => {
         if (checkedStmt->Belt.Option.isSome && stmtsHaveSameExpr(checkedStmt->Belt.Option.getExn, stmtDto)) {
@@ -1672,7 +1666,9 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
                 ~expr=stmtDto.expr, 
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                ~placeAtMaxIdxByDefault,
+                //When there is a selected step, place all proved steps as high as possible and all unproved steps 
+                //    as low as possible
+                ~placeAtMaxIdxByDefault=checkedStmt->Belt.Option.isSome && !stmtDto.isProved,
                 ~isBkm = isBkm && !allProved,
             )
             stMut.contents = st
