@@ -1666,7 +1666,9 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
                 ~expr=stmtDto.expr, 
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                ~placeAtMaxIdxByDefault=!stmtDto.isProved,
+                //When there is a selected step, place all proved steps as high as possible and all unproved steps 
+                //    as low as possible
+                ~placeAtMaxIdxByDefault=checkedStmt->Belt.Option.isSome && !stmtDto.isProved,
                 ~isBkm = isBkm && !allProved,
             )
             stMut.contents = st
