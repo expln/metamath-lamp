@@ -1,7 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
 open MM_react_common
-open Expln_utils_promise
 open MM_wrk_search_asrt
 open MM_context
 open MM_substitution
@@ -107,6 +106,60 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
+let makeActTerminate = (modalRef:modalRef, modalId:modalId):(unit=>unit) => {
+    () => {
+        MM_wrk_client.terminateWorker()
+        closeModal(modalRef, modalId)
+    }
+}
+
+let searchAssertions = (
+    ~modalRef:modalRef,
+    ~preCtxData:preCtxData,
+    ~typ:option<int>, 
+    ~label:string,
+    ~patternStr:string,
+    ~patternVersion:int,
+):promise<result<array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,string>> => {
+    switch MM_wrk_pattern_search.parsePattern(~patternStr, ~patternVersion, ~ctx=preCtxData.ctxV.val.min) {
+        | Error(msg) => {
+            Promise.resolve(Error(msg))
+        }
+        | Ok(_) => {
+            openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->Promise.then(modalId => {
+                updateModal(
+                    modalRef, modalId, () => rndProgress(
+                        ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalRef, modalId)
+                    )
+                )
+                searchAssertions(
+                    ~settingsVer=preCtxData.settingsV.ver,
+                    ~settings=preCtxData.settingsV.val,
+                    ~preCtxVer=preCtxData.ctxV.ver,
+                    ~preCtx=preCtxData.ctxV.val.min,
+                    ~isAxiom=None,
+                    ~typ,
+                    ~label,
+                    ~pattern=patternStr,
+                    ~patternVersion,
+                    ~isDisc=None,
+                    ~isDepr=None,
+                    ~isTranDepr=None,
+                    ~onProgress = pct => updateModal(
+                        modalRef, modalId, () => rndProgress(
+                            ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalRef, modalId)
+                        )
+                    )
+                )
+                ->Promise.then(foundLabels => {
+                    closeModal(modalRef, modalId)
+                    Promise.resolve(Ok(foundLabels))
+                })
+            })
+        }
+    }
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -139,57 +192,30 @@ let make = (
         setState(setResults(_, ~results))
     }
 
-    let makeActTerminate = (modalId:modalId):(unit=>unit) => {
-        () => {
-            MM_wrk_client.terminateWorker()
-            closeModal(modalRef, modalId)
-        }
-    }
-
     let actSearch = () => {
         onTypChange(state.typ)
         let patternStr = state.patternStr->String.trim
         let patternVersion = 2
-        let ctx = wrkCtx
-        switch MM_wrk_pattern_search.parsePattern( ~patternStr, ~patternVersion, ~ctx ) {
-            | Error(msg) => {
-                setState(setPatternErr(_, Some(msg)))
-                actResultsRetrieved([])
+        searchAssertions(
+            ~modalRef,
+            ~preCtxData,
+            ~typ=Some(state.typ), 
+            ~label=state.label->String.trim,
+            ~patternStr,
+            ~patternVersion,
+        )->Promise.then(foundLabels => {
+            switch foundLabels {
+                | Error(msg) => {
+                    setState(setPatternErr(_, Some(msg)))
+                    actResultsRetrieved([])
+                }
+                | Ok(foundLabels) => {
+                    setState(setPatternErr(_, None))
+                    actResultsRetrieved(foundLabels)
+                }
             }
-            | Ok(_) => {
-                setState(setPatternErr(_, None))
-                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
-                    updateModal(
-                        modalRef, modalId, () => rndProgress(
-                            ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
-                        )
-                    )
-                    searchAssertions(
-                        ~settingsVer=preCtxData.settingsV.ver,
-                        ~settings=preCtxData.settingsV.val,
-                        ~preCtxVer=preCtxData.ctxV.ver,
-                        ~preCtx=preCtxData.ctxV.val.min,
-                        ~isAxiom=None,
-                        ~typ=Some(state.typ),
-                        ~label=state.label->String.trim,
-                        ~pattern=patternStr,
-                        ~patternVersion,
-                        ~isDisc=None,
-                        ~isDepr=None,
-                        ~isTranDepr=None,
-                        ~onProgress = pct => updateModal(
-                            modalRef, modalId, () => rndProgress(
-                                ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
-                            )
-                        )
-                    )
-                    ->promiseMap(foundLabels => {
-                        closeModal(modalRef, modalId)
-                        actResultsRetrieved(foundLabels)
-                    })
-                })->ignore
-            }
-        }
+            Promise.resolve()
+        })->ignore
     }
 
     let actPageChange = newPage => {
