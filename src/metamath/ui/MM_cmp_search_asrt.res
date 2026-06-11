@@ -151,9 +151,9 @@ let searchAssertions = (
                         )
                     )
                 )
-                ->Promise.then(foundLabels => {
+                ->Promise.thenResolve(foundLabels => {
                     closeModal(modalRef, modalId)
-                    Promise.resolve(Ok(foundLabels))
+                    Ok(foundLabels)
                 })
             })
         }

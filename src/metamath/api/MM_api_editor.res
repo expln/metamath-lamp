@@ -1252,6 +1252,7 @@ type editorData = {
     buildSyntaxTrees:(array<string>,array<string>/*untyped,typed*/)=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     addAsrtByLabel: string=>promise<result<unit,string>>,
+    searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
@@ -1345,6 +1346,7 @@ let updateEditorData = (
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
+    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ):unit => {
     editorsData->Belt_HashMapInt.set(editorId, {
         editorId,
@@ -1359,5 +1361,6 @@ let updateEditorData = (
         buildSyntaxTrees,
         getAsrtSyntaxTrees,
         addAsrtByLabel,
+        searchAssertions,
     })
 }

@@ -34,6 +34,7 @@ let updateEditorData: (
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
+    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => JSON.t
