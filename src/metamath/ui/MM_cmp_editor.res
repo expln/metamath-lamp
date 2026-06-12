@@ -2474,20 +2474,15 @@ let make = (
             ~patternStr=pattern,
             ~patternVersion=2
         )->Promise.thenResolve(foundLabels => {
-            switch foundLabels {
-                | Error(msg) => Error(msg)
-                | Ok(foundLabels) => {
-                    Ok(
-                        foundLabels
-                            ->Array.map(((label,_)) => label)
-                            ->Array.map(label =>
-                                preCtxData.ctxV.val.full->getFrame(label)
-                                    ->Option.getExn(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
-                            )
-                            ->Array.filter(frm => frm.ord <= maxFrmOrd.contents)
+            foundLabels->Result.map(foundLabels => 
+                foundLabels
+                    ->Array.map(((label,_)) => label)
+                    ->Array.map(label =>
+                        preCtxData.ctxV.val.full->getFrame(label)
+                            ->Option.getExn(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
                     )
-                }
-            }
+                    ->Array.filter(frm => frm.ord <= maxFrmOrd.contents)
+            )
         })
     }
 

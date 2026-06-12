@@ -185,6 +185,30 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
     }
 }
 
+let findAssertions = ( 
+    ~params:apiInput, 
+    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<{"pattern":string},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            "pattern": d->str("pattern"),
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok(parsedParams) => {
+            searchAssertions(parsedParams["pattern"])->Promise.thenResolve(frms => frms->Result.map(frms =>
+                frms->Array.map(frm => 
+                    Dict.fromArray([
+                        ("label", frm.label->JSON.Encode.string)
+                    ])->JSON.Encode.object
+                )->JSON.Encode.array
+            ))
+        }
+    }
+}
+
 let getTokenType = (
     ~paramsJson:apiInput,
     ~state:editorState,
@@ -1268,6 +1292,8 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let buildSyntaxTrees = editorData.buildSyntaxTrees
     let getAsrtSyntaxTrees = editorData.getAsrtSyntaxTrees
     let addAsrtByLabel = editorData.addAsrtByLabel
+    let searchAssertions = editorData.searchAssertions
+
     {
         "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
         "proveBottomUp": makeApiFunc(
@@ -1299,6 +1325,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
         "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
+        "findAssertions": makeApiFunc("editor.findAssertions", params => findAssertions( ~params, ~searchAssertions, )),
     }
 }
 
