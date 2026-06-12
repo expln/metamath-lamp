@@ -304,12 +304,12 @@ function makeFrameForLlm({disj, hyps, asrt}) {
 const FIND_ASSERTIONS_PAGE_SIZE = 100
 let lastPattern = undefined
 let lastFoundAssertions = undefined
-async function findAssertions({pattern, pageIdx}) {
+async function findAssertions({pattern, pageNum}) {
     if (lastPattern !== pattern) {
         lastFoundAssertions = getResponse(await api.editor().findAssertions({pattern}))
         lastPattern = pattern
     }
-    pageIdx = pageIdx??0
+    const pageIdx = (pageNum??1) - 1
     const minIdx = pageIdx*FIND_ASSERTIONS_PAGE_SIZE
     const maxIdx = minIdx + FIND_ASSERTIONS_PAGE_SIZE - 1
     const res = []
@@ -318,7 +318,10 @@ async function findAssertions({pattern, pageIdx}) {
         res.push(makeFrameForLlm(lastFoundAssertions[i]))
         i++
     }
-    await putTextToClipboard(res.join('\n\n-----\n'));
+    const numOfPages = Math.ceil(lastFoundAssertions.length / FIND_ASSERTIONS_PAGE_SIZE)
+    const header = `Results for pattern '${pattern}', page ${pageIdx + 1} of ${numOfPages}`
+    const pageContent = res.join('\n\n-----\n')
+    await putTextToClipboard(`${header}\n\n${pageContent}`);
     console.log('Found assertions have been copied to the clipboard.')
 }
 
