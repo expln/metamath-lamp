@@ -31,6 +31,10 @@ function getResponse(apiResponse) {
     }
 }
 
+async function putTextToClipboard(text) {
+    await navigator.clipboard.writeText(text);
+}
+
 async function getEditorState() {
     return getResponse(await api.editor().getState())
 }
@@ -129,7 +133,7 @@ async function getEditorStateForLlm(){
 }
 
 async function putEditorStateForLlmToClipboard() {
-    await navigator.clipboard.writeText(await getEditorStateForLlm());
+    await putTextToClipboard(await getEditorStateForLlm());
     console.log('The editor state has been copied to the clipboard.')
 }
 
@@ -281,15 +285,52 @@ async function prove({stepToProve, stepsToDeriveFrom}) {
     if (proved) {
         await putEditorStateForLlmToClipboard()
     }
+}
 
+function makeFrameForLlm({disj, hyps, asrt}) {
+    const disjStr = disj.map(disjGrp => disjGrp.join(' ')).join(' $ ')
+    const hypsStr = hyps.join('\n')
+    let res = ''
+    if (disjStr.length > 0) {
+        res += `Disj:\n${disjStr}\n`
+    }
+    if (hypsStr.length > 0) {
+        res += `Hyps:\n${hypsStr}\n`
+    }
+    res += `Asrt:\n${asrt}`
+    return res
+}
+
+const FIND_ASSERTIONS_PAGE_SIZE = 100
+let lastPattern = undefined
+let lastFoundAssertions = undefined
+async function findAssertions({pattern, pageIdx}) {
+    if (lastPattern !== pattern) {
+        lastFoundAssertions = getResponse(await api.editor().findAssertions({pattern}))
+        lastPattern = pattern
+    }
+    pageIdx = pageIdx??0
+    const minIdx = pageIdx*FIND_ASSERTIONS_PAGE_SIZE
+    const maxIdx = minIdx + FIND_ASSERTIONS_PAGE_SIZE - 1
+    const res = []
+    let i = minIdx
+    while (i < lastFoundAssertions.length && i <= maxIdx) {
+        res.push(makeFrameForLlm(lastFoundAssertions[i]))
+        i++
+    }
+    await putTextToClipboard(res.join('\n\n-----\n'));
+    console.log('Found assertions have been copied to the clipboard.')
+}
+
+function makeFunctionMap(fns) {
+    return Object.fromEntries(
+        fns.map(fn => [fn.name, async params => await fn(params)])
+    )
 }
 
 const AVAILABLE_ACTIONS = {
     getState: async params => await putEditorStateForLlmToClipboard(params),
-    addSteps: async params => await addSteps(params),
-    updateSteps: async params => await updateSteps(params),
-    deleteSteps: async params => await deleteSteps(params),
-    prove: async params => await prove(params),
+    ...makeFunctionMap([findAssertions, addSteps, updateSteps, deleteSteps, prove])
 }
 
 async function runLlmSuggestedAction() {
