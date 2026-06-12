@@ -212,10 +212,19 @@ let findAssertions = (
                     let disj = frmData.disj->Option.getOr([])->Array.map(disjGrp => 
                         disjGrp->Array.map(((var,_)) => var->JSON.Encode.string)->JSON.Encode.array
                     )->JSON.Encode.array
+                    let hyps = frm.hyps->Array.map(hyp => {
+                        Dict.fromArray([
+                            ("type", switch hyp.typ {|F => "f" |E => "e"}->JSON.Encode.string),
+                            ("label", hyp.label->JSON.Encode.string),
+                            ("stmt", ctxIntsToStrExn(preCtx, hyp.expr)->JSON.Encode.string),
+                        ])->JSON.Encode.object
+                    })->JSON.Encode.array
                     Dict.fromArray([
                         ("label", frm.label->JSON.Encode.string),
                         ("isAxiom", frm.isAxiom->JSON.Encode.bool),
                         ("disj", disj),
+                        ("hyps", hyps),
+                        ("asrt", ctxIntsToStrExn(preCtx, frm.asrt)->JSON.Encode.string),
                     ])->JSON.Encode.object
                 })->JSON.Encode.array
             ))
