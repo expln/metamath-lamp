@@ -23,7 +23,7 @@ let setLastOpenedEditorId: int => unit
 
 let updateEditorData: (
     ~editorId:int,
-    ~unifMetavarPrefix:string,
+    ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,

@@ -2488,7 +2488,7 @@ let make = (
 
     MM_api_editor.updateEditorData(
         ~editorId,
-        ~unifMetavarPrefix=preCtxData.settingsV.val.unifMetavarPrefix,
+        ~preCtxData,
         ~state,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
