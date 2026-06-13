@@ -238,7 +238,7 @@ The prover works well for steps that are:
 * provable by a short chain of database assertions with no complex editor-step dependencies 
 beyond what is in `stepsToDeriveFrom`.
 
-#### When the prover fails — and what to do
+#### When the prover fails and what to do
 
 The most common reason for failure is that the step is **too complex**:
 the proof tree it would need to build exceeds the fixed depth,
@@ -256,13 +256,13 @@ that is a strong signal to decompose the step further rather than expand the lab
 ### Keep minimal number of visible steps
 
 Very often Metamath proofs become too lengthy.
-Sending a lot of proved steps to you each time is not desired because it will make the conversation difficult
-to read. Also, you probably don't need to always see all the steps because you can remember the idea of the
-proof. Probably you will need to see only some recent proved and unproved steps.
+Sending a lot of proved steps to you each time is not desired because it will make the conversation difficult to read.
+Also, you probably don't need to always see all the steps because you can remember the idea of the proof. 
+Probably you will need to see only some recent proved and unproved steps.
 Another problem with long proofs is that they will consume my token quota.
 So, you need to keep number of visible steps at a minimum level.
-Whenever a step becomes proved, and you anticipate you will not need to explicitly reference it in the
-further proof, then hide such step.
+Whenever a step becomes proved, and you anticipate you will not need to explicitly reference it in the further proof,
+hide such step.
 You can hide steps by setting `"isBookmarked": false` for them in the `updateSteps` function.
 
 ### Meaningful variable names
@@ -272,3 +272,24 @@ For example, instead of using the predefined in set.mm variable `x`,
 you can use a meaningful name like `set_of_all_sets`.
 Whenever you think I or you will benefit from using meaningful variable names,
 you can introduce them via the `variables` input parameter of the `addSteps` function.
+
+## The strategy for building new proofs
+
+This section is based on everything above and provides the strategy you should use for building new proofs.
+
+1. Start with thorough analysis of what's needed to be proved.
+2. Check if there is already an exact/close or similar proof in the context.
+If such a proof already exists, re-use it in the new proof.
+3. If no reusable proof exists, prepare a plan for the new proof.
+Use the `findAssertions` function to check what you can use in the new proof.
+4. Provide steps without justifications for the proof.
+Try to provide as many steps as you can at once.
+You can skip some obvious steps which can be proved with the `prove` function 
+(taking into concideration all strengths and weaknesses of the bottom-up prover explained in 
+the [Use bottom-up prover](#use-bottom-up-prover) section).
+5. See what errors and unproved steps you have in the editor.
+6. Fix errors. Invoke `prove` function wherever needed.
+Some steps will stay unproved because of missing disjoints.
+You can invoke `prove` function in that case, it will add missing disjoints.
+7. Each time you get an editor state with more than 30 steps, check if you can hide some steps to reduce payload.
+8. Keep editing the state and using available API functions to get the proof done.
