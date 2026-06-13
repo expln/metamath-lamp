@@ -55,51 +55,44 @@ async function addStepsToEditor({steps,vars}) {
     getResponse(await api.editor().addSteps({steps,vars}))
 }
 
+/*
+* This function is passed as an input parameter to the bottom-up prover.
+* It dynamically changes the bottom-up prover parameters in some special cases during the proving process.
+* */
 function updateParams(params, expr, dist, intToSym, symToInt) {
-    if (params.customParams === undefined) {
-        params = {
+    function relaxLengthRestriction({params, passedToLessEq}) {
+        return {
             ...params,
-            customParams: {
-                symbolCodes: {
-                    elemOf:symToInt('e.'),
-                    closingParen:symToInt(')'),
-                }
-            }
-        }
-    }
-    if (
-        expr.length >= 3
-        && (
-            expr[expr.length-3] === params.customParams.symbolCodes.elemOf
-                && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
-            || expr[expr.length-2] === params.customParams.symbolCodes.elemOf
-        )
-    ) {
-        params = {
-            ...params,
-            customParams: {
-                ...params.customParams,
-                passedToLessEq:true
-            },
+            customParams: {...params.customParams, passedToLessEq},
             assertionParams: params.assertionParams.map(asrtParams => {
                 if (asrtParams.minDist === 1) {
-                    return {...asrtParams, statementLengthRestriction: 'LessEq'}
+                    return {...asrtParams, statementLengthRestriction: passedToLessEq ? 'LessEq' : 'Less'}
                 } else {
                     return asrtParams
                 }
             })
         }
     }
-    if (
-        expr.length >= 3
-        && params.customParams.passedToLessEq
-        && !(
+    if (params.customParams === undefined) {
+        params = {
+            ...params,
+            customParams: {
+                symbolCodes: {elemOf:symToInt('e.'), closingParen:symToInt(')'),}
+            }
+        }
+    }
+    const provingIsElemOf = expr.length >= 3
+        && (
             expr[expr.length-3] === params.customParams.symbolCodes.elemOf
             && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
             || expr[expr.length-2] === params.customParams.symbolCodes.elemOf
         )
-    ) {
-        params = undefined
+    if (provingIsElemOf) {
+        if (!params.customParams.passedToLessEq) {
+            params = relaxLengthRestriction({params, passedToLessEq:true})
+        }
+    } else if (params.customParams.passedToLessEq) {
+        params = relaxLengthRestriction({params, passedToLessEq:false})
     }
     return params
 }
