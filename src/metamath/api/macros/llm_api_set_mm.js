@@ -79,50 +79,82 @@ function stepIsVisibleToLlm(step) {
         || stepHasError(step) /* show all steps having any error */
 }
 
-function getStepTypeForLlm({isGoal, isHyp}) {
-    if (isGoal) return 'g'
-    if (isHyp) return 'h'
-    return 'p'
+function getStepTypeForLlm({isGoal, isHyp, isBkm}) {
+    if (isGoal) return 'G'
+    if (isHyp) return 'H'
+    return isBkm ? 'P' : 'p'
 }
 
 function getStepStatusForLlm({isHyp, status}) {
-    if (isHyp) return '-'
-    return status??'-'
-    // if (status === 'v') return 'proved'
-    // if (status === '?') return 'unproved'
-    // if (status === '~') return 'jstf_is_correct'
-    // if (status === 'x') return 'jstf_is_incorrect'
+    if (isHyp) return '.'
+    return status??'.'
+}
+
+/*
+* Accepts any object (any primitive, array, object, null, undefined)
+* and returns an array of all strings this object contains.
+* For a string, a one element array containing that string will be returned.
+* For null, undefined, and an empty object (i.e. {}) an empty array will be returned.
+* For an object {a:1, b:{c:2, d:"AAA"}, e:"BBB"} an array ["AAA", "BBB"] will be returned.
+* */
+function getAllText(any) {
+    if (typeof any === 'string') return [any];
+    if (any === null || any === undefined || typeof any !== 'object') return [];
+    return Object.values(any).flatMap(getAllText);
 }
 
 /*
 * Convert a step object returned by unifyAll() to a new step object to be sent to an LLM.
 * */
-function minimizeStepForLlm(step) {
-    return {
-        status: getStepStatusForLlm(step),
-        label: step.label,
-        type: getStepTypeForLlm(step),
-        justification: step.jstfText,
-        statement: step.stmt,
-        isBookmarked: step.isBkm,
-        errors: [step.stmtErr, step.syntaxErr, step.unifErr].filter(hasValue)
+function makeStepForLlm(step) {
+    const type = getStepTypeForLlm(step)
+    const status = getStepStatusForLlm(step)
+    const errors = getAllText([step.stmtErr, step.syntaxErr, step.unifErr])
+    let res = `${type} ${status} ${(step.label)} [${(step.jstfText)}] ${(step.stmt)}`
+    if (errors.length) {
+        res += '\n' + errors.join('\n')
     }
+    return res
 }
 
 async function getEditorStateForLlm(){
     //unify all and get the full editor state
     const st = await unifyAll()
-    const stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
-    //prepare minimized editor state for an LLM
-    const stLlm = {
-        variables: st.varsText,
-        variablesError: st.varsErr,
-        disjoints: st.disjText,
-        disjointsError: st.disjErr,
-        steps: stepsToSendToLlm.map(minimizeStepForLlm)
+    const stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm).map(makeStepForLlm)
+    const res = ['--- editor state begin ---']
+    if (st.varsText.length > 0) {
+        res.push('Variables:')
+        res.push(st.varsText)
+        if (st.varsErr.length > 0) {
+            res.push('Error in variables:')
+            res.push(st.varsErr)
+        }
+        res.push('')
     }
-    //return editor state as a pretty printed JSON
-    return JSON.stringify(stLlm, null, 2)
+    if (st.disjText.length > 0) {
+        res.push('Disjoints:')
+        res.push(st.disjText)
+        if (st.disjErr.length > 0) {
+            res.push('Error in disjoints:')
+            res.push(st.disjErr)
+        }
+        res.push('')
+    }
+    if (stepsToSendToLlm.length) {
+        res.push('Steps:')
+        for (const step of stepsToSendToLlm) {
+            let stepHasError = step.includes('\n');
+            if (stepHasError) {
+                res.push('')
+            }
+            res.push(step)
+            if (stepHasError) {
+                res.push('')
+            }
+        }
+    }
+    res.push('--- editor state end ---')
+    return res.join('\n')
 }
 
 async function putEditorStateForLlmToClipboard() {

@@ -25,7 +25,11 @@ to do to get the proof complete.
 
 The `getState` function doesn't accept any parameters.
 It returns the current state of the editor.
-The returned state is just a list of steps in plain text.
+The returned editor state consists of:
+* definition of local variables
+* disjoint variable groups
+* list of steps
+
 Each step consists of:
 * one line with the statement of the step and some its attributes (status, labels, etc.)
 * optional few lines containing error messages related to the step
@@ -35,16 +39,16 @@ The format of the line with the step statement is as follows:
 `type status label [justification] statement`
 
 `type` can be:
-* `h` - hypothesis
-* `p` - regular provable step
-* `g` - the goal step
+* `H` - hypothesis
+* `P` or `p` - regular provable step. The uppercase for bookmarked steps. The lowercase for unbookmarked steps.
+* `G` - the goal step
 
 `status` can be:
 * `v` - step is proved
 * `?` - step is not proved
 * `~` - step has a valid justification but some its dependency steps are not proved yet
 * `x` - step has an invalid justification
-* `-` - step is a hypothesis or there is an error in the editor that prevented mm-lamp from determining the status
+* `.` - step is a hypothesis or there is an error in the editor that prevented mm-lamp from determining the status
 
 `label` must not contain whitespaces.
 
@@ -52,23 +56,13 @@ The format of the line with the step statement is as follows:
 * `[]` - empty justification
 * `[label1 label2 ... labelN : assertion_label]` - non-empty justification
 
-
-Not all steps will be returned.
-What steps will be returned:
+Not all steps will be returned. Only steps as listed below will be returned:
 * bookmarked steps
 * hypothesis steps and the goal step
-* unproved steps
+* steps with status `?`, `~`, or `x`
 * steps with errors
 
-All other steps will be returned 
-(hypotheses, bookmarked steps, the goal step, unproved steps, and steps with errors).
-
-If the editor state has any errors then only steps with errors will be returned.
-
-If there are no steps with errors but there is an error in variables declaration or in disjoints,
-then this counts as the editor state has an error.
-But since there are no steps with errors, an empty array will be returned instead of actual steps.
-So, if you see there is an error in variables or in disjoints, you need to suggest how to fix that error first.
+All other steps will be returned.
 
 #### addSteps
 
@@ -116,6 +110,9 @@ Example value of `variables`: `[["setvar","set_of_all_sets"], ["class","number_o
   * `statement` is the statement itself (the content of the step). It is a required attribute of a step object.
 
 All steps added by the `addSteps` function are bookmarked by default.
+
+The order of steps does matter.
+A step can be derived from preceding steps only.
 
 #### updateSteps
 
@@ -166,6 +163,7 @@ The format of the parameter object the `prove` function accepts is as follows:
 ```
 * `stepToProve` is a label of an existing step which needs to be proved. This is a required attribute.
 * `stepsToDeriveFrom` is an optional array of existing labels which may be used to prove the `stepToProve`.
+Steps referenced in `stepsToDeriveFrom` must precede the `stepToProve` in the editor.
 See the [Optimizations to consider](#optimizations-to-consider) section 
 for the specifics on how to use this attribute.
 
