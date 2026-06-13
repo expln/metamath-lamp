@@ -136,6 +136,22 @@ The format of the parameter object the `prove` function accepts is as follows:
 See the [Optimizations to consider](#optimizations-to-consider) section 
 for the specifics on how to use this attribute.
 
+#### findAssertions
+`findAssertions` returns assertions which match a specified pattern.
+The format of the parameter object the `findAssertions` function accepts is as follows:
+```json
+{
+  "pattern": string,
+  "pageNum": int
+}
+```
+* `pattern` is the pattern to search by. This should be [the version 2 pattern](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/dev/explorer/search_by_pattern_v2.md).
+* `pageNum` the number of the page to return. This is an optional parameter.
+Its default value is 1. 
+The output of the `findAssertions` function includes the maximum value of `pageNum`
+for the specified pattern.
+
+
 ### Optimizations to consider
 
 #### Skip explicit justifications
