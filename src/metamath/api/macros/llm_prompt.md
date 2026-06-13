@@ -36,7 +36,7 @@ Each step consists of:
 
 The format of the line with the step statement is as follows:  
 
-`type status label [justification] statement`
+`type status label statement`
 
 `type` can be:
 * `H` - hypothesis
@@ -51,10 +51,6 @@ The format of the line with the step statement is as follows:
 * `.` - step is a hypothesis or there is an error in the editor that prevented mm-lamp from determining the status
 
 `label` must not contain whitespaces.
-
-`justification` can be:
-* `[]` - empty justification
-* `[label1 label2 ... labelN : assertion_label]` - non-empty justification
 
 Not all steps will be returned. Only steps as listed below will be returned:
 * bookmarked steps

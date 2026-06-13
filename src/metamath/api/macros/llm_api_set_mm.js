@@ -106,11 +106,12 @@ function getAllText(any) {
 /*
 * Convert a step object returned by unifyAll() to a new step object to be sent to an LLM.
 * */
-function makeStepForLlm(step) {
+function makeStepForLlm({step, maxLabelLength}) {
     const type = getStepTypeForLlm(step)
     const status = getStepStatusForLlm(step)
+    const label = step.label.padEnd(maxLabelLength, ' ');
     const errors = getAllText([step.stmtErr, step.syntaxErr, step.unifErr])
-    let res = `${type} ${status} ${(step.label)} [${(step.jstfText)}] ${(step.stmt)}`
+    let res = `${type} ${status} ${label} ${(step.stmt)}`
     if (errors.length) {
         res += '\n' + errors.join('\n')
     }
@@ -120,7 +121,9 @@ function makeStepForLlm(step) {
 async function getEditorStateForLlm(){
     //unify all and get the full editor state
     const st = await unifyAll()
-    const stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm).map(makeStepForLlm)
+    const fullStepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
+    const maxLabelLength = Math.max(...fullStepsToSendToLlm.map(step=>step.label.length))
+    const stepsToSendToLlm = fullStepsToSendToLlm.map(step=>makeStepForLlm({step, maxLabelLength}))
     const res = ['--- editor state begin ---']
     if (st.varsText.length > 0) {
         res.push('Variables:')
