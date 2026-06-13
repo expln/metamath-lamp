@@ -75,7 +75,7 @@ function stepIsVisibleToLlm(step) {
     return step.isBkm /* show all bookmarked steps */
         || step.isHyp /* show all hypothesis steps */
         || step.isGoal /* show all goal steps */
-        || step.status !== 'v' /* show all unproved steps */
+        || (step.status === '?' || step.status === '~' || step.status === 'x') /* show all unproved steps */
         || stepHasError(step) /* show all steps having any error */
 }
 
@@ -86,8 +86,8 @@ function getStepTypeForLlm({isGoal, isHyp}) {
 }
 
 function getStepStatusForLlm({isHyp, status}) {
-    if (isHyp) return null
-    return status
+    if (isHyp) return '-'
+    return status??'-'
     // if (status === 'v') return 'proved'
     // if (status === '?') return 'unproved'
     // if (status === '~') return 'jstf_is_correct'
@@ -112,14 +112,7 @@ function minimizeStepForLlm(step) {
 async function getEditorStateForLlm(){
     //unify all and get the full editor state
     const st = await unifyAll()
-    let stepsToSendToLlm
-    if (editorStateHasError(st)) {
-        //if there are errors, then statuses are not set for steps. In that case only steps with errors will be
-        // sent to an LLM
-        stepsToSendToLlm = st.steps.filter(stepHasError)
-    } else {
-        stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
-    }
+    const stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
     //prepare minimized editor state for an LLM
     const stLlm = {
         variables: st.varsText,

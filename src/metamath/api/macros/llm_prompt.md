@@ -25,8 +25,41 @@ to do to get the proof complete.
 
 The `getState` function doesn't accept any parameters.
 It returns the current state of the editor.
+The returned state is just a list of steps in plain text.
+Each step consists of:
+* one line with the statement of the step and some its attributes (status, labels, etc.)
+* optional few lines containing error messages related to the step
+
+The format of the line with the step statement is as follows:  
+
+`type status label [justification] statement`
+
+`type` can be:
+* `h` - hypothesis
+* `p` - regular provable step
+* `g` - the goal step
+
+`status` can be:
+* `v` - step is proved
+* `?` - step is not proved
+* `~` - step has a valid justification but some its dependency steps are not proved yet
+* `x` - step has an invalid justification
+* `-` - step is a hypothesis or there is an error in the editor that prevented mm-lamp from determining the status
+
+`label` must not contain whitespaces.
+
+`justification` can be:
+* `[]` - empty justification
+* `[label1 label2 ... labelN : assertion_label]` - non-empty justification
+
+
 Not all steps will be returned.
-Unbookmarked proved steps will not be returned.
+What steps will be returned:
+* bookmarked steps
+* hypothesis steps and the goal step
+* unproved steps
+* steps with errors
+
 All other steps will be returned 
 (hypotheses, bookmarked steps, the goal step, unproved steps, and steps with errors).
 
