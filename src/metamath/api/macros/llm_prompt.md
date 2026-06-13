@@ -1,4 +1,4 @@
-### The task
+## The task
 Your task is to help me to develop a Metamath proof using metamath-lamp (mm-lamp) tool.
 Mm-lamp has built-in API functions which you can call to add/update/delete steps in the editor 
 and invoke different features of mm-lamp like bottom-up prover, etc.
@@ -19,9 +19,9 @@ I will execute the function you asked and reply to you with the output of the fu
 The output of the function and all the previous conversation should help you to come up with the next action 
 to do to get the proof complete.
 
-### Available API functions
+## Available API functions
 
-#### getState
+### getState
 
 The `getState` function doesn't accept any parameters.
 It returns the current state of the editor.
@@ -40,7 +40,7 @@ The format of the line with the step statement is as follows:
 
 `type` can be:
 * `H` - hypothesis
-* `P` or `p` - regular provable step. The uppercase for bookmarked steps. The lowercase for unbookmarked steps.
+* `P` or `p` - regular provable step. The uppercase for bookmarked steps, the lowercase for unbookmarked steps.
 * `G` - the goal step
 
 `status` can be:
@@ -52,7 +52,7 @@ The format of the line with the step statement is as follows:
 
 `label` must not contain whitespaces.
 
-Not all steps will be returned. Only steps as listed below will be returned:
+Not all steps will be returned. Only steps listed below will be returned:
 * bookmarked steps
 * hypothesis steps and the goal step
 * steps with status `?`, `~`, or `x`
@@ -60,7 +60,7 @@ Not all steps will be returned. Only steps as listed below will be returned:
 
 All other steps will be returned.
 
-#### addSteps
+### addSteps
 
 The `addSteps` function accepts new steps to add to the editor.
 It returns the state of the editor after the steps have been added (the output of the `getState` function).
@@ -99,8 +99,8 @@ Example value of `variables`: `[["setvar","set_of_all_sets"], ["class","number_o
 * `steps` is an array of steps to add.
   * `label` is the label of a step. It is optional. If it is omitted then a new unique label will be generated.
   * `type` is the type of step. 
-  It can be one of: `"h"` - hypothesis, `"p"` - regular provable step, `"g"` - the goal step.
-  If `type` is omitted then `"p"` is used by default.
+  It can be one of: `"H"` - hypothesis, `"P"` - regular provable step, `"G"` - the goal step.
+  If `type` is omitted then `"P"` is used by default.
   * `justification` is the justification of a step. It is optional. 
   If it is omitted then the step will not have a justification.
   * `statement` is the statement itself (the content of the step). It is a required attribute of a step object.
@@ -110,7 +110,7 @@ All steps added by the `addSteps` function are bookmarked by default.
 The order of steps does matter.
 A step can be derived from preceding steps only.
 
-#### updateSteps
+### updateSteps
 
 `updateSteps` modifies existing steps.
 It returns the state of the editor after the steps have been modified (the output of the `getState` function).
@@ -133,7 +133,8 @@ All other attributes are optional.
 If any of the optional attributes is missing then it will not change for the step.
 So, only attributes which need to be changed should be provided.
 
-#### deleteSteps
+### deleteSteps
+
 `deleteSteps` deletes existing steps.
 It returns the state of the editor after the steps have been deleted (the output of the `getState` function).
 The format of the parameter object it accepts is as follows:
@@ -144,7 +145,8 @@ The format of the parameter object it accepts is as follows:
 ```
 `labels` is an array of labels of steps to delete.
 
-#### prove
+### prove
+
 `prove` starts a bottom-up prover for the specified steps.
 If a proof is found then this function returns the state of the editor with the found proof applied 
 (saved in the editor).
@@ -163,7 +165,8 @@ Steps referenced in `stepsToDeriveFrom` must precede the `stepToProve` in the ed
 See the [Optimizations to consider](#optimizations-to-consider) section 
 for the specifics on how to use this attribute.
 
-#### findAssertions
+### findAssertions
+
 `findAssertions` returns assertions which match a specified pattern.
 The format of the parameter object the `findAssertions` function accepts is as follows:
 ```json
@@ -179,42 +182,73 @@ The output of the `findAssertions` function includes the maximum value of `pageN
 for the specified pattern.
 
 
-### Optimizations to consider
+## Optimizations to consider
 
-#### Skip explicit justifications
+### Skip explicit justifications
 
 In most cases mm-lamp can find justifications for steps itself if all the required steps to use in the justification
 are present in the editor (and precede the step to prove).
 This means you don't have to provide justifications when adding new steps.
 Skipping explicit justifications will decrease number of errors when an incorrect assertion label is used
 (caused by your hallucination or if the assertion was renamed recently).
-So, try not to provide explicit justifications and let mm-lamp to figure out them.
+So, try not to provide explicit justifications and let mm-lamp to figure them out.
 
-#### Use bottom-up prover
+### Use bottom-up prover
 
 Additionally to the skipping explicit justifications technique, you can skip some intermediate steps 
 and use the bottom-up prover to let mm-lamp to find some simple/obvious intermediate steps. 
-For example, the bottom-up prover can prove `|- A e. CC` from `|- A e. RR`, 
-and `|- ( X = ( A + ( B + C ) ) )` from `|- ( X = ( ( A + B ) + C  ) )`.
 
-Usually you will have some intuition what other existing steps should participate in the proof of a given step.
-In such cases you can use the `stepsToDeriveFrom` input parameter of the botton-up prover.
-However, steps provided in the `stepsToDeriveFrom` will be used on the first level of the proof tree.
-In other words, whatever you specify in the `stepsToDeriveFrom` will be used as the potentinal arguments of the 
-justification of the step being proved, but not for the other new steps found by the bottom-up prover.
+The bottom-up prover attempts to prove a step by working backwards from its statement. 
+Understanding how it works internally will help you use it wisely and avoid wasting calls on steps it cannot prove.
 
-Putting a lot of labels to the `stepsToDeriveFrom` may significantly slow down the bottom-up prover.
-Usually up to 5 labels is an optimal choice for the `stepsToDeriveFrom`.
-This also should give you an idea how many "obvious" steps you can skip when planning how you are
-going to use the bottom-up prover.
-But if you are sure a bigger number of labels in the `stepsToDeriveFrom` will be fine, then feel free to use
-that amount of labels.
+#### How the prover works
 
-On the other hand, omitting the `stepsToDeriveFrom` in many cases will not lead to success.
-Usually omitting the `stepsToDeriveFrom` makes sense when the step to prove can be proved from existing
-axioms and theorems only, like `|- ( 7 + 2 ) e. CC`.
+At the **top level**, the prover tries to find a justification for the step being proved by combining:
 
-#### Keep minimal number of visible steps
+* assertions from the loaded database, and
+* steps explicitly listed in stepsToDeriveFrom (only preceding steps in the editor are eligible).
+
+If `stepsToDeriveFrom` is omitted, the prover relies solely on database assertions at the top level 
+— which only works when the step follows directly from axioms or theorems with no editor steps needed 
+(e.g. `|- ( 7 + 2 ) e. CC`).
+
+At **deeper levels**, the prover does not reuse editor steps or `stepsToDeriveFrom` entries directly. 
+Instead, it repeatedly applies database assertions in reverse: 
+it takes a statement that still needs to be proved and asks "which assertion could have produced this?"
+generating new sub-goals.
+It then checks whether each sub-goal is already proved 
+— either by matching a database assertion directly, or by matching a proved step in the editor.
+If a sub-goal is not immediately proved, the prover recurses deeper, up to a fixed depth limit 
+(not controllable via the API).
+Two constraints prevent infinite expansion: 
+generated sub-goals must be strictly shorter in symbol count than the statement they came from,
+and no new variables may be introduced.
+
+#### When the prover succeeds
+
+The prover works well for steps that are:
+
+* close to trivially true given the assertions already in scope (e.g. `|- A e. CC` from `|- A e. RR`), or
+* simple rearrangements or reductions (e.g. reassociating `+`), or
+* provable by a short chain of database assertions with no complex editor-step dependencies 
+beyond what is in `stepsToDeriveFrom`.
+
+#### When the prover fails — and what to do
+
+The most common reason for failure is that the step is **too complex**:
+the proof tree it would need to build exceeds the fixed depth,
+or the required intermediate results are not reachable via reverse application from the current statement.
+In such cases, do not retry the prover on the same step unchanged.
+Instead, **add explicit intermediate steps** that break the goal into simpler pieces,
+then prove each piece in sequence.
+The prover is most effective as a finisher for the last small gap, not as a solver for large leaps.
+
+Providing too many labels in `stepsToDeriveFrom` slows the prover significantly;
+up to 5 labels is a practical ceiling.
+If the prover fails even with well-chosen `stepsToDeriveFrom`, 
+that is a strong signal to decompose the step further rather than expand the label list.
+
+### Keep minimal number of visible steps
 
 Very often Metamath proofs become too lengthy.
 Sending a lot of proved steps to you each time is not desired because it will make the conversation difficult
@@ -226,7 +260,7 @@ Whenever a step becomes proved, and you anticipate you will not need to explicit
 further proof, then hide such step.
 You can hide steps by setting `"isBookmarked": false` for them in the `updateSteps` function.
 
-#### Meaningful variable names
+### Meaningful variable names
 
 Sometimes you can make a proof more readable by using meaningful variable names.
 For example, instead of using the predefined in set.mm variable `x`,
