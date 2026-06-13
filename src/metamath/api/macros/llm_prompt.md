@@ -222,7 +222,12 @@ If a sub-goal is not immediately proved, the prover recurses deeper, up to a fix
 (not controllable via the API).
 Two constraints prevent infinite expansion: 
 generated sub-goals must be strictly shorter in symbol count than the statement they came from,
-and no new variables may be introduced.
+and no new variables may be introduced. 
+The one exception to the strict-shorter rule is statements ending with `e. _ )` or `e. _`
+(where `_` is any single symbol):
+for these, sub-goals of equal length are also allowed. 
+This relaxation is what enables transitions like `|- A e. RR` → `|- A e. CC`, 
+where both statements have the same length.
 
 #### When the prover succeeds
 
