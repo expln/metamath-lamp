@@ -128,7 +128,7 @@ async function getEditorStateForLlm(){
     if (st.varsText.length > 0) {
         res.push('Variables:')
         res.push(st.varsText)
-        if (st.varsErr.length > 0) {
+        if (hasValue(st.varsErr) && st.varsErr.length > 0) {
             res.push('Error in variables:')
             res.push(st.varsErr)
         }
@@ -137,7 +137,7 @@ async function getEditorStateForLlm(){
     if (st.disjText.length > 0) {
         res.push('Disjoints:')
         res.push(st.disjText)
-        if (st.disjErr.length > 0) {
+        if (hasValue(st.disjErr) && st.disjErr.length > 0) {
             res.push('Error in disjoints:')
             res.push(st.disjErr)
         }
@@ -307,7 +307,7 @@ async function prove({stepToProve, stepsToDeriveFrom}) {
 function makeFrameForLlm({disj, hyps, asrt}) {
     const disjStr = disj.map(disjGrp => disjGrp.join(' ')).join(' $ ')
     const hypsStr = hyps.join('\n')
-    let res = ''
+    let res = '-----\n'
     if (disjStr.length > 0) {
         res += `Disj:\n${disjStr}\n`
     }
@@ -337,7 +337,7 @@ async function findAssertions({pattern, pageNum}) {
     }
     const numOfPages = Math.ceil(lastFoundAssertions.length / FIND_ASSERTIONS_PAGE_SIZE)
     const header = `Results for pattern '${pattern}', page ${pageIdx + 1} of ${numOfPages}`
-    const pageContent = res.join('\n\n-----\n')
+    const pageContent = res.join('\n\n')
     await putTextToClipboard(`${header}\n\n${pageContent}`);
     console.log('Found assertions have been copied to the clipboard.')
 }
