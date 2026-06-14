@@ -23,7 +23,7 @@ let setLastOpenedEditorId: int => unit
 
 let updateEditorData: (
     ~editorId:int,
-    ~unifMetavarPrefix:string,
+    ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
@@ -34,6 +34,7 @@ let updateEditorData: (
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
+    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => JSON.t

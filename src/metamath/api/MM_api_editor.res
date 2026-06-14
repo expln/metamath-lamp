@@ -185,6 +185,49 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
     }
 }
 
+let findAssertions = (
+    ~params:apiInput, 
+    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
+    ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<{"pattern":string},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            "pattern": d->str("pattern"),
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok(parsedParams) => {
+            let preCtx = preCtxData.ctxV.val.min
+            let typeColors = Belt_HashMapString.make(~hintSize=0)
+            searchAssertions(parsedParams["pattern"])->Promise.thenResolve(frms => frms->Result.map(frms =>
+                frms->Array.map(frm => {
+                    let frmData = MM_cmp_pe_frame_summary_state.makeInitialState(
+                        ~preCtx,
+                        ~frame=frm,
+                        ~typeColors,
+                        ~typeOrderInDisj=preCtxData.typeOrderInDisj
+                    )
+                    let disj = frmData.disj->Option.getOr([])->Array.map(disjGrp => 
+                        disjGrp->Array.map(((var,_)) => var->JSON.Encode.string)->JSON.Encode.array
+                    )->JSON.Encode.array
+                    let hyps = frmData.eHyps->Array.map(hyp => 
+                        ctxIntsToStrExn(preCtx, hyp)->JSON.Encode.string
+                    )->JSON.Encode.array
+                    Dict.fromArray([
+                        ("label", frm.label->JSON.Encode.string),
+                        ("isAxiom", frm.isAxiom->JSON.Encode.bool),
+                        ("disj", disj),
+                        ("hyps", hyps),
+                        ("asrt", ctxIntsToStrExn(preCtx, frmData.asrt)->JSON.Encode.string),
+                    ])->JSON.Encode.object
+                })->JSON.Encode.array
+            ))
+        }
+    }
+}
+
 let getTokenType = (
     ~paramsJson:apiInput,
     ~state:editorState,
@@ -1241,7 +1284,7 @@ let apiFindAsrtsByUnif = (
 
 type editorData = {
     editorId:int,
-    unifMetavarPrefix:string,
+    preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     state:editorState,
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     setEditorContIsHidden:bool=>promise<unit>,
@@ -1252,11 +1295,13 @@ type editorData = {
     buildSyntaxTrees:(array<string>,array<string>/*untyped,typed*/)=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     addAsrtByLabel: string=>promise<result<unit,string>>,
+    searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let editorId = editorData.editorId
-    let unifMetavarPrefix = editorData.unifMetavarPrefix
+    let preCtxData = editorData.preCtxData
+    let unifMetavarPrefix = preCtxData.settingsV.val.unifMetavarPrefix
     let state = editorData.state
     let setState = editorData.setState
     let setEditorContIsHidden = editorData.setEditorContIsHidden
@@ -1267,6 +1312,8 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let buildSyntaxTrees = editorData.buildSyntaxTrees
     let getAsrtSyntaxTrees = editorData.getAsrtSyntaxTrees
     let addAsrtByLabel = editorData.addAsrtByLabel
+    let searchAssertions = editorData.searchAssertions
+
     {
         "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
         "proveBottomUp": makeApiFunc(
@@ -1298,6 +1345,10 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
         "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
+        "findAssertions": makeApiFunc(
+            "editor.findAssertions", 
+            params => findAssertions( ~params, ~searchAssertions, ~preCtxData)
+        ),
     }
 }
 
@@ -1334,7 +1385,7 @@ let deleteEditor = (editorId:int):unit => {
 
 let updateEditorData = (
     ~editorId:int,
-    ~unifMetavarPrefix:string,
+    ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
@@ -1345,10 +1396,11 @@ let updateEditorData = (
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
+    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ):unit => {
     editorsData->Belt_HashMapInt.set(editorId, {
         editorId,
-        unifMetavarPrefix,
+        preCtxData,
         state,
         setState,
         setEditorContIsHidden,
@@ -1359,5 +1411,6 @@ let updateEditorData = (
         buildSyntaxTrees,
         getAsrtSyntaxTrees,
         addAsrtByLabel,
+        searchAssertions,
     })
 }

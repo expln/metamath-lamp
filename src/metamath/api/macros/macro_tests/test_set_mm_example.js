@@ -1,6 +1,14 @@
+const moduleName = 'integration tests'
+
 await api.setLogApiCallsToConsole(true)
 
+const setMmMacroModuleNameToTest = 'default set.mm macros'
+
 const ALL_TESTS = []
+
+async function showErrMsg(msg) {
+    getResponse(await api.showErrMsg({msg:String(msg)}))
+}
 
 async function runAllTests() {
     for (const test of ALL_TESTS) {
@@ -47,7 +55,7 @@ async function assertStepIsProved(stepLabel) {
 }
 
 async function prove() {
-    await api.macro.runMacro({moduleName:'default set.mm macros', macroName:'Prove'})
+    await api.macro.runMacro({moduleName:setMmMacroModuleNameToTest, macroName:'Prove'})
 }
 
 async function test_bottomUpProver_proves_B_is_CC_from_B_is_RR() {
@@ -84,4 +92,23 @@ async function test_bottomUpProver_proves_B_is_CC_from_B_is_QQ_deduction() {
 }
 ALL_TESTS.push(test_bottomUpProver_proves_B_is_CC_from_B_is_QQ_deduction)
 
-await runAllTests()
+function makeMacro(name, func) {
+    return {
+        name,
+        run: async () => {
+            try {
+                await func()
+            } catch (ex) {
+                await showErrMsg(`${ex.message}\n${ex.stack}`)
+                throw ex
+            }
+        }
+    }
+}
+
+await api.macro.registerMacroModule({
+    moduleName,
+    macros: [
+        makeMacro('Run all tests', runAllTests),
+    ]
+})

@@ -1,7 +1,5 @@
 const moduleName = 'Add steps in bulk'
 
-await api.setLogApiCallsToConsole(false)
-
 async function showErrMsg(msg) {
     getResponse(await api.showErrMsg({msg:String(msg)}))
 }

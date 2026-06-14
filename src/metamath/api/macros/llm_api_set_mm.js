@@ -31,6 +31,10 @@ function getResponse(apiResponse) {
     }
 }
 
+async function putTextToClipboard(text) {
+    await navigator.clipboard.writeText(text);
+}
+
 async function getEditorState() {
     return getResponse(await api.editor().getState())
 }
@@ -71,65 +75,93 @@ function stepIsVisibleToLlm(step) {
     return step.isBkm /* show all bookmarked steps */
         || step.isHyp /* show all hypothesis steps */
         || step.isGoal /* show all goal steps */
-        || step.status !== 'v' /* show all unproved steps */
+        || (step.status === '?' || step.status === '~' || step.status === 'x') /* show all unproved steps */
         || stepHasError(step) /* show all steps having any error */
 }
 
-function getStepTypeForLlm({isGoal, isHyp}) {
-    if (isGoal) return 'g'
-    if (isHyp) return 'h'
-    return 'p'
+function getStepTypeForLlm({isGoal, isHyp, isBkm}) {
+    if (isGoal) return 'G'
+    if (isHyp) return 'H'
+    return isBkm ? 'P' : 'p'
 }
 
 function getStepStatusForLlm({isHyp, status}) {
-    if (isHyp) return null
-    return status
-    // if (status === 'v') return 'proved'
-    // if (status === '?') return 'unproved'
-    // if (status === '~') return 'jstf_is_correct'
-    // if (status === 'x') return 'jstf_is_incorrect'
+    if (isHyp) return '.'
+    return status??'.'
 }
 
 /*
-* Convert a step object returned by unifyAll() to a new step object to be sent to an LLM.
+* Accepts any object (any primitive, array, object, null, undefined)
+* and returns an array of all strings this object contains.
+* For a string, a one element array containing that string will be returned.
+* For null, undefined, and an empty object (i.e. {}) an empty array will be returned.
+* For an object {a:1, b:{c:2, d:"AAA"}, e:"BBB"} an array ["AAA", "BBB"] will be returned.
 * */
-function minimizeStepForLlm(step) {
-    return {
-        status: getStepStatusForLlm(step),
-        label: step.label,
-        type: getStepTypeForLlm(step),
-        justification: step.jstfText,
-        statement: step.stmt,
-        isBookmarked: step.isBkm,
-        errors: [step.stmtErr, step.syntaxErr, step.unifErr].filter(hasValue)
+function getAllText(any) {
+    if (typeof any === 'string') return [any];
+    if (any === null || any === undefined || typeof any !== 'object') return [];
+    return Object.values(any).flatMap(getAllText);
+}
+
+/*
+* Converts a step object returned by unifyAll() to a plain text step to be sent to an LLM.
+* */
+function makeStepForLlm({step, maxLabelLength}) {
+    const type = getStepTypeForLlm(step)
+    const status = getStepStatusForLlm(step)
+    const label = step.label.padEnd(maxLabelLength, ' ');
+    const errors = getAllText([step.stmtErr, step.syntaxErr, step.unifErr])
+    let res = `${type} ${status} ${label} ${(step.stmt)}`
+    if (errors.length) {
+        res += '\n' + errors.join('\n')
     }
+    return res
 }
 
 async function getEditorStateForLlm(){
     //unify all and get the full editor state
     const st = await unifyAll()
-    let stepsToSendToLlm
-    if (editorStateHasError(st)) {
-        //if there are errors, then statuses are not set for steps. In that case only steps with errors will be
-        // sent to an LLM
-        stepsToSendToLlm = st.steps.filter(stepHasError)
-    } else {
-        stepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
+    const fullStepsToSendToLlm = st.steps.filter(stepIsVisibleToLlm)
+    const maxLabelLength = Math.max(...fullStepsToSendToLlm.map(step=>step.label.length))
+    const stepsToSendToLlm = fullStepsToSendToLlm.map(step=>makeStepForLlm({step, maxLabelLength}))
+    const res = ['--- editor state begin ---']
+    if (st.varsText.length > 0) {
+        res.push('Variables:')
+        res.push(st.varsText)
+        if (hasValue(st.varsErr) && st.varsErr.length > 0) {
+            res.push('Error in variables:')
+            res.push(st.varsErr)
+        }
+        res.push('')
     }
-    //prepare minimized editor state for an LLM
-    const stLlm = {
-        variables: st.varsText,
-        variablesError: st.varsErr,
-        disjoints: st.disjText,
-        disjointsError: st.disjErr,
-        steps: stepsToSendToLlm.map(minimizeStepForLlm)
+    if (st.disjText.length > 0) {
+        res.push('Disjoints:')
+        res.push(st.disjText)
+        if (hasValue(st.disjErr) && st.disjErr.length > 0) {
+            res.push('Error in disjoints:')
+            res.push(st.disjErr)
+        }
+        res.push('')
     }
-    //return editor state as a pretty printed JSON
-    return JSON.stringify(stLlm, null, 2)
+    if (stepsToSendToLlm.length) {
+        res.push('Steps:')
+        for (const step of stepsToSendToLlm) {
+            let stepHasError = step.includes('\n');
+            if (stepHasError) {
+                res.push('---')
+            }
+            res.push(step)
+            if (stepHasError) {
+                res.push('---')
+            }
+        }
+    }
+    res.push('--- editor state end ---')
+    return res.join('\n')
 }
 
 async function putEditorStateForLlmToClipboard() {
-    await navigator.clipboard.writeText(await getEditorStateForLlm());
+    await putTextToClipboard(await getEditorStateForLlm());
     console.log('The editor state has been copied to the clipboard.')
 }
 
@@ -145,7 +177,7 @@ async function addSteps({beforeLabel, afterLabel, variables, steps}) {
         vars: variables,
         steps: steps.map(step => ({
             label: step.label,
-            type: step.type,
+            type: step.type?.toLowerCase(),
             jstf: step.justification,
             stmt: step.statement,
             isBkm: true,
@@ -179,50 +211,39 @@ async function deleteSteps({labels}) {
 * It dynamically changes the bottom-up prover parameters in some special cases during the proving process.
 * */
 function updateParams(params, expr, dist, intToSym, symToInt) {
-    if (params.customParams === undefined) {
-        params = {
+    function relaxLengthRestriction({params, passedToLessEq}) {
+        return {
             ...params,
-            customParams: {
-                symbolCodes: {
-                    elemOf:symToInt('e.'),
-                    closingParen:symToInt(')'),
-                }
-            }
-        }
-    }
-    if (
-        expr.length >= 3
-        && (
-            expr[expr.length-3] === params.customParams.symbolCodes.elemOf
-                && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
-            || expr[expr.length-2] === params.customParams.symbolCodes.elemOf
-        )
-    ) {
-        params = {
-            ...params,
-            customParams: {
-                ...params.customParams,
-                passedToLessEq:true
-            },
+            customParams: {...params.customParams, passedToLessEq},
             assertionParams: params.assertionParams.map(asrtParams => {
                 if (asrtParams.minDist === 1) {
-                    return {...asrtParams, statementLengthRestriction: 'LessEq'}
+                    return {...asrtParams, statementLengthRestriction: passedToLessEq ? 'LessEq' : 'Less'}
                 } else {
                     return asrtParams
                 }
             })
         }
     }
-    if (
-        expr.length >= 3
-        && params.customParams.passedToLessEq
-        && !(
+    if (params.customParams === undefined) {
+        params = {
+            ...params,
+            customParams: {
+                symbolCodes: {elemOf:symToInt('e.'), closingParen:symToInt(')'),}
+            }
+        }
+    }
+    const provingIsElemOf = expr.length >= 3
+        && (
             expr[expr.length-3] === params.customParams.symbolCodes.elemOf
             && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
             || expr[expr.length-2] === params.customParams.symbolCodes.elemOf
         )
-    ) {
-        params = undefined
+    if (provingIsElemOf) {
+        if (!params.customParams.passedToLessEq) {
+            params = relaxLengthRestriction({params, passedToLessEq:true})
+        }
+    } else if (params.customParams.passedToLessEq) {
+        params = relaxLengthRestriction({params, passedToLessEq:false})
     }
     return params
 }
@@ -281,15 +302,55 @@ async function prove({stepToProve, stepsToDeriveFrom}) {
     if (proved) {
         await putEditorStateForLlmToClipboard()
     }
+}
 
+function makeFrameForLlm({disj, hyps, asrt}) {
+    const disjStr = disj.map(disjGrp => disjGrp.join(' ')).join(' $ ')
+    const hypsStr = hyps.join('\n')
+    let res = '-----\n'
+    if (disjStr.length > 0) {
+        res += `Disj:\n${disjStr}\n`
+    }
+    if (hypsStr.length > 0) {
+        res += `Hyps:\n${hypsStr}\n`
+    }
+    res += `Asrt:\n${asrt}`
+    return res
+}
+
+const FIND_ASSERTIONS_PAGE_SIZE = 100
+let lastPattern = undefined
+let lastFoundAssertions = undefined
+async function findAssertions({pattern, pageNum}) {
+    if (lastPattern !== pattern) {
+        lastFoundAssertions = getResponse(await api.editor().findAssertions({pattern}))
+        lastPattern = pattern
+    }
+    const pageIdx = (pageNum??1) - 1
+    const minIdx = pageIdx*FIND_ASSERTIONS_PAGE_SIZE
+    const maxIdx = minIdx + FIND_ASSERTIONS_PAGE_SIZE - 1
+    const res = []
+    let i = minIdx
+    while (i < lastFoundAssertions.length && i <= maxIdx) {
+        res.push(makeFrameForLlm(lastFoundAssertions[i]))
+        i++
+    }
+    const numOfPages = Math.ceil(lastFoundAssertions.length / FIND_ASSERTIONS_PAGE_SIZE)
+    const header = `Results for pattern '${pattern}', page ${pageIdx + 1} of ${numOfPages}`
+    const pageContent = res.join('\n\n')
+    await putTextToClipboard(`${header}\n\n${pageContent}`);
+    console.log('Found assertions have been copied to the clipboard.')
+}
+
+function makeFunctionMap(fns) {
+    return Object.fromEntries(
+        fns.map(fn => [fn.name, async params => await fn(params)])
+    )
 }
 
 const AVAILABLE_ACTIONS = {
     getState: async params => await putEditorStateForLlmToClipboard(params),
-    addSteps: async params => await addSteps(params),
-    updateSteps: async params => await updateSteps(params),
-    deleteSteps: async params => await deleteSteps(params),
-    prove: async params => await prove(params),
+    ...makeFunctionMap([findAssertions, addSteps, updateSteps, deleteSteps, prove])
 }
 
 async function runLlmSuggestedAction() {

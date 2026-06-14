@@ -541,7 +541,7 @@ let proveBottomUp = (
                                                         }
                                                     }
                                                 })
-                                            | _ => ()
+                                            | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
                                         }
                                     }
                                 })
