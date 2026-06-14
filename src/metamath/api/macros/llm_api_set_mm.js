@@ -104,7 +104,7 @@ function getAllText(any) {
 }
 
 /*
-* Convert a step object returned by unifyAll() to a new step object to be sent to an LLM.
+* Converts a step object returned by unifyAll() to a plain text step to be sent to an LLM.
 * */
 function makeStepForLlm({step, maxLabelLength}) {
     const type = getStepTypeForLlm(step)
