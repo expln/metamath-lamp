@@ -148,11 +148,11 @@ async function getEditorStateForLlm(){
         for (const step of stepsToSendToLlm) {
             let stepHasError = step.includes('\n');
             if (stepHasError) {
-                res.push('')
+                res.push('---')
             }
             res.push(step)
             if (stepHasError) {
-                res.push('')
+                res.push('---')
             }
         }
     }

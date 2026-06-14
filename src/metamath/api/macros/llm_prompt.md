@@ -32,7 +32,8 @@ The returned editor state consists of:
 
 Each step consists of:
 * one line with the statement of the step and some of its attributes (status, labels, etc.)
-* optional few lines containing error messages related to the step
+* optional few lines containing error messages related to the step.
+When a step has an error, it will be separated with special delimiters `---` to increase readability.
 
 The format of the line with the step statement is as follows:
 
@@ -59,6 +60,10 @@ Not all steps will be returned. Only the steps listed below will be returned:
 * steps with errors
 
 All other steps will not be returned.
+
+If many steps simultaneously show status `.`,
+suspect that one erroring step is suppressing status detection for the whole editor;
+locate and fix or delete it before interpreting the other steps.
 
 ### addSteps
 
@@ -178,8 +183,13 @@ The format of the parameter object the `findAssertions` function accepts is as f
 * `pattern` is the pattern to search by. This should be [the version 2 pattern](https://github.com/expln/metamath-lamp-docs/blob/master/mm_lamp_versions/dev/explorer/search_by_pattern_v2.md).
 * `pageNum` is the number of the page to return. This is an optional parameter.
 Its default value is 1.
-The output of the `findAssertions` function includes the maximum value of `pageNum`
-for the specified pattern.
+The output of the `findAssertions` function includes the maximum value of `pageNum` for the specified pattern.
+
+To make two parts of a frame refer to the same unknowns (e.g. the statement you have and the statement you want), 
+combine them into one pattern with an operator (`$*`, `$/`, `$|`):
+variable bindings stay consistent within a single pattern but are independent across separate space-separated patterns.
+Wrap each group in adjacency brackets `$[+ ... $]` and add a scope flag (e.g. a leading `$a`) to avoid weak matches
+where the symbols scatter across the frame.
 
 
 ## Optimizations to consider
@@ -248,6 +258,10 @@ Instead, **add explicit intermediate steps** that break the goal into simpler pi
 then prove each piece in sequence.
 The prover is most effective as a finisher for the last small gap, not as a solver for large leaps.
 
+However, when the prover fails, and you are unsure which assertion it needs, do not guess by adding speculative steps.
+Use `findAssertions` to identify assertions that can help.
+Decompose only after you know what the step requires.
+
 Providing too many labels in `stepsToDeriveFrom` slows the prover significantly;
 up to 5 labels is a practical ceiling.
 If the prover fails even with well-chosen `stepsToDeriveFrom`,
@@ -278,10 +292,13 @@ you can introduce them via the `variables` input parameter of the `addSteps` fun
 This section is based on everything above and provides the strategy you should use for building new proofs.
 
 1. Start with a thorough analysis of what needs to be proved.
-2. Check if there is already an exact, close, or similar proof in the context.
+2. Use `findAssertions` to check if there is already an exact, close, or similar proof in the context.
 If such a proof already exists, re-use it in the new proof.
 3. If no reusable proof exists, prepare a plan for the new proof.
-Use the `findAssertions` function to check what you can use in the new proof.
+Use `findAssertions` to turn assumptions into facts rather than relying on memory.
+`findAssertions` confirms what the database contains and what shape it has;
+it does not supply the proof strategy.
+Which facts are needed, and how to break down a non-primitive fact, still come from reasoning about the mathematics.
 4. Provide steps without justifications for the proof.
 Try to provide as many steps as you can at once.
 You can skip some obvious steps which can be proved with the `prove` function
