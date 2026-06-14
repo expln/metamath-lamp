@@ -177,7 +177,7 @@ async function addSteps({beforeLabel, afterLabel, variables, steps}) {
         vars: variables,
         steps: steps.map(step => ({
             label: step.label,
-            type: step.type,
+            type: step.type?.toLowerCase(),
             jstf: step.justification,
             stmt: step.statement,
             isBkm: true,
