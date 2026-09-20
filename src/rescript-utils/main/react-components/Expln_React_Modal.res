@@ -1,6 +1,5 @@
 open Expln_React_common
 open Expln_React_Mui
-open Expln_utils_promise
 
 type modalId = string
 
@@ -82,14 +81,14 @@ let make = (~modalRef:modalRef) => {
     modalRef.current = React.useMemo0(() => {
         Nullable.make(
             {
-                openModal: render => promise(rlv => {
+                openModal: render => Promise.make((rlv,_) => {
                     setState(prev => {
                         let (st, id) = prev->openModalPriv(false, render)
                         rlv(id)
                         st
                     })
                 }),
-                openModalFullScreen: render => promise(rlv => {
+                openModalFullScreen: render => Promise.make((rlv,_) => {
                     setState(prev => {
                         let (st, id) = prev->openModalPriv(true, render)
                         rlv(id)

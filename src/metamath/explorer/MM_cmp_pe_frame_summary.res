@@ -1,6 +1,5 @@
 open Expln_React_common
 open Expln_React_Mui
-open Expln_utils_promise
 open MM_react_common
 open MM_context
 open MM_substitution
@@ -85,7 +84,7 @@ let make = React.memoCustomCompareProps( ({
         switch addAsrtByLabel {
             | None => ()
             | Some(addAsrtByLabel) => {
-                addAsrtByLabel(label)->promiseMap(res => {
+                addAsrtByLabel(label)->Promise.thenResolve(res => {
                     setAsrtWasAddedToEditor(msgAndTimerId => {
                         switch msgAndTimerId {
                             | None => ()

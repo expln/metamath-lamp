@@ -4,7 +4,6 @@ open Expln_React_Mui
 open Raw_js_utils
 open Local_storage_utils
 open Expln_React_Modal
-open Expln_utils_promise
 open Common
 
 @val external window: {..} = "window"
@@ -475,7 +474,7 @@ let useStateRenderer = (
     let selectedMacroModuleIsReadOnly = isPredefinedMacroModule(state.selectedMacroModuleName)
 
     let actShowWarning = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Warning_modal
                     title="Security warning"

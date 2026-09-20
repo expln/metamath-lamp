@@ -1,7 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
-open Expln_utils_promise
 open MM_react_common
 
 @module("./FileLoader") external loadFilePriv: (string, (int,int)=>unit, string=>unit, option<string>=>unit) => unit = "loadFile"
@@ -46,7 +45,7 @@ let loadFileWithProgress = (
     }
 
     let actDownloadFile = () => {
-        openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
+        openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
             updateModal( 
                 modalRef, modalId, 
                 () => rndProgress( ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId) )
@@ -68,7 +67,7 @@ let loadFileWithProgress = (
                     }
                     switch transformErrorMsg {
                         | Some(transformErrorMsg) => {
-                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                                 updateModal(modalRef, modalId, () => {
                                     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                                         <Col spacing=1.>
@@ -97,7 +96,7 @@ let loadFileWithProgress = (
     let dontAskAgain = ref(false)
 
     let actShowWarning = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>

@@ -1,6 +1,5 @@
 open Expln_React_Mui
 open Expln_React_common
-open Expln_utils_promise
 open MM_parser
 open MM_react_common
 open MM_context
@@ -210,8 +209,8 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                         | Some(Text(text)) => {
                             let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
                             let progressText = `Parsing ${name}`
-                            promise(rsv => {
-                                openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
+                            Promise.make((rsv,_) => {
+                                openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
                                     let onTerminate = makeActTerminate(modalRef, modalId)
                                     updateModal( 
                                         modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) 
@@ -242,7 +241,7 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                                 })->ignore
                             })
                         }
-                        | Some(UseAst) => promise(rsv => rsv(st))
+                        | Some(UseAst) => Promise.resolve(st)
                     }
                 }
             }
@@ -252,16 +251,16 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
 
 let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ssIdx:int):promise<result<mmScope,string>> => {
     if (ssIdx == mmScope.singleScopes->Array.length) {
-        promise(rslv => rslv(Ok(mmScope)))
+        Promise.resolve(Ok(mmScope))
     } else {
         let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
-        parseMmFileForSingleScope(mmScope, ~singleScopeId=ss.id, ~modalRef)->promiseFlatMap(mmScope => {
+        parseMmFileForSingleScope(mmScope, ~singleScopeId=ss.id, ~modalRef)->Promise.then(mmScope => {
             switch mmScope.singleScopes->Array.find(s => s.id == ss.id) {
                 | None => raise(MmException({msg:`None == singleScopes->find(s => s.id == ss.id)`}))
                 | Some(ss) => {
                     switch ss.ast {
                         | None => raise(MmException({msg:`Could not parse MM file for ss.id = ${ss.id}`}))
-                        | Some(Error(msg)) => promise(rslv => rslv(Error(msg)))
+                        | Some(Error(msg)) => Promise.resolve(Error(msg))
                         | Some(Ok(_)) => parseMmFileForSingleScopeRec(mmScope, ~modalRef, ~ssIdx = ssIdx + 1)
                     }
                 }
@@ -278,12 +277,12 @@ let loadMmContext = (
     ~settings:settings,
     ~modalRef:modalRef,
 ):promise<result<mmContext,string>> => {
-    promise(rsv => {
+    Promise.make((rsv,_) => {
         if (scopeIsEmpty(singleScopes)) {
             rsv(Ok(createContext(())))
         } else {
             let progressText = `Loading MM context`
-            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
+            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
                 let onTerminate = makeActTerminate(modalRef, modalId)
                 updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) )
                 MM_wrk_LoadCtx.beginLoadingMmContext(
@@ -329,7 +328,7 @@ let loadMmFileText = (
     ~alias:string,
     ~url:string,
 ):promise<result<string,string>> => {
-    promise(rslv => {
+    Promise.make((rslv,_) => {
         FileLoader.loadFileWithProgress(
             ~modalRef,
             ~showWarning=!(trustedUrls->Array.includes(url)),
@@ -356,7 +355,7 @@ let rec loadMmFileTextForSingleScope = (
     ~ssIdx:int,
 ):promise<result<mmScope,string>> => {
     if (ssIdx == mmScope.singleScopes->Array.length) {
-        promise(rslv => rslv(Ok(mmScope)))
+        Promise.resolve(Ok(mmScope))
     } else {
         let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
         let continue = (text:fileText):promise<result<mmScope,string>> => {
@@ -383,9 +382,9 @@ let rec loadMmFileTextForSingleScope = (
                 switch loadedTexts->Belt_HashMapString.get(url) {
                     | Some(text) => continue(Text(text))
                     | None => {
-                        loadMmFileText( ~modalRef, ~trustedUrls, ~onUrlBecomesTrusted, ~alias, ~url, )->promiseFlatMap(res => {
+                        loadMmFileText( ~modalRef, ~trustedUrls, ~onUrlBecomesTrusted, ~alias, ~url, )->Promise.then(res => {
                             switch res {
-                                | Error(msg) => promise(rslv => rslv(Error(msg)))
+                                | Error(msg) => Promise.resolve(Error(msg))
                                 | Ok(text) => continue(Text(text))
                             }
                         })
@@ -452,9 +451,9 @@ let makeMmScopeFromSrcDtos = (
         ~onUrlBecomesTrusted,
         ~loadedTexts,
         ~ssIdx = 0,
-    )->promiseFlatMap(res => {
+    )->Promise.then(res => {
         switch res {
-            | Error(msg) => promise(rslv => rslv(Error(msg)))
+            | Error(msg) => Promise.resolve(Error(msg))
             | Ok(mmScope) => parseMmFileForSingleScopeRec(mmScope, ~modalRef, ~ssIdx=0)
         }
     })
@@ -501,7 +500,7 @@ let make = (
     let actParseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
         let st = st->updateSingleScope(id,setFileText(_,Some(Text(text))))
-        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->promiseMap(st => setState(_ => st))->ignore
+        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->Promise.thenResolve(st => setState(_ => st))->ignore
     }
 
     let actToggleAccordion = () => {
@@ -579,7 +578,7 @@ let make = (
 
     let applyChanges = ( ~mmScope:mmScope, ~settings:settings, ):promise<result<unit,string>> => {
         if (scopeIsEmpty(mmScope.singleScopes)) {
-            promise(rslv => {
+            Promise.make((rslv,_) => {
                 setState(_ => mmScope)
                 actNewCtxIsReady([],createContext(()))
                 rslv(Ok(()))
@@ -589,7 +588,7 @@ let make = (
                 ~singleScopes=mmScope.singleScopes, 
                 ~settings,
                 ~modalRef, 
-            )->promiseMap(res => {
+            )->Promise.thenResolve(res => {
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {
@@ -798,7 +797,7 @@ let make = (
             <Row>
                 <Button variant=#contained disabled={!scopeIsCorrect && !scopeIsEmpty} 
                     onClick={_=>{
-                        actReloadCtxPriv(~settings, ~force=true, ~mmScope=state)->promiseMap(res => {
+                        actReloadCtxPriv(~settings, ~force=true, ~mmScope=state)->Promise.thenResolve(res => {
                             switch res {
                                 | Error(_) => ()
                                 | Ok(_) => {

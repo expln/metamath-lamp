@@ -1,5 +1,4 @@
 open Expln_React_Mui
-open Expln_utils_promise
 open MM_react_common
 
 @val external window: {..} = "window"
@@ -17,7 +16,7 @@ let make = (
     let url = origin ++ pathname ++ "?editorState=" ++ editorStateBase64
 
     let actCopyToClipboard = () => {
-        copyToClipboard(url)->promiseMap(_ => {
+        copyToClipboard(url)->Promise.thenResolve(_ => {
             setCopiedToClipboard(timerId => {
                 switch timerId {
                     | None => ()

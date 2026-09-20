@@ -1,5 +1,4 @@
 open Expln_React_Mui
-open Expln_utils_promise
 open MM_wrk_editor
 open MM_wrk_settings
 open MM_react_common
@@ -124,7 +123,7 @@ let make = React.memoCustomCompareProps( ({
         switch getSelectedText(state.cont) {
             | None => ()
             | Some(selectedText) => {
-                copyToClipboard(selectedText)->promiseMap(_ => {
+                copyToClipboard(selectedText)->Promise.thenResolve(_ => {
                     setCopiedToClipboard(timerId => {
                         switch timerId {
                             | None => ()

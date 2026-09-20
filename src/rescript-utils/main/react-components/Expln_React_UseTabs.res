@@ -1,6 +1,5 @@
 open Expln_React_common
 open Expln_React_Mui
-open Expln_utils_promise
 
 @val external window: {..} = "window"
 
@@ -178,7 +177,7 @@ let useTabs = (
         None
     }, [state.activeTabId])
 
-    let addTab = (~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false):promise<tabId> => promise(rlv => {
+    let addTab = (~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false):promise<tabId> => Promise.make((rlv,_) => {
         setState(prev => {
             let (st, tabId) = prev->addTab(~label, ~closable, ~color?, ~data, ~doOpen)
             rlv(tabId)

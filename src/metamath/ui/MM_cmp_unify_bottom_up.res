@@ -1,7 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
 open MM_react_common
-open Expln_utils_promise
 open MM_wrk_editor
 open MM_context
 open MM_substitution
@@ -880,7 +879,7 @@ let make = (
                 proverParamsToShow: Some(paramsToShow),
             }
 
-            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0.))->promiseMap(modalId => {
+            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0.))->Promise.thenResolve(modalId => {
                 updateModal( 
                     modalRef, modalId, () => rndProgress(
                         ~text="Proving bottom-up", ~pct=0., ~onTerminate=makeActTerminate(modalId)
@@ -906,7 +905,7 @@ let make = (
                             ~text=msg, ~onTerminate=makeActTerminate(modalId)
                         )
                     )
-                )->promiseMap(proofTreeDto => {
+                )->Promise.thenResolve(proofTreeDto => {
                     closeModal(modalRef, modalId)
                     actOnResultsReady(proofTreeDto)
                 })
@@ -1034,7 +1033,7 @@ let make = (
         switch state.tree {
             | None => ()
             | Some(tree) => {
-                openModalFullScreen(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModalFullScreen(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
                         let closeBtn =
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
@@ -1354,7 +1353,7 @@ let make = (
     }
 
     let actOpenWarningsDialog = ( warnings:array<string>, ) => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col>
@@ -1389,7 +1388,7 @@ let make = (
     }
 
     let actShowActualParams = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col>
@@ -1509,7 +1508,7 @@ let make = (
             getProofStatus(stmt)->Belt_Option.isSome
         )
 
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_root_stmts 
                     title
