@@ -23,6 +23,7 @@ and stmt =
     | Essential({label:string, expr:array<string>})
     | Axiom({label:string, expr:array<string>})
     | Provable({label:string, expr:array<string>, proof:option<proof>})
+    | Include({path:string})
 
 let parseMmFile: (
     ~mmFileContent:string, 
