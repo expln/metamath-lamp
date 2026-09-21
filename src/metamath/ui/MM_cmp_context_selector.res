@@ -495,12 +495,66 @@ let make = (
         onChange(srcs,ctx)
     }
 
-    let trustedUrls= settings.webSrcSettings->Array.filter(s => s.trusted)->Array.map(s => s.url)
+    let trustedUrls = settings.webSrcSettings->Array.filter(s => s.trusted)->Array.map(s => s.url)
 
-    let actParseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
+    let constructUrlToLoad = (urlOfFileWithInclude:string, pathToInclude:string):result<string,string> => {
+        let chIdx = ref(urlOfFileWithInclude->String.length - 1)
+        while (chIdx.contents >= 0 && "/" !== urlOfFileWithInclude->String.charAt(chIdx.contents)) {
+            chIdx := chIdx.contents - 1
+        }
+        if (chIdx.contents < 0) {
+            Error(`Cannot construct a url to import '${pathToInclude}' into '${urlOfFileWithInclude}'`)
+        } else {
+            Ok(urlOfFileWithInclude->String.substring(~start=0, ~end=chIdx.contents) ++ "/" ++ pathToInclude)
+        }
+    }
+
+    let findIncludeToLoad = (mmScope:mmScope):result<option<(int,string)>, string> => {
+        let loadedUrls = Belt_HashSetString.make(~hintSize=10)
+        let found: ref<option<result<option<(int,string)>, string>>> = ref(None)
+        let ssIdx = ref(0)
+        while (found.contents->Option.isNone && ssIdx.contents < mmScope.singleScopes->Array.length) {
+            let singleScope = mmScope.singleScopes->Array.getUnsafe(ssIdx.contents)
+            switch singleScope.fileSrc {
+                | Some(Web({url})) => {
+                    loadedUrls->Belt_HashSetString.add(url)
+                    switch singleScope.ast {
+                        | Some(Ok({stmt:Block({statements})})) => {
+                            let stmtIdx = ref(0)
+                            while (stmtIdx.contents < statements->Array.length) {
+                                switch statements->Array.getUnsafe(stmtIdx.contents) {
+                                    | {stmt:Include({path})} => {
+                                        switch constructUrlToLoad(url, path) {
+                                            | Error(msg) => found := Some(Error(msg))
+                                            | Ok(urlToLoad) => {
+                                                if (!(loadedUrls->Belt_HashSetString.has(urlToLoad))) {
+                                                    found := Some(Ok(Some((ssIdx.contents, urlToLoad))))
+                                                }
+                                            }
+                                        }
+                                    }
+                                    | _ => ()
+                                }
+                                stmtIdx := stmtIdx.contents + 1
+                            }
+                        }
+                        | _ => ()
+                    }
+                }
+                | _ => ()
+            }
+            ssIdx := ssIdx.contents + 1
+        }
+        switch found.contents {
+            | None => Ok(None)
+            | Some(res) => res
+        }
+    }
+
+    let actParseMmFileText = (id:string, src:mmFileSource, text:string):promise<mmScope> => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
         let st = st->updateSingleScope(id,setFileText(_,Some(Text(text))))
-        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->Promise.thenResolve(st => setState(_ => st))->ignore
+        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)
     }
 
     let actToggleAccordion = () => {
@@ -542,7 +596,9 @@ let make = (
                     setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))
                 }}
                 fileSrc=singleScope.fileSrc
-                onFileChange={(src,text)=>actParseMmFileText(singleScope.id, src, text)}
+                onFileChange={(src,text)=>actParseMmFileText(singleScope.id, src, text)
+                        ->Promise.thenResolve(st => setState(_ => st))->Promise.done
+                }
                 parseError={
                     switch singleScope.ast {
                         | Some(Error(msg)) => Some(msg)
