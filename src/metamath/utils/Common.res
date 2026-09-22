@@ -260,3 +260,18 @@ type openExplorer = (
     ~initReferencedByFilter:string=?,
     ~initReferencedByTranFilter:bool=?,
 )=>unit
+
+let isTrustedUrl = (trustedUrls:array<string>, url:string):bool => {
+    let idx = ref(0)
+    let res = ref(false)
+    while (!res.contents && idx.contents < trustedUrls->Array.length) {
+        let trustedUrl = trustedUrls->Array.getUnsafe(idx.contents)
+        if (trustedUrl->String.endsWith("*")) {
+            res := url->String.startsWith(trustedUrl->String.substring(~start=0,~end=trustedUrl->String.length-1))
+        } else {
+            res := url === trustedUrl
+        }
+        idx := idx.contents + 1
+    }
+    res.contents
+}
