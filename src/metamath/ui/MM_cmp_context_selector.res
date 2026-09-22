@@ -29,6 +29,7 @@ type mmSingleScope = {
 type mmScope = {
     nextId: int,
     expanded: bool,
+    includes: Belt_HashMapString.t<mmSingleScope>,
     singleScopes: array<mmSingleScope>,
     loadedContextSummary: string,
 }
@@ -56,6 +57,7 @@ let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
 let createInitialMmScope = (~defaultSrcType:mmFileSourceType) => {
     {
         nextId: 1,
+        includes: Belt_HashMapString.make(~hintSize=200),
         singleScopes: [createEmptySingleScope(~id="0", ~srcType=defaultSrcType)],
         expanded: true,
         loadedContextSummary: "",
@@ -428,6 +430,7 @@ let makeMmScopeFromSrcDtos = (
     let mmScope = srcs->Array.reduce(
         {
             nextId: 0,
+            includes: Belt_HashMapString.make(~hintSize=200),
             singleScopes: [],
             expanded: false,
             loadedContextSummary: "",
@@ -509,45 +512,71 @@ let make = (
         }
     }
 
-    let findIncludeToLoad = (mmScope:mmScope):result<option<(int,string)>, string> => {
-        let loadedUrls = Belt_HashSetString.make(~hintSize=10)
-        let found: ref<option<result<option<(int,string)>, string>>> = ref(None)
-        let ssIdx = ref(0)
-        while (found.contents->Option.isNone && ssIdx.contents < mmScope.singleScopes->Array.length) {
-            let singleScope = mmScope.singleScopes->Array.getUnsafe(ssIdx.contents)
-            switch singleScope.fileSrc {
-                | Some(Web({url})) => {
-                    loadedUrls->Belt_HashSetString.add(url)
-                    switch singleScope.ast {
-                        | Some(Ok({stmt:Block({statements})})) => {
-                            let stmtIdx = ref(0)
-                            while (stmtIdx.contents < statements->Array.length) {
-                                switch statements->Array.getUnsafe(stmtIdx.contents) {
-                                    | {stmt:Include({path})} => {
-                                        switch constructUrlToLoad(url, path) {
-                                            | Error(msg) => found := Some(Error(msg))
-                                            | Ok(urlToLoad) => {
-                                                if (!(loadedUrls->Belt_HashSetString.has(urlToLoad))) {
-                                                    found := Some(Ok(Some((ssIdx.contents, urlToLoad))))
-                                                }
-                                            }
-                                        }
-                                    }
-                                    | _ => ()
-                                }
-                                stmtIdx := stmtIdx.contents + 1
-                            }
-                        }
-                        | _ => ()
-                    }
+    let rec findIncludesToLoadInAst = (
+        parentUrl:string, ast:mmAstNode, loadedPaths:Belt_HashSetString.t
+    ):result<array<(string,string)>, string> => {
+        let result: array<(string,string)> = []
+        let err: ref<option<string>> = ref(None)
+        switch ast.stmt {
+            | Include({path}) if !(loadedPaths->Belt_HashSetString.has(path)) => {
+                switch constructUrlToLoad(parentUrl, path) {
+                    | Error(msg) => err := Some(msg)
+                    | Ok(urlToLoad) => result->Array.push((path, urlToLoad))
                 }
-                | _ => ()
+            }
+            | Block({statements}) => {
+                let stmtIdx = ref(0)
+                while (err.contents->Option.isNone && stmtIdx.contents < statements->Array.length) {
+                    switch findIncludesToLoadInAst(
+                        parentUrl, statements->Array.getUnsafe(stmtIdx.contents), loadedPaths
+                    ) {
+                        | Error(msg) => err := Some(msg)
+                        | Ok(arr) => result->Array.pushMany(arr)
+                    }
+                    stmtIdx := stmtIdx.contents + 1
+                }
+            }
+            | _ => ()
+        }
+        switch err.contents {
+            | None => Ok(result)
+            | Some(msg) => Error(msg)
+        }
+    }
+
+    let findIncludesToLoadInSingleScope = (
+        singleScope:mmSingleScope, loadedPaths:Belt_HashSetString.t
+    ):result<array<(string,string)>, string> => {
+        switch singleScope.fileSrc {
+            | Some(Web({url})) => {
+                switch singleScope.ast {
+                    | Some(Ok(ast)) => findIncludesToLoadInAst(url, ast, loadedPaths)
+                    | _ => Ok([])
+                }
+            }
+            | _ => Ok([])
+        }
+    }
+
+    let findIncludesToLoad = (mmScope:mmScope):result<array<(string,string)>, string> => {
+        let result: array<(string,string)> = []
+        let err: ref<option<string>> = ref(None)
+        let loadedPaths = mmScope.includes->Belt_HashMapString.keysToArray->Belt_HashSetString.fromArray
+        let singleScopesToCheck = [
+            ...mmScope.includes->Belt_HashMapString.toArray->Array.map(((_,ss)) => ss),
+            ...mmScope.singleScopes
+        ]
+        let ssIdx = ref(0)
+        while (err.contents->Option.isNone && ssIdx.contents < singleScopesToCheck->Array.length) {
+            switch findIncludesToLoadInSingleScope(singleScopesToCheck->Array.getUnsafe(ssIdx.contents), loadedPaths) {
+                | Error(msg) => err := Some(msg)
+                | Ok(arr) => result->Array.pushMany(arr)
             }
             ssIdx := ssIdx.contents + 1
         }
-        switch found.contents {
-            | None => Ok(None)
-            | Some(res) => res
+        switch err.contents {
+            | None => Ok(result)
+            | Some(msg) => Error(msg)
         }
     }
 
