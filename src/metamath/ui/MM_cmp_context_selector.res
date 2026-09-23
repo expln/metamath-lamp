@@ -588,7 +588,7 @@ let make = (
         }
     }
 
-    let loadFiles = async (urls:array<string>):result<array<mmSingleScope>,string> => {
+    let loadAndParseFiles = async (urls:array<string>):result<array<mmSingleScope>,string> => {
         let result: array<(string, FileLoader.fileLoadResult)> = await Promise.all(
             urls->Array.map(async url => {
                 let loadedText = await FileLoader.loadFileWithProgressPromise(
@@ -626,7 +626,22 @@ let make = (
         if (errors->Array.length > 0) {
             Error(errors->Array.map(err => switch err {|Error(msg)=>msg | _=>""})->Array.join(";"))
         } else {
-            Ok(result->Array.map(Result.getExn))
+            let result: array<result<mmSingleScope,string>> = await Promise.all(
+                result->Array.map(Result.getExn)->Array.map(async ss => {
+                    let parsed = await parseSingleScope(ss, ~modalRef)
+                    switch parsed.ast {
+                        | None => Error("Could not parse this file.")
+                        | Some(Error(msg)) => Error(msg)
+                        | Some(Ok(_)) => Ok(parsed)
+                    }
+                })
+            )
+            let errors = result->Array.filter(Result.isError(_))
+            if (errors->Array.length > 0) {
+                Error(errors->Array.map(err => switch err {|Error(msg)=>msg | _=>""})->Array.join(";"))
+            } else {
+                Ok(result->Array.map(Result.getExn))
+            }
         }
     }
 
