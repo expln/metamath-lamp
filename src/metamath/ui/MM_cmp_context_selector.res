@@ -193,58 +193,62 @@ let shouldReloadContext = (singleScopes: array<mmSingleScope>, srcs: array<mmCtx
     canLoadContext(srcs) && (force || !isScopeSame(singleScopes, srcs))
 }
 
+let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleScope> => {
+    switch ss.fileSrc {
+        | None => raise(MmException({
+            msg:`fileSrc is not set for the mmSingleScope with id '${ss.id}'`
+        }))
+        | Some(src) => {
+            switch ss.fileText {
+                | None => raise(MmException({
+                    msg:`fileText is not set for the mmSingleScope with id '${ss.id}'`
+                }))
+                | Some(Text(text)) => {
+                    let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
+                    let progressText = `Parsing ${name}`
+                    Promise.make((resolve,_) => {
+                        openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
+                            let onTerminate = makeActTerminate(modalRef, modalId)
+                            updateModal(
+                                modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) 
+                            )
+                            MM_wrk_ParseMmFile.beginParsingMmFile(
+                                ~mmFileText = text,
+                                ~onProgress = pct => updateModal( 
+                                    modalRef, modalId, 
+                                    () => rndProgress(~text=progressText, ~pct, ~onTerminate)
+                                ),
+                                ~onDone = parseResult => {
+                                    let ss = switch parseResult {
+                                        | Error(msg) => {
+                                            let ss = ss->setAst(Some(Error(msg)))
+                                            let ss = ss->setAllLabels([])
+                                            ss
+                                        }
+                                        | Ok((ast,allLabels)) => {
+                                            let ss = ss->setAst(Some(Ok(ast)))
+                                            let ss = ss->setAllLabels(allLabels)
+                                            ss
+                                        }
+                                    }
+                                    closeModal(modalRef, modalId)
+                                    resolve(ss)
+                                }
+                            )
+                        })->ignore
+                    })
+                }
+                | Some(UseAst) => Promise.resolve(ss)
+            }
+        }
+    }
+}
+
 let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:modalRef):promise<mmScope> => {
     switch st.singleScopes->Array.find(ss => ss.id == singleScopeId) {
         | None => raise(MmException({msg:`Could not find an mmSingleScope with id '${singleScopeId}'`}))
         | Some(ss) => {
-            switch ss.fileSrc {
-                | None => raise(MmException({
-                    msg:`fileSrc is not set for the mmSingleScope with id '${singleScopeId}'`
-                }))
-                | Some(src) => {
-                    switch ss.fileText {
-                        | None => raise(MmException({
-                            msg:`fileText is not set for the mmSingleScope with id '${singleScopeId}'`
-                        }))
-                        | Some(Text(text)) => {
-                            let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
-                            let progressText = `Parsing ${name}`
-                            Promise.make((rsv,_) => {
-                                openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
-                                    let onTerminate = makeActTerminate(modalRef, modalId)
-                                    updateModal(
-                                        modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) 
-                                    )
-                                    MM_wrk_ParseMmFile.beginParsingMmFile(
-                                        ~mmFileText = text,
-                                        ~onProgress = pct => updateModal( 
-                                            modalRef, modalId, 
-                                            () => rndProgress(~text=progressText, ~pct, ~onTerminate)
-                                        ),
-                                        ~onDone = parseResult => {
-                                            let st = switch parseResult {
-                                                | Error(msg) => {
-                                                    let st = st->updateSingleScope(ss.id,setAst(_, Some(Error(msg))))
-                                                    let st = st->updateSingleScope(ss.id,setAllLabels(_, []))
-                                                    st
-                                                }
-                                                | Ok((ast,allLabels)) => {
-                                                    let st = st->updateSingleScope(ss.id,setAst(_,Some(Ok(ast))))
-                                                    let st = st->updateSingleScope(ss.id,setAllLabels(_, allLabels))
-                                                    st
-                                                }
-                                            }
-                                            closeModal(modalRef, modalId)
-                                            rsv(st)
-                                        }
-                                    )
-                                })->ignore
-                            })
-                        }
-                        | Some(UseAst) => Promise.resolve(st)
-                    }
-                }
-            }
+            parseSingleScope(ss, ~modalRef)->Promise.thenResolve(ss => st->updateSingleScope(ss.id,_=>ss))
         }
     }
 }
