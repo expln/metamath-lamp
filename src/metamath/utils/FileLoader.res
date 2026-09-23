@@ -146,3 +146,31 @@ let loadFileWithProgress = (
         actDownloadFile()
     }
 }
+
+type fileLoadResult =
+    | Ok(string)
+    | Error(option<string>)
+    | TerminatedByUser
+
+let loadFileWithProgressPromise = (
+    ~modalRef:modalRef,
+    ~showWarning:bool,
+    ~onUrlBecomesTrusted:string=>unit,
+    ~url:string,
+    ~progressText:string,
+    ~transformErrorMsg:option<option<string>=>string>=?
+): promise<fileLoadResult> => {
+    Promise.make((resolve,_) => {
+        loadFileWithProgress(
+            ~modalRef,
+            ~showWarning,
+            ~onUrlBecomesTrusted,
+            ~url,
+            ~progressText,
+            ~onReady = loadedText => resolve(Ok(loadedText)),
+            ~onError = msg => resolve(Error(msg)),
+            ~transformErrorMsg?,
+            ~onTerminated = () => resolve(TerminatedByUser)
+        )
+    })
+}

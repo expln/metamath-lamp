@@ -47,7 +47,7 @@ let make = (
             | Some(webSrc) => {
                 FileLoader.loadFileWithProgress(
                     ~modalRef,
-                    ~showWarning=!(trustedUrls->Array.includes(webSrc.url)),
+                    ~showWarning=!(isTrustedUrl(trustedUrls, webSrc.url)),
                     ~progressText=`Downloading MM file from "${alias}"`,
                     ~transformErrorMsg= msg => `An error occurred while downloading from "${alias}":` 
                                                     ++ ` ${msg->Belt.Option.getWithDefault("")}.`,

@@ -18,3 +18,17 @@ let loadFileWithProgress: (
     ~transformErrorMsg:option<string>=>string =?,
     ~onTerminated:unit=>unit=?
 ) => unit
+
+type fileLoadResult =
+    | Ok(string)
+    | Error(option<string>)
+    | TerminatedByUser
+
+let loadFileWithProgressPromise: (
+    ~modalRef:modalRef,
+    ~showWarning:bool,
+    ~onUrlBecomesTrusted:string=>unit,
+    ~url:string,
+    ~progressText:string,
+    ~transformErrorMsg:option<string>=>string =?
+) => promise<fileLoadResult>

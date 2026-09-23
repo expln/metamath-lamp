@@ -29,7 +29,6 @@ type mmSingleScope = {
 type mmScope = {
     nextId: int,
     expanded: bool,
-    includes: Belt_HashMapString.t<mmSingleScope>,
     singleScopes: array<mmSingleScope>,
     loadedContextSummary: string,
 }
@@ -57,7 +56,6 @@ let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
 let createInitialMmScope = (~defaultSrcType:mmFileSourceType) => {
     {
         nextId: 1,
-        includes: Belt_HashMapString.make(~hintSize=200),
         singleScopes: [createEmptySingleScope(~id="0", ~srcType=defaultSrcType)],
         expanded: true,
         loadedContextSummary: "",
@@ -214,7 +212,7 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                             Promise.make((rsv,_) => {
                                 openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
                                     let onTerminate = makeActTerminate(modalRef, modalId)
-                                    updateModal( 
+                                    updateModal(
                                         modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) 
                                     )
                                     MM_wrk_ParseMmFile.beginParsingMmFile(
@@ -333,7 +331,7 @@ let loadMmFileText = (
     Promise.make((rslv,_) => {
         FileLoader.loadFileWithProgress(
             ~modalRef,
-            ~showWarning=!(trustedUrls->Array.includes(url)),
+            ~showWarning=!(isTrustedUrl(trustedUrls, url)),
             ~progressText=`Downloading MM file from "${alias}"`,
             ~url,
             ~onUrlBecomesTrusted,
@@ -430,7 +428,6 @@ let makeMmScopeFromSrcDtos = (
     let mmScope = srcs->Array.reduce(
         {
             nextId: 0,
-            includes: Belt_HashMapString.make(~hintSize=200),
             singleScopes: [],
             expanded: false,
             loadedContextSummary: "",
@@ -512,26 +509,25 @@ let make = (
         }
     }
 
-    let rec findIncludesToLoadInAst = (
-        parentUrl:string, ast:mmAstNode, loadedPaths:Belt_HashSetString.t
-    ):result<array<(string,string)>, string> => {
-        let result: array<(string,string)> = []
+    let rec collectIncludesToLoadInAst = (
+        parentUrl:string, ast:mmAstNode, pathToUrl:Belt_HashMapString.t<string>
+    ):result<unit, string> => {
         let err: ref<option<string>> = ref(None)
         switch ast.stmt {
-            | Include({path}) if !(loadedPaths->Belt_HashSetString.has(path)) => {
+            | Include({path}) if !(pathToUrl->Belt_HashMapString.has(path)) => {
                 switch constructUrlToLoad(parentUrl, path) {
                     | Error(msg) => err := Some(msg)
-                    | Ok(urlToLoad) => result->Array.push((path, urlToLoad))
+                    | Ok(urlToLoad) => pathToUrl->Belt_HashMapString.set(path, urlToLoad)
                 }
             }
             | Block({statements}) => {
                 let stmtIdx = ref(0)
                 while (err.contents->Option.isNone && stmtIdx.contents < statements->Array.length) {
-                    switch findIncludesToLoadInAst(
-                        parentUrl, statements->Array.getUnsafe(stmtIdx.contents), loadedPaths
+                    switch collectIncludesToLoadInAst(
+                        parentUrl, statements->Array.getUnsafe(stmtIdx.contents), pathToUrl
                     ) {
                         | Error(msg) => err := Some(msg)
-                        | Ok(arr) => result->Array.pushMany(arr)
+                        | Ok(arr) => ()
                     }
                     stmtIdx := stmtIdx.contents + 1
                 }
@@ -539,45 +535,119 @@ let make = (
             | _ => ()
         }
         switch err.contents {
-            | None => Ok(result)
+            | None => Ok(())
             | Some(msg) => Error(msg)
         }
     }
 
-    let findIncludesToLoadInSingleScope = (
-        singleScope:mmSingleScope, loadedPaths:Belt_HashSetString.t
-    ):result<array<(string,string)>, string> => {
+    let collectIncludesToLoadInSingleScope = (
+        singleScope:mmSingleScope, pathToUrl:Belt_HashMapString.t<string>
+    ):result<unit, string> => {
         switch singleScope.fileSrc {
             | Some(Web({url})) => {
                 switch singleScope.ast {
-                    | Some(Ok(ast)) => findIncludesToLoadInAst(url, ast, loadedPaths)
-                    | _ => Ok([])
+                    | Some(Ok(ast)) => collectIncludesToLoadInAst(url, ast, pathToUrl)
+                    | _ => Ok(())
                 }
             }
-            | _ => Ok([])
+            | _ => Ok(())
         }
     }
 
-    let findIncludesToLoad = (mmScope:mmScope):result<array<(string,string)>, string> => {
-        let result: array<(string,string)> = []
-        let err: ref<option<string>> = ref(None)
-        let loadedPaths = mmScope.includes->Belt_HashMapString.keysToArray->Belt_HashSetString.fromArray
-        let singleScopesToCheck = [
-            ...mmScope.includes->Belt_HashMapString.toArray->Array.map(((_,ss)) => ss),
-            ...mmScope.singleScopes
-        ]
-        let ssIdx = ref(0)
-        while (err.contents->Option.isNone && ssIdx.contents < singleScopesToCheck->Array.length) {
-            switch findIncludesToLoadInSingleScope(singleScopesToCheck->Array.getUnsafe(ssIdx.contents), loadedPaths) {
-                | Error(msg) => err := Some(msg)
-                | Ok(arr) => result->Array.pushMany(arr)
+    let rec replaceIncludes = (
+        ast:mmAstNode, pathToAst: Belt_HashMapString.t<mmAstNode>, replacedPaths:Belt_HashSetString.t
+    ):option<mmAstNode> => {
+        switch ast.stmt {
+            | Include({path}) => {
+                if (replacedPaths->Belt_HashSetString.has(path)) {
+                    None
+                } else {
+                    replacedPaths->Belt_HashSetString.add(path)
+                    switch pathToAst->Belt_HashMapString.get(path) {
+                        | None => panic(`Internal error: no AST is available for path '${path}'.`)
+                        | Some(ast) => replaceIncludes(ast, pathToAst, replacedPaths)
+                    }
+                }
             }
-            ssIdx := ssIdx.contents + 1
+            | Block({level, statements}) => {
+                Some({
+                    ...ast, 
+                    stmt:Block({
+                        level, 
+                        statements: statements->Array.map(replaceIncludes(_, pathToAst, replacedPaths))
+                            ->Array.filter(Option.isSome)
+                            ->Array.map(Option.getExn(_))
+                    })
+                })
+            }
+            | _ => Some(ast)
         }
-        switch err.contents {
-            | None => Ok(result)
-            | Some(msg) => Error(msg)
+    }
+
+    let loadFiles = async (urls:array<string>):result<array<mmSingleScope>,string> => {
+        let result: array<(string, FileLoader.fileLoadResult)> = await Promise.all(
+            urls->Array.map(async url => {
+                let loadedText = await FileLoader.loadFileWithProgressPromise(
+                    ~modalRef:modalRef,
+                    ~showWarning=!(isTrustedUrl(trustedUrls, url)),
+                    ~onUrlBecomesTrusted,
+                    ~url,
+                    ~progressText=`Downloading MM file from "${url}"`,
+                    ~transformErrorMsg= msg => `An error occurred while downloading from "${url}":` 
+                                                        ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
+                )
+                (url, loadedText)
+            })
+        )
+        let result: array<result<mmSingleScope,string>> = result->Array.map(((url, loadedText)) => {
+            switch loadedText {
+                | Ok(text) => {
+                    Ok({
+                        id:url,
+                        srcType:Web,
+                        fileSrc:Some(Web({alias:url, url})),
+                        fileText:Some(Text(text)),
+                        ast:None,
+                        allLabels:[],
+                        readInstr:ReadAll,
+                        label:None,
+                        resetNestingLevel:true,
+                    })
+                }
+                | Error(msg) => Error(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
+                | TerminatedByUser => Error(`Downloading from '${url} was terminated.'`)
+            }
+        })
+        let errors = result->Array.filter(Result.isError(_))
+        if (errors->Array.length > 0) {
+            Error(errors->Array.map(err => switch err {|Error(msg)=>msg | _=>""})->Array.join(";"))
+        } else {
+            Ok(result->Array.map(Result.getExn))
         }
+    }
+
+    let loadAndReplaceIncludes = async (singleScope:mmSingleScope):result<mmSingleScope, string> => {
+        Error("not implemented")
+        // let result: array<(string,string)> = []
+        // let err: ref<option<string>> = ref(None)
+        // let includes: Belt_HashMapString.t<mmSingleScope> = Belt_HashMapString.make(~hintSize=200)
+        // let loadedPaths = includes->Belt_HashMapString.keysToArray->Belt_HashSetString.fromArray
+        // let singleScopesToCheck = [
+        //     ...includes->Belt_HashMapString.toArray->Array.map(((_,ss)) => ss),
+        //     ...mmScope.singleScopes
+        // ]
+        // let ssIdx = ref(0)
+        // while (err.contents->Option.isNone && ssIdx.contents < singleScopesToCheck->Array.length) {
+        //     switch findIncludesToLoadInSingleScope(singleScopesToCheck->Array.getUnsafe(ssIdx.contents), loadedPaths) {
+        //         | Error(msg) => err := Some(msg)
+        //         | Ok(arr) => result->Array.pushMany(arr)
+        //     }
+        //     ssIdx := ssIdx.contents + 1
+        // }
+        // switch err.contents {
+        //     | None => Ok(result)
+        //     | Some(msg) => Error(msg)
+        // }
     }
 
     let actParseMmFileText = (id:string, src:mmFileSource, text:string):promise<mmScope> => {
