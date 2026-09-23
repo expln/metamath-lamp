@@ -80,6 +80,12 @@ let addSingleScope = (st:mmScope, ~defaultSrcType:mmFileSourceType) => {
         ])
     }
 }
+let getSingleScope = (st:mmScope, id:string):mmSingleScope => {
+    switch st.singleScopes->Array.find(ss => ss.id == id) {
+        | None => panic(`Could not find an mmSingleScope with id '${id}'`)
+        | Some(ss) => ss
+    }
+}
 let updateSingleScope = (st,id,update) => {...st, singleScopes:st.singleScopes->Array.map(ss => if ss.id == id {update(ss)} else {ss})}
 let deleteSingleScope = (st,id,~defaultSrcType:mmFileSourceType) => {
     let st = {
@@ -501,65 +507,52 @@ let make = (
 
     let trustedUrls = settings.webSrcSettings->Array.filter(s => s.trusted)->Array.map(s => s.url)
 
-    let constructUrlToLoad = (urlOfFileWithInclude:string, pathToInclude:string):result<string,string> => {
+    let constructUrlToLoad = (urlOfFileWithInclude:string, pathToInclude:string):string => {
         let chIdx = ref(urlOfFileWithInclude->String.length - 1)
         while (chIdx.contents >= 0 && "/" !== urlOfFileWithInclude->String.charAt(chIdx.contents)) {
             chIdx := chIdx.contents - 1
         }
         if (chIdx.contents < 0) {
-            Error(`Cannot construct a url to import '${pathToInclude}' into '${urlOfFileWithInclude}'`)
+            panic(`Cannot construct a url to import '${pathToInclude}' into '${urlOfFileWithInclude}'`)
         } else {
-            Ok(urlOfFileWithInclude->String.substring(~start=0, ~end=chIdx.contents) ++ "/" ++ pathToInclude)
+            urlOfFileWithInclude->String.substring(~start=0, ~end=chIdx.contents) ++ "/" ++ pathToInclude
         }
     }
 
     let rec collectIncludesToLoadInAst = (
         parentUrl:string, ast:mmAstNode, pathToUrl:Belt_HashMapString.t<string>
-    ):result<unit, string> => {
-        let err: ref<option<string>> = ref(None)
+    ):unit => {
         switch ast.stmt {
             | Include({path}) if !(pathToUrl->Belt_HashMapString.has(path)) => {
-                switch constructUrlToLoad(parentUrl, path) {
-                    | Error(msg) => err := Some(msg)
-                    | Ok(urlToLoad) => pathToUrl->Belt_HashMapString.set(path, urlToLoad)
-                }
+                pathToUrl->Belt_HashMapString.set(path, constructUrlToLoad(parentUrl, path))
             }
             | Block({statements}) => {
                 let stmtIdx = ref(0)
-                while (err.contents->Option.isNone && stmtIdx.contents < statements->Array.length) {
-                    switch collectIncludesToLoadInAst(
-                        parentUrl, statements->Array.getUnsafe(stmtIdx.contents), pathToUrl
-                    ) {
-                        | Error(msg) => err := Some(msg)
-                        | Ok(arr) => ()
-                    }
+                while (stmtIdx.contents < statements->Array.length) {
+                    collectIncludesToLoadInAst(parentUrl, statements->Array.getUnsafe(stmtIdx.contents), pathToUrl)
                     stmtIdx := stmtIdx.contents + 1
                 }
             }
             | _ => ()
         }
-        switch err.contents {
-            | None => Ok(())
-            | Some(msg) => Error(msg)
-        }
     }
 
     let collectIncludesToLoadInSingleScope = (
         singleScope:mmSingleScope, pathToUrl:Belt_HashMapString.t<string>
-    ):result<unit, string> => {
+    ):unit => {
         switch singleScope.fileSrc {
             | Some(Web({url})) => {
                 switch singleScope.ast {
                     | Some(Ok(ast)) => collectIncludesToLoadInAst(url, ast, pathToUrl)
-                    | _ => Ok(())
+                    | _ => ()
                 }
             }
-            | _ => Ok(())
+            | _ => ()
         }
     }
 
-    let rec replaceIncludes = (
-        ast:mmAstNode, pathToAst: Belt_HashMapString.t<mmAstNode>, replacedPaths:Belt_HashSetString.t
+    let rec replaceIncludesInAst = (
+        ast:mmAstNode, ~pathToAst: Belt_HashMapString.t<mmAstNode>, ~replacedPaths:Belt_HashSetString.t
     ):option<mmAstNode> => {
         switch ast.stmt {
             | Include({path}) => {
@@ -569,7 +562,7 @@ let make = (
                     replacedPaths->Belt_HashSetString.add(path)
                     switch pathToAst->Belt_HashMapString.get(path) {
                         | None => panic(`Internal error: no AST is available for path '${path}'.`)
-                        | Some(ast) => replaceIncludes(ast, pathToAst, replacedPaths)
+                        | Some(ast) => replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths)
                     }
                 }
             }
@@ -578,7 +571,7 @@ let make = (
                     ...ast, 
                     stmt:Block({
                         level, 
-                        statements: statements->Array.map(replaceIncludes(_, pathToAst, replacedPaths))
+                        statements: statements->Array.map(replaceIncludesInAst(_, ~pathToAst, ~replacedPaths))
                             ->Array.filter(Option.isSome)
                             ->Array.map(Option.getExn(_))
                     })
@@ -588,7 +581,7 @@ let make = (
         }
     }
 
-    let loadAndParseFiles = async (urls:array<string>):result<array<mmSingleScope>,string> => {
+    let loadAndParseFiles = async (urls:array<string>):array<mmSingleScope> => {
         let result: array<(string, FileLoader.fileLoadResult)> = await Promise.all(
             urls->Array.map(async url => {
                 let loadedText = await FileLoader.loadFileWithProgressPromise(
@@ -603,10 +596,10 @@ let make = (
                 (url, loadedText)
             })
         )
-        let result: array<result<mmSingleScope,string>> = result->Array.map(((url, loadedText)) => {
+        let result: array<mmSingleScope> = result->Array.map(((url, loadedText)) => {
             switch loadedText {
                 | Ok(text) => {
-                    Ok({
+                    {
                         id:url,
                         srcType:Web,
                         fileSrc:Some(Web({alias:url, url})),
@@ -616,63 +609,55 @@ let make = (
                         readInstr:ReadAll,
                         label:None,
                         resetNestingLevel:true,
-                    })
+                    }
                 }
-                | Error(msg) => Error(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
-                | TerminatedByUser => Error(`Downloading from '${url} was terminated.'`)
+                | Error(msg) => panic(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
+                | TerminatedByUser => panic(`Downloading from '${url} was terminated.'`)
             }
         })
-        let errors = result->Array.filter(Result.isError(_))
-        if (errors->Array.length > 0) {
-            Error(errors->Array.map(err => switch err {|Error(msg)=>msg | _=>""})->Array.join(";"))
-        } else {
-            let result: array<result<mmSingleScope,string>> = await Promise.all(
-                result->Array.map(Result.getExn)->Array.map(async ss => {
-                    let parsed = await parseSingleScope(ss, ~modalRef)
-                    switch parsed.ast {
-                        | None => Error("Could not parse this file.")
-                        | Some(Error(msg)) => Error(msg)
-                        | Some(Ok(_)) => Ok(parsed)
-                    }
-                })
-            )
-            let errors = result->Array.filter(Result.isError(_))
-            if (errors->Array.length > 0) {
-                Error(errors->Array.map(err => switch err {|Error(msg)=>msg | _=>""})->Array.join(";"))
-            } else {
-                Ok(result->Array.map(Result.getExn))
-            }
-        }
+        let result: array<mmSingleScope> = await Promise.all(
+            result->Array.map(async ss => {
+                let parsed = await parseSingleScope(ss, ~modalRef)
+                switch parsed.ast {
+                    | None => panic(`Could not parse file ${getNameFromFileSrc(ss.fileSrc)->Option.getOr("UNKNOWN")}`)
+                    | Some(Error(msg)) => panic(msg)
+                    | Some(Ok(_)) => parsed
+                }
+            })
+        )
+        result
     }
 
-    let loadAndReplaceIncludes = async (singleScope:mmSingleScope):result<mmSingleScope, string> => {
-        Error("not implemented")
-        // let result: array<(string,string)> = []
-        // let err: ref<option<string>> = ref(None)
-        // let includes: Belt_HashMapString.t<mmSingleScope> = Belt_HashMapString.make(~hintSize=200)
-        // let loadedPaths = includes->Belt_HashMapString.keysToArray->Belt_HashSetString.fromArray
-        // let singleScopesToCheck = [
-        //     ...includes->Belt_HashMapString.toArray->Array.map(((_,ss)) => ss),
-        //     ...mmScope.singleScopes
-        // ]
-        // let ssIdx = ref(0)
-        // while (err.contents->Option.isNone && ssIdx.contents < singleScopesToCheck->Array.length) {
-        //     switch findIncludesToLoadInSingleScope(singleScopesToCheck->Array.getUnsafe(ssIdx.contents), loadedPaths) {
-        //         | Error(msg) => err := Some(msg)
-        //         | Ok(arr) => result->Array.pushMany(arr)
-        //     }
-        //     ssIdx := ssIdx.contents + 1
-        // }
-        // switch err.contents {
-        //     | None => Ok(result)
-        //     | Some(msg) => Error(msg)
-        // }
+    let replaceIncludes = async (ss:mmSingleScope):result<mmSingleScope, string> => {
+        switch ss.ast {
+            | Some(Ok(ast)) => {
+                switch catchExn(()=>{
+                    let pathToUrl:Belt_HashMapString.t<string> = Belt_HashMapString.make(~hintSize=100)
+                    let pathToAst: Belt_HashMapString.t<mmAstNode> = Belt_HashMapString.make(~hintSize=100)
+                    collectIncludesToLoadInSingleScope(ss, pathToUrl)
+                    ss->setAst(
+                        replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.make(~hintSize=100))
+                            ->Option.map(ast=>Ok(ast))
+                    )
+                }) {
+                    | Ok(ss) => Ok(ss)
+                    | Error({msg}) => Error(msg)
+                }
+            }
+            | _ => Error(`Internal error: AST is not set`)
+        }
     }
 
     let actParseMmFileText = (id:string, src:mmFileSource, text:string):promise<mmScope> => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
         let st = st->updateSingleScope(id,setFileText(_,Some(Text(text))))
-        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)
+        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->Promise.then(async st=>{
+            let ss = switch await replaceIncludes(st->getSingleScope(id)) {
+                | Error(msg) => setAst(st->getSingleScope(id), Some(Error(msg)))
+                | Ok(ss) => ss
+            }
+            st->updateSingleScope(id, _ => ss)
+        })
     }
 
     let actToggleAccordion = () => {
