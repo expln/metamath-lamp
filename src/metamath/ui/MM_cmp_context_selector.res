@@ -631,20 +631,56 @@ let make = (
     let replaceIncludes = async (ss:mmSingleScope):result<mmSingleScope, string> => {
         switch ss.ast {
             | Some(Ok(ast)) => {
-                switch catchExn(()=>{
+                //Common.catchExn()
+                try {
                     let pathToUrl:Belt_HashMapString.t<string> = Belt_HashMapString.make(~hintSize=100)
                     let pathToAst: Belt_HashMapString.t<mmAstNode> = Belt_HashMapString.make(~hintSize=100)
                     collectIncludesToLoadInSingleScope(ss, pathToUrl)
-                    ss->setAst(
-                        replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.make(~hintSize=100))
-                            ->Option.map(ast=>Ok(ast))
+                    let newPaths:ref<array<string>> = ref(removeMany(
+                        pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
+                    ))
+                    while (newPaths.contents->Array.length > 0) {
+                        let urlsToLoad = newPaths.contents->Array.map(
+                            path => Belt_HashMapString.get(pathToUrl, path)->Option.getExn
+                        )
+                        let loadedFiles = await loadAndParseFiles(urlsToLoad)
+                        let i = ref(0)
+                        while (i.contents < newPaths.contents->Array.length) {
+                            let loadedSs = loadedFiles->Array.getUnsafe(i.contents)
+                            collectIncludesToLoadInSingleScope(loadedSs, pathToUrl)
+                            switch loadedSs.ast {
+                                | Some(Ok(ast)) => pathToAst->Belt_HashMapString.set(
+                                    newPaths.contents->Array.getUnsafe(i.contents),
+                                    ast
+                                )
+                                | Some(Error(msg)) => panic(
+                                    `Got and error when parsing a file from` 
+                                        ++ ` '${urlsToLoad->Array.getUnsafe(i.contents)}': ${msg}`
+                                )
+                                | None => panic(
+                                    `Internal error: received unparsed file for URL` 
+                                        ++ ` '${urlsToLoad->Array.getUnsafe(i.contents)}'`
+                                )
+                            }
+                            i := i.contents + 1
+                        }
+                        newPaths := removeMany(
+                            pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
+                        )
+                    }
+                    Ok(
+                        ss->setAst(
+                            replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.make(~hintSize=100))
+                                ->Option.map(ast=>Ok(ast))
+                        )
                     )
-                }) {
-                    | Ok(ss) => Ok(ss)
-                    | Error({msg}) => Error(msg)
+                } catch {
+                    | MmException({msg}) => Error(msg)
+                    | exn => Error(jsErrorToExnData(exn).msg)
                 }
             }
-            | _ => Error(`Internal error: AST is not set`)
+            | None => Error(`Internal error: AST is not set`)
+            | _ => Ok(ss)
         }
     }
 

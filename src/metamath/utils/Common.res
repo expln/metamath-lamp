@@ -275,3 +275,9 @@ let isTrustedUrl = (trustedUrls:array<string>, url:string):bool => {
     }
     res.contents
 }
+
+let removeMany = (a:array<string>, b:array<string>): array<string> => {
+    let res = Belt_HashSetString.fromArray(a)
+    b->Array.forEach(Belt_HashSetString.remove(res, _))
+    res->Belt_HashSetString.toArray
+}
