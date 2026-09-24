@@ -596,7 +596,7 @@ let make = (
                 (url, loadedText)
             })
         )
-        let result: array<mmSingleScope> = result->Array.map(((url, loadedText)) => {
+        let nonParsed: array<mmSingleScope> = result->Array.map(((url, loadedText)) => {
             switch loadedText {
                 | Ok(text) => {
                     {
@@ -615,17 +615,19 @@ let make = (
                 | TerminatedByUser => panic(`Downloading from '${url} was terminated.'`)
             }
         })
-        let result: array<mmSingleScope> = await Promise.all(
-            result->Array.map(async ss => {
-                let parsed = await parseSingleScope(ss, ~modalRef)
-                switch parsed.ast {
-                    | None => panic(`Could not parse file ${getNameFromFileSrc(ss.fileSrc)->Option.getOr("UNKNOWN")}`)
-                    | Some(Error(msg)) => panic(msg)
-                    | Some(Ok(_)) => parsed
-                }
-            })
-        )
-        result
+        //sequential parsing
+        let parsed: array<mmSingleScope> = []
+        let i = ref(0)
+        while (i.contents < nonParsed->Array.length) {
+            let parsedSs = await parseSingleScope(nonParsed->Array.getUnsafe(i.contents), ~modalRef)
+            switch parsedSs.ast {
+                | None => panic(`Could not parse file ${getNameFromFileSrc(parsedSs.fileSrc)->Option.getOr("UNKNOWN")}`)
+                | Some(Error(msg)) => panic(msg)
+                | Some(Ok(_)) => parsed->Array.push(parsedSs)
+            }
+            i := i.contents + 1
+        }
+        parsed
     }
 
     let replaceIncludes = async (ss:mmSingleScope):result<mmSingleScope, string> => {
