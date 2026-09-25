@@ -8,8 +8,8 @@ open Common
 let make = (
     ~modalRef:modalRef,
     ~availableWebSrcs:array<webSource>,
-    ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~srcType:mmFileSourceType,
     ~onSrcTypeChange:mmFileSourceType=>unit,
     ~fileSrc: option<mmFileSource>,
@@ -47,12 +47,12 @@ let make = (
             | Some(webSrc) => {
                 FileLoader.loadFileWithProgress(
                     ~modalRef,
-                    ~showWarning=!(isTrustedUrl(trustedUrls, webSrc.url)),
+                    ~showWarning=!(isTrustedUrl(trustedUrls.current, webSrc.url)),
                     ~progressText=`Downloading MM file from "${alias}"`,
                     ~transformErrorMsg= msg => `An error occurred while downloading from "${alias}":` 
                                                     ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
                     ~url=webSrc.url,
-                    ~onUrlBecomesTrusted,
+                    ~markUrlAsTrusted,
                     ~onReady = text => onFileChange(Web(webSrc), text)
                 )
             }

@@ -14,7 +14,8 @@ type reloadCtxFunc = (
 let make: (
     ~modalRef: modalRef,
     ~settings:settings,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
     ~reloadCtx: React.ref<option<reloadCtxFunc>>,
     ~style:reStyle=?,

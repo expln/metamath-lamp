@@ -5,8 +5,8 @@ open MM_wrk_editor
 let make: (
     ~modalRef: modalRef,
     ~availableWebSrcs: array<webSource>,
-    ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~srcType: mmFileSourceType,
     ~onSrcTypeChange: mmFileSourceType => unit,
     ~fileSrc: option<mmFileSource>,

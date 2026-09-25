@@ -10,7 +10,7 @@ let loadFile: (
 let loadFileWithProgress: (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
@@ -27,7 +27,7 @@ type fileLoadResult =
 let loadFileWithProgressPromise: (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,
     ~progressText:string,
     ~transformErrorMsg:option<string>=>string =?

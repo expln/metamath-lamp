@@ -301,6 +301,13 @@ let make = () => {
     let reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(None)
     let toggleCtxSelector = React.useRef(Nullable.null)
 
+    let trustedUrls: React.ref<array<string>> = React.useRef([])
+    React.useEffect1(() => {
+        trustedUrls.current = state.preCtxData.settingsV.val.webSrcSettings
+            ->Array.filter(s => s.trusted)->Array.map(s => s.url)
+        None
+    }, [state.preCtxData.settingsV.val.webSrcSettings])
+
     let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
 
     React.useEffect2(() => {
@@ -369,6 +376,15 @@ let make = () => {
             Promise.resolve(Ok(()))
         }
     }
+
+    let markUrlAsTrusted: React.ref<string=>unit> = React.useRef(_ => ())
+    React.useEffect1(() => {
+        markUrlAsTrusted.current = (url:string):unit => {
+            state.preCtxData.settingsV.val->MM_wrk_settings.markUrlAsTrusted(url)->actSettingsUpdated->Promise.done
+            trustedUrls.current->Array.push(url)
+        }
+        None
+    }, [state.preCtxData.settingsV.val])
 
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
         setState(updatePreCtxData(_,~ctx=(srcs,newCtx)))
@@ -713,10 +729,8 @@ let make = () => {
                     <MM_cmp_context_selector 
                         modalRef 
                         settings={state.preCtxData.settingsV.val}
-                        onUrlBecomesTrusted={
-                            url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated
-                                ->Promise.done
-                        }
+                        trustedUrls
+                        markUrlAsTrusted
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
                         style=ReactDOM.Style.make(

@@ -333,18 +333,18 @@ let loadMmContext = (
 
 let loadMmFileText = (
     ~modalRef:modalRef,
-    ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~alias:string,
     ~url:string,
 ):promise<result<string,string>> => {
     Promise.make((rslv,_) => {
         FileLoader.loadFileWithProgress(
             ~modalRef,
-            ~showWarning=!(isTrustedUrl(trustedUrls, url)),
+            ~showWarning=!(isTrustedUrl(trustedUrls.current, url)),
             ~progressText=`Downloading MM file from "${alias}"`,
             ~url,
-            ~onUrlBecomesTrusted,
+            ~markUrlAsTrusted,
             ~onReady = text => rslv(Ok(text)),
             ~onError = msg => {
                 rslv(Error(
@@ -359,8 +359,8 @@ let loadMmFileText = (
 let rec loadMmFileTextForSingleScope = (
     ~mmScope:mmScope,
     ~modalRef:modalRef,
-    ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~loadedTexts:Belt_HashMapString.t<string>,
     ~ssIdx:int,
 ):promise<result<mmScope,string>> => {
@@ -374,7 +374,7 @@ let rec loadMmFileTextForSingleScope = (
                 ~mmScope,
                 ~modalRef,
                 ~trustedUrls,
-                ~onUrlBecomesTrusted,
+                ~markUrlAsTrusted,
                 ~loadedTexts,
                 ~ssIdx = ssIdx + 1,
             )
@@ -392,7 +392,7 @@ let rec loadMmFileTextForSingleScope = (
                 switch loadedTexts->Belt_HashMapString.get(url) {
                     | Some(text) => continue(Text(text))
                     | None => {
-                        loadMmFileText( ~modalRef, ~trustedUrls, ~onUrlBecomesTrusted, ~alias, ~url, )->Promise.then(res => {
+                        loadMmFileText( ~modalRef, ~trustedUrls, ~markUrlAsTrusted, ~alias, ~url, )->Promise.then(res => {
                             switch res {
                                 | Error(msg) => Promise.resolve(Error(msg))
                                 | Ok(text) => continue(Text(text))
@@ -431,8 +431,8 @@ let makeMmScopeFromSrcDtos = (
     ~modalRef:modalRef,
     ~webSrcSettings:array<webSrcSettings>,
     ~srcs: array<mmCtxSrcDto>,
-    ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~loadedTexts:Belt_HashMapString.t<string>,
 ):promise<result<mmScope,string>> => {
     let mmScope = srcs->Array.reduce(
@@ -458,7 +458,7 @@ let makeMmScopeFromSrcDtos = (
         ~mmScope,
         ~modalRef,
         ~trustedUrls,
-        ~onUrlBecomesTrusted,
+        ~markUrlAsTrusted,
         ~loadedTexts,
         ~ssIdx = 0,
     )->Promise.then(res => {
@@ -475,7 +475,8 @@ let defaultValueOfDefaultSrcTypeStr = Web->mmFileSourceTypeToStr
 let make = (
     ~modalRef:modalRef,
     ~settings:settings,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<option<reloadCtxFunc>>,
     ~style as _ :option<reStyle>=?,
@@ -504,8 +505,6 @@ let make = (
         })
         onChange(srcs,ctx)
     }
-
-    let trustedUrls = settings.webSrcSettings->Array.filter(s => s.trusted)->Array.map(s => s.url)
 
     let constructUrlToLoad = (urlOfFileWithInclude:string, pathToInclude:string):string => {
         let chIdx = ref(urlOfFileWithInclude->String.length - 1)
@@ -586,8 +585,8 @@ let make = (
             urls->Array.map(async url => {
                 let loadedText = await FileLoader.loadFileWithProgressPromise(
                     ~modalRef:modalRef,
-                    ~showWarning=!(isTrustedUrl(trustedUrls, url)),
-                    ~onUrlBecomesTrusted,
+                    ~showWarning=!(isTrustedUrl(trustedUrls.current, url)),
+                    ~markUrlAsTrusted,
                     ~url,
                     ~progressText=`Downloading MM file from "${url}"`,
                     ~transformErrorMsg= msg => `An error occurred while downloading from "${url}":` 
@@ -728,7 +727,7 @@ let make = (
                         })
                 }
                 trustedUrls
-                onUrlBecomesTrusted
+                markUrlAsTrusted
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => {
                     if (state.singleScopes->Array.length == 1) {
@@ -869,7 +868,7 @@ let make = (
                                 ~webSrcSettings=settings.webSrcSettings,
                                 ~srcs,
                                 ~trustedUrls,
-                                ~onUrlBecomesTrusted,
+                                ~markUrlAsTrusted,
                                 ~loadedTexts,
                             )->Promise.thenResolve(res => {
                                 switch res {

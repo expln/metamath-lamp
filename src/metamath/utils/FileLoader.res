@@ -22,7 +22,7 @@ let loadFile = (
 let loadFileWithProgress = (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
@@ -119,7 +119,7 @@ let loadFileWithProgress = (
                                 variant=#contained
                                 onClick={_ => {
                                     if (dontAskAgain.contents) {
-                                        onUrlBecomesTrusted(url)
+                                        markUrlAsTrusted.current(url)
                                     }
                                     closeModal(modalRef, modalId)
                                     actDownloadFile()
@@ -155,7 +155,7 @@ type fileLoadResult =
 let loadFileWithProgressPromise = (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,
     ~progressText:string,
     ~transformErrorMsg:option<option<string>=>string>=?
@@ -164,7 +164,7 @@ let loadFileWithProgressPromise = (
         loadFileWithProgress(
             ~modalRef,
             ~showWarning,
-            ~onUrlBecomesTrusted,
+            ~markUrlAsTrusted,
             ~url,
             ~progressText,
             ~onReady = loadedText => resolve(Ok(loadedText)),
