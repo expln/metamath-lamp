@@ -227,7 +227,10 @@ let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleSc
                                 ~onDone = parseResult => {
                                     let ss = switch parseResult {
                                         | Error(msg) => {
-                                            let ss = ss->setAst(Some(Error(msg)))
+                                            let fileId = getNameFromFileSrc(ss.fileSrc)
+                                                ->Option.map(fileId => fileId ++ ": ")
+                                                ->Option.getOr("")
+                                            let ss = ss->setAst(Some(Error(fileId ++ msg)))
                                             let ss = ss->setAllLabels([])
                                             ss
                                         }
