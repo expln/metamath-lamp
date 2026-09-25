@@ -581,37 +581,53 @@ let make = (
     }
 
     let loadAndParseFiles = async (urls:array<string>):array<mmSingleScope> => {
-        let result: array<(string, FileLoader.fileLoadResult)> = await Promise.all(
-            urls->Array.map(async url => {
-                let loadedText = await FileLoader.loadFileWithProgressPromise(
-                    ~modalRef:modalRef,
-                    ~showWarning=!(isTrustedUrl(trustedUrls.current, url)),
-                    ~markUrlAsTrusted,
-                    ~url,
-                    ~progressText=`Downloading MM file from "${url}"`,
-                    ~transformErrorMsg= msg => `An error occurred while downloading from "${url}":` 
-                                                        ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
-                )
-                (url, loadedText)
-            })
-        )
-        let nonParsed: array<mmSingleScope> = result->Array.map(((url, loadedText)) => {
+        let loadTextFromUrl = async (url:string):string => {
+            let loadedText = await FileLoader.loadFileWithProgressPromise(
+                ~modalRef:modalRef,
+                ~showWarning=!isTrustedUrl(trustedUrls.current, url),
+                ~markUrlAsTrusted,
+                ~url,
+                ~progressText=`Downloading MM file from "${url}"`,
+                ~transformErrorMsg= msg => `An error occurred while downloading from "${url}":` 
+                                                    ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
+            )
             switch loadedText {
-                | Ok(text) => {
-                    {
-                        id:url,
-                        srcType:Web,
-                        fileSrc:Some(Web({alias:url, url})),
-                        fileText:Some(Text(text)),
-                        ast:None,
-                        allLabels:[],
-                        readInstr:ReadAll,
-                        label:None,
-                        resetNestingLevel:true,
-                    }
-                }
                 | Error(msg) => panic(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
                 | TerminatedByUser => panic(`Downloading from '${url} was terminated.'`)
+                | Ok(text) => text
+            }
+        }
+
+        let fileText: array<(string, option<string>)> = urls->Array.map(url => (url, None))
+        while (fileText->Array.some(((_,opt)) => Option.isNone(opt))) {
+            //load from trusted urls in parallel
+            let _ = await Promise.all(
+                fileText->Array.mapWithIndex(async ((url, text), i) => {
+                    if (text->Option.isNone && isTrustedUrl(trustedUrls.current, url)) {
+                        fileText->Array.set(i,(url, Some(await loadTextFromUrl(url))))
+                    }
+                })
+            )
+            //load from one untrusted url
+            let singleUrlToLoad = fileText->Array.mapWithIndex(((url,text),i) => (i,url,text))
+                ->Array.find(((i,url,text)) => text->Option.isNone && !isTrustedUrl(trustedUrls.current, url))
+            switch singleUrlToLoad {
+                | None => ()
+                | Some((i,url,text)) => fileText->Array.set(i,(url, Some(await loadTextFromUrl(url))))
+            }
+            //continue the loop since the user could mark all remaining URLs as trusted
+        }
+        let nonParsed: array<mmSingleScope> = fileText->Array.map(((url, text)) => {
+            {
+                id:url,
+                srcType:Web,
+                fileSrc:Some(Web({alias:url, url})),
+                fileText:Some(Text(text->Option.getExn(~message="Intenal error: expected to have text loaded"))),
+                ast:None,
+                allLabels:[],
+                readInstr:ReadAll,
+                label:None,
+                resetNestingLevel:true,
             }
         })
         //sequential parsing
