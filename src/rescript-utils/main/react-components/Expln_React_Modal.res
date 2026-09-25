@@ -108,12 +108,13 @@ let make = (~modalRef:modalRef) => {
     <>
     {
         state.modals
-            ->Array.map(modal=>{
+            ->Array.mapWithIndex((modal,idx)=>{
                 <Dialog 
                     key=modal.id 
                     opn=true 
                     maxWidth=?(if (modal.fullScreen) {None} else {Some("xl")})
                     fullScreen=modal.fullScreen
+                    slots={"backdrop": idx === 0 ? None : Some(() => React.null)}
                 >
                     {modal.render()}
                 </Dialog>

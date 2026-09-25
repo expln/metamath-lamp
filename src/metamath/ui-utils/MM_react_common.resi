@@ -6,6 +6,11 @@ let rndProgress: (~text:string, ~pct:float=?, ~onTerminate:unit=>unit=?) => reEl
 
 let rndHiddenTextField: (~key:string=?, ~onKeyDown:reKeyboardHnd) => reElem
 
+let openModalPane: (
+    ~modalRef:Expln_React_Modal.modalRef, 
+    ~content:(~close:unit=>unit) => React.element,
+) => promise<Expln_React_Modal.modalId>
+
 let openModalPaneWithTitle: (
     ~modalRef: Expln_React_Modal.modalRef, 
     ~title:string=?,

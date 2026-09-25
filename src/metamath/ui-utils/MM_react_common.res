@@ -231,24 +231,25 @@ let rndModalPaneWithTitle = (
 let openModalPane = (
     ~modalRef:modalRef, 
     ~content:(~close:unit=>unit) => React.element,
-) => {
+):promise<Expln_React_Modal.modalId> => {
     openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
         updateModal(modalRef, modalId, () => content(~close=()=>closeModal(modalRef, modalId)))
-    })->ignore
+        modalId
+    })
 }
 
 let openModalPaneWithTitle = (
     ~modalRef:modalRef, 
     ~title:option<string>=?,
     ~content:(~close:unit=>unit) => React.element,
-) => {
+):unit => {
     openModalPane(
         ~modalRef,
         ~content=(~close)=>rndModalPaneWithTitle(
             ~title?,
             ~content=content(~close),
         )
-    )
+    )->Promise.done
 }
 
 let rndDialogContent = (
@@ -336,7 +337,7 @@ let openInfoDialog = (
     ~okBtnText:option<string>=?,
     ~onCancel:option<unit=>unit>=?,
     ~cancelBtnText:option<string>=?,
-) => {
+):unit => {
     openModalPane(
         ~modalRef,
         ~content=(~close)=>rndInfoDialog(
@@ -357,7 +358,7 @@ let openInfoDialog = (
             })),
             ~cancelBtnText?,
         )
-    )
+    )->Promise.done
 }
 
 let openOkCancelDialog = (

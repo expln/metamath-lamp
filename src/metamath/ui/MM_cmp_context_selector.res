@@ -610,10 +610,10 @@ let make = (
             )
             //load from one untrusted url
             let singleUrlToLoad = fileText->Array.mapWithIndex(((url,text),i) => (i,url,text))
-                ->Array.find(((i,url,text)) => text->Option.isNone && !isTrustedUrl(trustedUrls.current, url))
+                ->Array.find(((_,url,text)) => text->Option.isNone && !isTrustedUrl(trustedUrls.current, url))
             switch singleUrlToLoad {
                 | None => ()
-                | Some((i,url,text)) => fileText->Array.set(i,(url, Some(await loadTextFromUrl(url))))
+                | Some((i,url,_)) => fileText->Array.set(i,(url, Some(await loadTextFromUrl(url))))
             }
             //continue the loop since the user could mark all remaining URLs as trusted
         }
@@ -701,16 +701,27 @@ let make = (
         }
     }
 
-    let actParseMmFileText = (id:string, src:mmFileSource, text:string):promise<mmScope> => {
+    let actParseMmFileText = async (id:string, src:mmFileSource, text:string):mmScope => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
         let st = st->updateSingleScope(id,setFileText(_,Some(Text(text))))
-        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->Promise.then(async st=>{
+        let rootModalId:modalId = await openModal(modalRef, ()=>React.null)
+        try {
+            let st = await st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)
             let ss = switch await replaceIncludes(st->getSingleScope(id)) {
-                | Error(msg) => setAst(st->getSingleScope(id), Some(Error(msg)))
+                | Error(msg) => {
+                    openInfoDialog( ~modalRef, ~title="Error", ~text=msg )
+                    setAst(st->getSingleScope(id), Some(Error(msg)))
+                }
                 | Ok(ss) => ss
             }
+            closeModal(modalRef, rootModalId)
             st->updateSingleScope(id, _ => ss)
-        })
+        } catch {
+            | _ => {
+                closeModal(modalRef, rootModalId)
+                state
+            }
+        }
     }
 
     let actToggleAccordion = () => {
