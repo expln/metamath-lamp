@@ -553,6 +553,21 @@ let make = (
         }
     }
 
+    let rec incBlockLevel = (ast:mmAstNode, inc:int):mmAstNode => {
+        switch ast.stmt {
+            | Block({level, statements}) => {
+                {
+                    ...ast,
+                    stmt:Block({
+                        level: level + inc,
+                        statements: statements->Array.map(incBlockLevel(_, inc))
+                    })
+                }
+            }
+            | _ => ast
+        }
+    }
+
     let rec replaceIncludesInAst = (
         ast:mmAstNode, ~pathToAst: Belt_HashMapString.t<mmAstNode>, ~replacedPaths:Belt_HashSetString.t
     ):option<mmAstNode> => {
@@ -576,6 +591,14 @@ let make = (
                         statements: statements->Array.map(replaceIncludesInAst(_, ~pathToAst, ~replacedPaths))
                             ->Array.filter(Option.isSome)
                             ->Array.map(Option.getExn(_))
+                            ->Array.flatMap(childAst => {
+                                switch childAst.stmt {
+                                    | Block({level, statements}) if level == 0 => {
+                                        statements->Array.map(incBlockLevel(_, level))
+                                    }
+                                    | _ => [childAst]
+                                }
+                            })
                     })
                 })
             }
