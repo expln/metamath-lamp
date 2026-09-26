@@ -584,6 +584,7 @@ let make = (
                 }
             }
             | Block({level, statements}) => {
+                let parentLevel = level
                 Some({
                     ...ast, 
                     stmt:Block({
@@ -594,7 +595,7 @@ let make = (
                             ->Array.flatMap(childAst => {
                                 switch childAst.stmt {
                                     | Block({level, statements}) if level == 0 => {
-                                        statements->Array.map(incBlockLevel(_, level))
+                                        statements->Array.map(incBlockLevel(_, parentLevel))
                                     }
                                     | _ => [childAst]
                                 }
