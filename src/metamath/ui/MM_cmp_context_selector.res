@@ -553,6 +553,15 @@ let make = (
         }
     }
 
+    let rec getAllAstrLabels = (ast:mmAstNode):array<string> => {
+        switch ast.stmt {
+            | Axiom({label}) => [label]
+            | Provable({label}) => [label]
+            | Block({statements}) => statements->Array.flatMap(getAllAstrLabels)
+            | _ => []
+        }
+    }
+
     let rec incBlockLevel = (ast:mmAstNode, inc:int):mmAstNode => {
         switch ast.stmt {
             | Block({level, statements}) => {
@@ -712,12 +721,10 @@ let make = (
                             pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
                         )
                     }
-                    Ok(
-                        ss->setAst(
-                            replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.make(~hintSize=100))
-                                ->Option.map(ast=>Ok(ast))
-                        )
-                    )
+                    switch replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.make(~hintSize=100)) {
+                        | None => Ok(ss)
+                        | Some(ast) => Ok(ss->setAst(Some(Ok(ast)))->setAllLabels(getAllAstrLabels(ast)))
+                    }
                 } catch {
                     | MmException({msg}) => Error(msg)
                     | exn => Error(jsErrorToExnData(exn).msg)
