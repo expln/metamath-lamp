@@ -1,0 +1,19 @@
+{
+  "tabTitle": "axnul",
+  "srcs": [
+    {"typ": "Local", "fileName": "set.mm", "url": "", "readInstr": "ReadAll", "label": "", "resetNestingLevel": true, "allLabels": []}
+  ],
+  "loc": {"place": "before", "label": "axnul"},
+  "descr": "",
+  "varsText": "",
+  "disjText": "x y z",
+  "stmts": [
+    {"label": "1", "typ": "p", "isGoal": false, "isBkm": false, "cont": "|- -. F.", "jstfText": ": fal"},
+    {"label": "2", "typ": "p", "isGoal": false, "isBkm": false, "cont": "|- -. ( y e. z /\\ F. )", "jstfText": "1 : intnan"},
+    {"label": "3", "typ": "p", "isGoal": false, "isBkm": false, "cont": "|- ( -. y e. x <-> ( y e. x <-> ( y e. z /\\ F. ) ) )", "jstfText": "2 : nbn"},
+    {"label": "4", "typ": "p", "isGoal": false, "isBkm": false, "cont": "|- ( ( y e. x <-> ( y e. z /\\ F. ) ) -> -. y e. x )", "jstfText": "3 : biimpri"},
+    {"label": "5", "typ": "p", "isGoal": false, "isBkm": false, "cont": "|- ( A. y ( y e. x <-> ( y e. z /\\ F. ) ) -> A. y -. y e. x )", "jstfText": "4 : alimi"},
+    {"label": "6", "typ": "p", "isGoal": false, "isBkm": false, "cont": "|- E. x A. y ( y e. x <-> ( y e. z /\\ F. ) )", "jstfText": ": ax-sep"},
+    {"label": "axnul", "typ": "p", "isGoal": true, "isBkm": false, "cont": "|- E. x A. y -. y e. x", "jstfText": "6 5 : eximii"}
+  ]
+}

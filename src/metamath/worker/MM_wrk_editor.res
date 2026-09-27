@@ -2181,7 +2181,10 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                                             }
                                         })
                                     })
-                                    let mandVars = mandHyps->Array.map(hyp => hyp.expr->Array.getUnsafe(1))->Belt_HashSetInt.fromArray
+                                    let mandVars = mandHyps
+                                        ->Array.filter(hyp => hyp.typ == F)
+                                        ->Array.map(hyp => hyp.expr->Array.getUnsafe(1))
+                                        ->Belt_HashSetInt.fromArray
                                     wrkCtx->getLocalHyps->Array.forEach(hyp => {
                                         if (hyp.typ == F) {
                                             let var = hyp.expr->Array.getUnsafe(1)
@@ -2201,7 +2204,11 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                                             if (!(wrkCtx->isDisj(n,m))) {
                                                 raise(MmException({msg:`!(wrkCtx->isDisj(n,m))`}))
                                             } else {
-                                                if (!(preCtx->isDisj(n,m))) {
+                                                if (
+                                                    !(preCtx->isDisj(n,m))
+                                                    && mandVars->Belt_HashSetInt.has(n)
+                                                    && mandVars->Belt_HashSetInt.has(m)
+                                                ) {
                                                     newDisj->disjAddPair(n,m)
                                                 }
                                                 true

@@ -36,6 +36,12 @@ let editorStateToStr = st => {
     }
 
     let lines = []
+    // lines->Array.push("Location: " ++ locationToPlaceStr(st.loc) ++ " " ++ locationToLabel(st.loc))
+    // switch st.locErr {
+    //     | None => ()
+    //     | Some(err) => lines->Array.push("Location error: " ++ err)
+    // }
+    // lines->Array.push("")
     lines->Array.push("Variables:")
     lines->Array.push(st.varsText)
     lines->Array.push("")

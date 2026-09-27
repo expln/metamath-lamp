@@ -633,6 +633,15 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertProof(st, st->getStmtId(~label="cvjust"), "cvjust")
     })
 
+    it("actExportProof does not export variables not present in hyps and asrt (bug 267)", _ => {
+        setTestDataDir("267-no-unused-vars-in-export")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~stopAfter="axnul")
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+        assertProof(st, st->getStmtId(~label="axnul"), "axnul")
+    })
+
     it("findPossibleSubs is able to find substitutions by unification", _ => {
         setTestDataDir("findPossibleSubs")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="bj-0", ~debug, ~editorState="editor-initial-state")
