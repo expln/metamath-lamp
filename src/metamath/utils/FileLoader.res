@@ -11,7 +11,7 @@ let getBasePath = (path:string):string => {
         chIdx := chIdx.contents - 1
     }
     if (chIdx.contents < 0) {
-        path
+        ""
     } else {
         path->String.substring(~start=0, ~end=chIdx.contents)
     }

@@ -10,6 +10,8 @@ open Local_storage_utils
 open MM_wrk_pre_ctx_data
 open Common
 
+let localFileUrlPrefix = "file://"
+
 type fileText = 
     | Text(string)
     | UseAst
@@ -510,11 +512,11 @@ let make = (
     }
 
     let constructUrlToLoad = (urlOfFileWithInclude:string, pathToInclude:string):string => {
-        let baseUrl = FileLoader.getBasePath(urlOfFileWithInclude)
-        if (baseUrl == urlOfFileWithInclude) {
-            panic(`Cannot construct a url to import '${pathToInclude}' into '${urlOfFileWithInclude}'`)
+        if (urlOfFileWithInclude->String.startsWith(localFileUrlPrefix)) {
+            localFileUrlPrefix ++ pathToInclude
+        } else {
+            FileLoader.getBasePath(urlOfFileWithInclude) ++ "/" ++ pathToInclude
         }
-        baseUrl ++ "/" ++ pathToInclude
     }
 
     let rec collectIncludesToLoadInAst = (
@@ -538,10 +540,16 @@ let make = (
     let collectIncludesToLoadInSingleScope = (
         singleScope:mmSingleScope, pathToUrl:Belt_HashMapString.t<string>
     ):unit => {
+        let isLocalFile = switch singleScope.fileSrc {
+            | Some(Local(_)) => true
+            | _ => false
+        }
         switch singleScope.fileSrc {
-            | Some(Web({url})) => {
+            | Some(Web({url})) | Some(Local({fileName:url})) => {
                 switch singleScope.ast {
-                    | Some(Ok(ast)) => collectIncludesToLoadInAst(url, ast, pathToUrl)
+                    | Some(Ok(ast)) => {
+                        collectIncludesToLoadInAst((isLocalFile?localFileUrlPrefix:"")++url, ast, pathToUrl)
+                    }
                     | _ => ()
                 }
             }
@@ -612,21 +620,33 @@ let make = (
         }
     }
 
-    let loadAndParseFiles = async (urls:array<string>):array<mmSingleScope> => {
+    let loadAndParseFiles = async (
+        urls:array<string>, localFiles:Belt_HashMapString.t<string>
+    ):array<mmSingleScope> => {
+        let isTrustedUrl = (url:string):bool => 
+            url->String.startsWith(localFileUrlPrefix) || Common.isTrustedUrl(trustedUrls.current, url)
         let loadTextFromUrl = async (url:string):string => {
-            let loadedText = await FileLoader.loadFileWithProgressPromise(
-                ~modalRef:modalRef,
-                ~showWarning=!isTrustedUrl(trustedUrls.current, url),
-                ~markUrlAsTrusted,
-                ~url,
-                ~progressText=`Downloading MM file from "${url}"`,
-                ~transformErrorMsg= msg => `An error occurred while downloading from "${url}":` 
-                                                    ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
-            )
-            switch loadedText {
-                | Error(msg) => panic(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
-                | TerminatedByUser => panic(`Downloading from '${url}' was terminated.`)
-                | Ok(text) => text
+            if (url->String.startsWith(localFileUrlPrefix)) {
+                let fileName = url->String.substringToEnd(~start=localFileUrlPrefix->String.length)
+                switch localFiles->Belt_HashMapString.get(fileName) {
+                    | Some(text) => text
+                    | None => panic(`Cannot find local file content for ${fileName}`)
+                }
+            } else {
+                let loadedText = await FileLoader.loadFileWithProgressPromise(
+                    ~modalRef:modalRef,
+                    ~showWarning=!isTrustedUrl(url),
+                    ~markUrlAsTrusted,
+                    ~url,
+                    ~progressText=`Downloading MM file from "${url}"`,
+                    ~transformErrorMsg= msg => `An error occurred while downloading from "${url}":` 
+                                                        ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
+                )
+                switch loadedText {
+                    | Error(msg) => panic(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
+                    | TerminatedByUser => panic(`Downloading from '${url}' was terminated.`)
+                    | Ok(text) => text
+                }
             }
         }
 
@@ -635,14 +655,14 @@ let make = (
             //load from trusted urls in parallel
             let _ = await Promise.all(
                 fileText->Array.mapWithIndex(async ((url, text), i) => {
-                    if (text->Option.isNone && isTrustedUrl(trustedUrls.current, url)) {
+                    if (text->Option.isNone && isTrustedUrl(url)) {
                         fileText->Array.set(i,(url, Some(await loadTextFromUrl(url))))
                     }
                 })
             )
             //load from one untrusted url
             let singleUrlToLoad = fileText->Array.mapWithIndex(((url,text),i) => (i,url,text))
-                ->Array.find(((_,url,text)) => text->Option.isNone && !isTrustedUrl(trustedUrls.current, url))
+                ->Array.find(((_,url,text)) => text->Option.isNone && !isTrustedUrl(url))
             switch singleUrlToLoad {
                 | None => ()
                 | Some((i,url,_)) => fileText->Array.set(i,(url, Some(await loadTextFromUrl(url))))
@@ -677,7 +697,10 @@ let make = (
         parsed
     }
 
-    let replaceIncludes = async (ss:mmSingleScope):result<mmSingleScope, string> => {
+    let replaceIncludes = async (
+        ss:mmSingleScope, 
+        localFiles:Belt_HashMapString.t<string>
+    ):result<mmSingleScope, string> => {
         switch ss.ast {
             | Some(Ok(ast)) => {
                 //Common.catchExn()
@@ -692,7 +715,7 @@ let make = (
                         let urlsToLoad = newPaths.contents->Array.map(
                             path => Belt_HashMapString.get(pathToUrl, path)->Option.getExn
                         )
-                        let loadedFiles = await loadAndParseFiles(urlsToLoad)
+                        let loadedFiles = await loadAndParseFiles(urlsToLoad, localFiles)
                         let i = ref(0)
                         while (i.contents < newPaths.contents->Array.length) {
                             let loadedSs = loadedFiles->Array.getUnsafe(i.contents)
@@ -731,21 +754,33 @@ let make = (
         }
     }
 
-    let actParseMmFileText = async (id:string, src:mmFileSource, text:string):mmScope => {
-        let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
-        let st = st->updateSingleScope(id,setFileText(_,Some(Text(text))))
+    let actParseMmFileText = async (
+        ~id:string, 
+        ~src:mmFileSource, 
+        ~text:string,
+        ~localFiles:Belt_HashMapString.t<string>
+    ):mmScope => {
+        let state = state->updateSingleScope(id,setFileSrc(_,Some(src)))
+        let state = state->updateSingleScope(id,setFileText(_,Some(Text(text))))
         let rootModalId:modalId = await openModal(modalRef, ()=>React.null)
         try {
-            let st = await st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)
-            let ss = switch await replaceIncludes(st->getSingleScope(id)) {
-                | Error(msg) => {
-                    openInfoDialog( ~modalRef, ~title="Error", ~text=msg )
-                    setAst(st->getSingleScope(id), Some(Error(msg)))
+            let state = await state->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)
+            let ss = state->getSingleScope(id)
+            let state = switch ss.fileSrc {
+                | Some(Local(_)) if localFiles->Belt_HashMapString.isEmpty => state
+                | _ => {
+                    let ss = switch await replaceIncludes(ss, localFiles) {
+                        | Error(msg) => {
+                            openInfoDialog( ~modalRef, ~title="Error", ~text=msg )
+                            setAst(state->getSingleScope(id), Some(Error(msg)))
+                        }
+                        | Ok(ss) => ss
+                    }
+                    state->updateSingleScope(id, _ => ss)
                 }
-                | Ok(ss) => ss
             }
             closeModal(modalRef, rootModalId)
-            st->updateSingleScope(id, _ => ss)
+            state
         } catch {
             | _ => {
                 closeModal(modalRef, rootModalId)
@@ -793,7 +828,8 @@ let make = (
                     setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))
                 }}
                 fileSrc=singleScope.fileSrc
-                onFileChange={(src,text,files)=>actParseMmFileText(singleScope.id, src, text)
+                onFileChange={(src,text,localFiles)=>
+                    actParseMmFileText(~id=singleScope.id, ~src, ~text, ~localFiles)
                         ->Promise.thenResolve(st => setState(_ => st))->Promise.done
                 }
                 parseError={
