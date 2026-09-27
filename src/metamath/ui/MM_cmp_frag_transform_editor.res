@@ -7,7 +7,6 @@ open Expln_React_Modal
 open MM_cmp_user_stmt
 open MM_react_common
 open Local_storage_utils
-open Expln_utils_promise
 
 let defaultTestStmt = "|- ( ( a + b ) + ( c + d ) ) = 0"
 
@@ -56,7 +55,7 @@ let make = (
     )
 
     let actShowWarning = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Warning_modal
                     title="Security warning"

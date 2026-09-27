@@ -1,6 +1,5 @@
 open Expln_React_common
 open Expln_React_Mui
-open Expln_utils_promise
 open MM_react_common
 open Local_storage_utils
 
@@ -36,7 +35,7 @@ let make = (
         ->Array.joinUnsafe("\n")
 
     let actCopyToClipboard = () => {
-        copyToClipboard(textToShow)->promiseMap(_ => {
+        copyToClipboard(textToShow)->Promise.thenResolve(_ => {
             setCopiedToClipboard(timerId => {
                 switch timerId {
                     | None => ()

@@ -26,6 +26,7 @@ and stmt =
     | Essential({label:string, expr:array<string>})
     | Axiom({label:string, expr:array<string>})
     | Provable({label:string, expr:array<string>, proof:option<proof>})
+    | Include({path:string})
 
 let isWhitespace = str => str == " " || str == "\t" || str == "\n" || str == "\r" || str == "\f"
 
@@ -158,6 +159,13 @@ let parseMmFile = (
         result.contents
     }
 
+    let parseInclude = (~beginIdx:int):mmAstNode => {
+        switch readAllTextTill("$]") {
+            | None => raise(MmException({msg:`An include statement is not closed at ${textAt(beginIdx)}`}))
+            | Some(text) => {begin:beginIdx, end:idx.contents-1, stmt:Include({path:text->String.trim})}
+        }
+    }
+
     let parseConst = (~beginIdx:int):mmAstNode => {
         switch readAllTokensTill("$.") {
             | None => raise(MmException({msg:`A constant statement is not closed at ${textAt(beginIdx)}`}))
@@ -288,8 +296,7 @@ let parseMmFile = (
                     pushStmt(comment)
                 }
             } else if (token == "$[") {
-                //skipping include statements
-                readAllTextTill("$]")->ignore
+                pushStmt(parseInclude(~beginIdx=tokenIdx))
             } else if (token == "$c") {
                 pushStmt(parseConst(~beginIdx=tokenIdx))
             } else if (token == "$v") {
@@ -358,6 +365,7 @@ let proofToStr = proof => {
 
 let stmtToStr: mmAstNode => string = node => {
     switch node {
+        | {stmt:Include({path})} =>  "$[ " ++ path ++ " $]"
         | {stmt:Block({level})} => `block(level=${level->Belt_Int.toString})`
         | {stmt:Comment({text})} => "$( " ++ text ++ " $)"
         | {stmt:Const({symbols})} =>  "$c " ++ symbols->Array.joinUnsafe(" ") ++ " $."

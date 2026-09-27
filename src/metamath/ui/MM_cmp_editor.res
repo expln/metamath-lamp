@@ -6,7 +6,6 @@ open MM_wrk_editor
 open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_wrk_unify
-open Expln_utils_promise
 open MM_react_common
 open MM_statements_dto
 open MM_wrk_editor_json
@@ -401,7 +400,7 @@ let make = (
         })
     }
     let actDeleteCheckedStmts = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>
@@ -565,7 +564,7 @@ let make = (
                 if (textOld == textNew || textNew == "") {
                     setState(completeLabelEditMode(_,stmtId,textOld))
                 } else {
-                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_save_or_discard
                                 contOld={React.string(textOld)}
@@ -610,7 +609,7 @@ let make = (
                     if (textNew == "") {
                         setState(completeContEditMode(_,stmtId,textOld))
                     } else {
-                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_save_or_discard
                                     removeStmt={textOld == ""}
@@ -663,7 +662,7 @@ let make = (
                 if (nothingChanged) {
                     setState(completeJstfEditMode(_,stmtId,textOld))
                 } else {
-                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_save_or_discard
                                 contOld={React.string(textOld)}
@@ -694,7 +693,7 @@ let make = (
         if (textOld == textNew || textNew == "") {
             setState(completeDescrEditMode(_,textOldUntrimed))
         } else {
-            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                 updateModal(modalRef, modalId, () => {
                     <MM_cmp_save_or_discard
                         contOld={<pre>{React.string(textOld)}</pre>}
@@ -722,7 +721,7 @@ let make = (
         if (textOld == textNew || textNew == "") {
             setState(completeVarsEditMode(_,textOld))
         } else {
-            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                 updateModal(modalRef, modalId, () => {
                     <MM_cmp_save_or_discard
                         contOld={<pre>{React.string(textOld)}</pre>}
@@ -750,7 +749,7 @@ let make = (
         if (textOld == textNew || textNew == "") {
             setState(completeDisjEditMode(_,textOld))
         } else {
-            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                 updateModal(modalRef, modalId, () => {
                     <MM_cmp_save_or_discard
                         contOld={<pre>{React.string(textOld)}</pre>}
@@ -909,7 +908,7 @@ let make = (
     }
 
     let actOpenRestorePrevStateDialog = () => {
-        openModalFullScreen(modalRef, () => React.null)->promiseMap(modalId => {
+        openModalFullScreen(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_editor_hist 
                     modalRef
@@ -931,7 +930,7 @@ let make = (
         switch state->findStmtsToMerge {
             | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
             | Ok((stmt1,stmt2)) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_merge_two_stmts
                             stmt1
@@ -954,7 +953,7 @@ let make = (
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_search_asrt
                             modalRef
@@ -1019,7 +1018,7 @@ let make = (
             | None => ()
             | Some(wrkCtx) => {
                 let (expr1Init,expr2Init) = getExprsToSubstitute(state)
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_substitution
                             modalRef
@@ -1153,7 +1152,7 @@ let make = (
                                 }
                             }
                         }
-                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
                                     modalRef
@@ -1196,7 +1195,7 @@ let make = (
                             })
                         })->ignore
                     } else {
-                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0.))->promiseMap(modalId => {
+                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0.))->Promise.thenResolve(modalId => {
                             let onTerminate = makeActTerminate(modalId)
                             updateModal( 
                                 modalRef, modalId, () => rndProgress(
@@ -1226,7 +1225,7 @@ let make = (
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress( ~text=msg, ~onTerminate )
                                 )
-                            )->promiseMap(proofTreeDto => {
+                            )->Promise.thenResolve(proofTreeDto => {
                                 actUnifyAllResultsAreReady(proofTreeDto, nextAction)
                                 closeModal(modalRef, modalId)
                             })
@@ -1285,7 +1284,7 @@ let make = (
                 switch generateCompressedProof(state, stmtId, ~useAllLocalEHyps=true) {
                     | None => ()
                     | Some((proofTextAllHyps,_,_)) => {
-                        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+                        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_export_proof 
                                     proofTextReqHyps proofTextAllHyps proofTableWithTypes proofTableWithoutTypes 
@@ -1328,7 +1327,7 @@ let make = (
     }, [currGoalStmtStatus])
 
     let actExportToJson = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_export_state_to_json 
                     jsonStr=Expln_utils_common.stringify(state->editorStateToEditorStateLocStor)
@@ -1339,7 +1338,7 @@ let make = (
     }
 
     let actExportToUrl = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_export_state_to_url 
                     editorStateBase64=strToSafeBase64(Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
@@ -1364,7 +1363,7 @@ let make = (
     let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
             | Error(errorMsg) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                             <Col spacing=1.>
@@ -1386,7 +1385,7 @@ let make = (
     }
 
     let actOpenImportFromJsonDialog = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_import_from_json
                     onImport={text=>{
@@ -1687,7 +1686,7 @@ let make = (
     }
 
     let actOpenMoveStepsDialog = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col>
@@ -1792,7 +1791,7 @@ let make = (
     }
 
     let actOpenViewOptionsDialog = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_editor_view_options
                     onClose={()=>closeModal(modalRef, modalId)}
@@ -1990,7 +1989,7 @@ let make = (
     }
 
     let actOpenMacros = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 let closeDialog = ()=>closeModal(modalRef, modalId)
                 <MM_cmp_macros
@@ -2226,7 +2225,7 @@ let make = (
                     }}
                     fullWidth=true
                     onHelp={() => {
-                        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+                        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <XML_formatting_help onClose={_=>closeModal(modalRef, modalId)} />
                             })
@@ -2391,7 +2390,7 @@ let make = (
     }
 
     let actSetStateFromApi = (update:editorState=>result<(editorState,JSON.t),string>):promise<result<JSON.t,string>> => {
-        promise(resolve => {
+        Promise.make((resolve,_) => {
             setState(st => {
                 switch update(st) {
                     | Ok((st,json)) => st->setNextAction(Some(Action(() => resolve(Ok(json)))))
@@ -2430,7 +2429,7 @@ let make = (
 
     let actSetEditorContIsHidden = (contIsHidden:bool):promise<unit> => {
         setContIsHidden(_ => contIsHidden)
-        promiseResolved(())
+        Promise.resolve(())
     }
 
     let getAsrtSyntaxTrees = ():promise<Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode>> => {
@@ -2494,7 +2493,7 @@ let make = (
         ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
         ~startProvingBottomUp = (params) => {
-            promise(resolve => {
+            Promise.make((resolve,_) => {
                 actUnify(
                     ~stmtId=params.stmtId,
                     ~params=params.bottomUpProverParams,
@@ -2514,7 +2513,7 @@ let make = (
         },
         ~canStartUnifyAll=generalModificationActionIsEnabled,
         ~startUnifyAll = () => {
-            promise(resolve => {
+            Promise.make((resolve,_) => {
                 setState(st => {
                     let st = st->uncheckAllStmts
                     let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(())})))

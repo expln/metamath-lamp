@@ -1284,6 +1284,7 @@ let applySingleStmt = (
 ):unit => {
     let isComment = ref(false)
     switch stmt {
+        | Include(_) => ()
         | Comment({text}) => {
             addComment(ctx, text)
             isComment := true

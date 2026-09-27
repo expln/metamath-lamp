@@ -1,7 +1,6 @@
 open Expln_React_Mui
 open Expln_React_Modal
 open Expln_React_common
-open Expln_utils_promise
 open MM_context
 open MM_wrk_settings
 
@@ -23,7 +22,7 @@ let readFromClipboard = ():promise<string> => {
     // Firefox doesn't support readText. Implement a workaround so we
     // can readFromClipboard (paste) from within this application.
     switch navigator["clipboard"]["readText"]->Nullable.toOption {
-        | None => promise(resolve => resolve(backupClipboard.contents))
+        | None => Promise.resolve(backupClipboard.contents)
         | Some(_) => navigator["clipboard"]["readText"](.)
     }
 }
@@ -232,24 +231,25 @@ let rndModalPaneWithTitle = (
 let openModalPane = (
     ~modalRef:modalRef, 
     ~content:(~close:unit=>unit) => React.element,
-) => {
-    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+):promise<Expln_React_Modal.modalId> => {
+    openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
         updateModal(modalRef, modalId, () => content(~close=()=>closeModal(modalRef, modalId)))
-    })->ignore
+        modalId
+    })
 }
 
 let openModalPaneWithTitle = (
     ~modalRef:modalRef, 
     ~title:option<string>=?,
     ~content:(~close:unit=>unit) => React.element,
-) => {
+):unit => {
     openModalPane(
         ~modalRef,
         ~content=(~close)=>rndModalPaneWithTitle(
             ~title?,
             ~content=content(~close),
         )
-    )
+    )->Promise.done
 }
 
 let rndDialogContent = (
@@ -337,7 +337,7 @@ let openInfoDialog = (
     ~okBtnText:option<string>=?,
     ~onCancel:option<unit=>unit>=?,
     ~cancelBtnText:option<string>=?,
-) => {
+):unit => {
     openModalPane(
         ~modalRef,
         ~content=(~close)=>rndInfoDialog(
@@ -358,7 +358,7 @@ let openInfoDialog = (
             })),
             ~cancelBtnText?,
         )
-    )
+    )->Promise.done
 }
 
 let openOkCancelDialog = (
@@ -370,7 +370,7 @@ let openOkCancelDialog = (
     ~okBtnText:option<string>=?,
     ~cancelBtnText:option<string>=?,
 ):promise<bool> => {
-    promise(resolve => {
+    Promise.make((resolve,_) => {
         openInfoDialog(
             ~modalRef, 
             ~title?,

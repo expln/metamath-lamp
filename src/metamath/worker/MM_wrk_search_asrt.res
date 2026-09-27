@@ -1,5 +1,4 @@
 open MM_context
-open Expln_utils_promise
 open MM_wrk_ctx_proc
 open MM_statements_dto
 open MM_progress_tracker
@@ -53,7 +52,7 @@ let searchAssertions = (
     ~isTranDepr:option<bool>,
     ~onProgress:float=>unit,
 ): promise<array<(string,option<matchedIndices>)>> => {
-    promise(resolve => {
+    Promise.make((resolve,_) => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
             ~settings,

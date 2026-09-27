@@ -1,7 +1,6 @@
 open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
-open Expln_utils_promise
 open Common
 open MM_wrk_frag_transform
 open Raw_js_utils
@@ -31,7 +30,7 @@ let make = (
     })
 
     let actCopyToClipboard = (text) => {
-        copyToClipboard(text)->promiseMap(_ => {
+        copyToClipboard(text)->Promise.thenResolve(_ => {
             setCopiedToClipboard(timerId => {
                 switch timerId {
                     | None => ()

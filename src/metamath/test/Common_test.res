@@ -35,3 +35,18 @@ describe("getSpaceSeparatedValuesAsArray", _ => {
         assertEq( getSpaceSeparatedValuesAsArray("a \f\t\n\rb"), ["a", "b"] )
     })
 })
+
+describe("isTrustedUrl", _ => {
+    it("correctly determines trusted URLs", _ => {
+        assertEq( isTrustedUrl([], "abc"), false )
+        assertEq( isTrustedUrl(["abc"], "abc"), true )
+        assertEq( isTrustedUrl(["abc*"], "abc"), true )
+        assertEq( isTrustedUrl(["abc*"], "abcd"), true )
+        assertEq( isTrustedUrl(["abc*"], "abd"), false )
+
+        assertEq( isTrustedUrl(["abc","def","ghi"], "def"), true )
+        assertEq( isTrustedUrl(["abc","def*","ghi"], "def"), true )
+        assertEq( isTrustedUrl(["abc","def*","ghi"], "def1"), true )
+        assertEq( isTrustedUrl(["abc","def*","ghi"], "de1"), false )
+    })
+})

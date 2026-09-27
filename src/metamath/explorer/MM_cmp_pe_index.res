@@ -7,7 +7,6 @@ open Expln_React_common
 open MM_wrk_pre_ctx_data
 open Common
 open Local_storage_utils
-open Expln_utils_promise
 open MM_wrk_sort_asrts
 open MM_wrk_pattern_search
 
@@ -247,7 +246,7 @@ let make = React.memoCustomCompareProps(({
                             ->mapToLabel
                         })
                     } else {
-                        openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
+                        openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->Promise.thenResolve(modalId => {
                             updateModal(
                                 modalRef, modalId, () => rndProgress(
                                     ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
@@ -277,7 +276,7 @@ let make = React.memoCustomCompareProps(({
                                     )
                                 )
                             )
-                            ->promiseMap((foundLabels:array<(string,option<matchedIndices>)>) => {
+                            ->Promise.thenResolve((foundLabels:array<(string,option<matchedIndices>)>) => {
                                 let labelToIdxs = Belt_HashMapString.fromArray(foundLabels)
                                 setFilteredLabels(_ => {
                                     allFramesInDeclarationOrder
@@ -469,7 +468,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let actOpenAsrtsPerPageDialog = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_asrts_per_page
                     initAsrtsPerPage={asrtsPerPage->Belt_Int.toString}

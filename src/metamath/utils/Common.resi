@@ -65,3 +65,7 @@ type openExplorer = (
     ~initReferencedByFilter:string=?,
     ~initReferencedByTranFilter:bool=?,
 )=>unit
+
+let isTrustedUrl: (array<string>, string) => bool
+
+let removeMany: (array<string>, array<string>) => array<string>

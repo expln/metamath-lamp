@@ -1,5 +1,4 @@
 open MM_context
-open Expln_utils_promise
 open MM_wrk_ctx_proc
 open MM_proof_tree
 open MM_proof_tree_dto
@@ -75,7 +74,7 @@ let unify = (
     ~debugLevel:int,
     ~onProgress:string=>unit,
 ): promise<result<proofTreeDto,string>> => {
-    promise(resolve => {
+    Promise.make((resolve,_) => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
             ~settings,

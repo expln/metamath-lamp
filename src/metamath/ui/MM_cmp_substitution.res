@@ -3,7 +3,6 @@ open Expln_React_Mui
 open MM_wrk_editor
 open MM_wrk_editor_substitution
 open MM_context
-open Expln_utils_promise
 open Expln_React_Modal
 open Common
 open MM_react_common
@@ -484,7 +483,7 @@ let make = (
         switch state.invalidResults {
             | None => ()
             | Some(invalidResults) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <Col spacing=1. style=ReactDOM.Style.make(~margin="10px", ())>
                             <span style=ReactDOM.Style.make(~fontWeight="bold", ())>

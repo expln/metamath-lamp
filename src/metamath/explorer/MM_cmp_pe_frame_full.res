@@ -15,7 +15,6 @@ open ColumnWidth
 open MM_react_common
 open MM_wrk_editor_json
 open MM_statements_dto
-open Expln_utils_promise
 
 @val external window: {..} = "window"
 let location = window["location"]
@@ -418,7 +417,7 @@ let makeFrameProofData = (
     ~label:string,
     ~onProgress: float => unit,
 ):promise<result<frameProofData,string>> => {
-    promise(resolve => {
+    Promise.make((resolve,_) => {
         loadFrameContext(
             ~srcs=preCtxData.srcs,
             ~label,
@@ -855,7 +854,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let actOpenLoadProofToEditorDialog = state => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_load_proof_to_editor
                     onOk={(~adjustContext:bool,~loadSteps:bool)=>{

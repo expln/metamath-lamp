@@ -10,7 +10,6 @@ open MM_parenCounter
 open MM_proof_tree_dto
 open Expln_React_Modal
 open Common
-open Expln_utils_promise
 
 @val external window: {..} = "window"
 
@@ -1002,7 +1001,7 @@ let make = React.memoCustomCompareProps( ({
         switch getSelectedText(stmt.cont) {
             | None => ()
             | Some(selectedText) => {
-                copyToClipboard(selectedText)->promiseMap(_ => {
+                copyToClipboard(selectedText)->Promise.thenResolve(_ => {
                     setCopiedToClipboard(timerId => {
                         switch timerId {
                             | None => ()
@@ -1076,7 +1075,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actPasteFromClipboard = () => {
-        readFromClipboard()->promiseMap(clipboardContents => {
+        readFromClipboard()->Promise.thenResolve(clipboardContents => {
             clipboardContents->replaceSelectionWithNewText->Belt_Option.forEach(newStmtContent => {
                 // Propagate changes to MM_cmp_editor
                 onContEditDone(newStmtContent)
@@ -1117,7 +1116,7 @@ let make = React.memoCustomCompareProps( ({
                     []
                 }
             }
-            openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
                 updateModal(modalRef, modalId, () => {
                     let closeDialog = ()=>closeModal(modalRef, modalId)
                     <MM_cmp_frag_transform

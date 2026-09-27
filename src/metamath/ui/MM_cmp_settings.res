@@ -1,7 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
-open Expln_utils_promise
 open MM_wrk_settings
 open MM_wrk_pre_ctx_data
 open MM_react_common
@@ -1269,7 +1268,7 @@ let make = (
     }
 
     let syncParens = () => {
-        openModal(modalRef, _ => rndFindParensProgress(0., None))->promiseMap(modalId => {
+        openModal(modalRef, _ => rndFindParensProgress(0., None))->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => rndFindParensProgress(0., Some(modalId)))
             MM_wrk_FindParens.beginFindParens(
                 ~ctx=preCtxData.ctxV.val.full,
@@ -1283,7 +1282,7 @@ let make = (
     }
 
     let actOpenCheckRegexDialog = (~initRegex:string, ~onSave:string=>unit) => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_test_regex 
                     initRegex
@@ -1318,7 +1317,7 @@ let make = (
     }
 
     let actOpenDefaultTransformsEditor = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform_editor
                     modalRef
@@ -1338,7 +1337,7 @@ let make = (
     }
 
     let actOpenCustomTransformsEditor = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform_editor
                     modalRef

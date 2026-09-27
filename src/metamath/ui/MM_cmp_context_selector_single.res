@@ -8,12 +8,12 @@ open Common
 let make = (
     ~modalRef:modalRef,
     ~availableWebSrcs:array<webSource>,
-    ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~trustedUrls: React.ref<array<string>>,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~srcType:mmFileSourceType,
     ~onSrcTypeChange:mmFileSourceType=>unit,
     ~fileSrc: option<mmFileSource>,
-    ~onFileChange:(mmFileSource,string)=>unit, 
+    ~onFileChange:(mmFileSource,string,Belt_HashMapString.t<string>)=>unit,
     ~parseError:option<string>, 
     ~readInstr:readInstr,
     ~onReadInstrChange: readInstr => unit,
@@ -47,13 +47,13 @@ let make = (
             | Some(webSrc) => {
                 FileLoader.loadFileWithProgress(
                     ~modalRef,
-                    ~showWarning=!(trustedUrls->Array.includes(webSrc.url)),
+                    ~showWarning=!(isTrustedUrl(trustedUrls.current, webSrc.url)),
                     ~progressText=`Downloading MM file from "${alias}"`,
                     ~transformErrorMsg= msg => `An error occurred while downloading from "${alias}":` 
                                                     ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
                     ~url=webSrc.url,
-                    ~onUrlBecomesTrusted,
-                    ~onReady = text => onFileChange(Web(webSrc), text)
+                    ~markUrlAsTrusted,
+                    ~onReady = text => onFileChange(Web(webSrc), text, Belt_HashMapString.make(~hintSize=0))
                 )
             }
         }
@@ -139,13 +139,117 @@ let make = (
         }
     }
 
+    let rndRootFileSelector = (
+        ~fileNames:array<string>, 
+        ~onSelected:string=>unit,
+        ~onCancel:unit=>unit
+    ) => {
+        let selectedFile:ref<string> = ref(fileNames->Array.getUnsafe(0))
+        let rec updateDialogContent = (modalRef:modalRef, modalId:modalId):unit => {
+            updateModal(modalRef, modalId, () => {
+                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                    <Col spacing=1.>
+                        <Row>
+                            <Button 
+                                variant=#contained
+                                onClick={_ => {
+                                    closeModal(modalRef, modalId)
+                                    onSelected(selectedFile.contents)
+                                }} 
+                            > 
+                                {React.string("Ok")} 
+                            </Button>
+                            <Button 
+                                variant=#outlined
+                                onClick={_ => {
+                                    closeModal(modalRef, modalId)
+                                    onCancel()
+                                }} 
+                            > 
+                                {React.string("Cancel")} 
+                            </Button>
+                        </Row>
+                        <span style=ReactDOM.Style.make(~fontWeight="bolder", ())>
+                            { React.string("Select file to load") }
+                        </span>
+                        <RadioGroup 
+                            row=false 
+                            value={selectedFile.contents}
+                            onChange=evt2str(newValue => {
+                                selectedFile := newValue
+                                updateDialogContent(modalRef, modalId)
+                            })
+                        >
+                            {
+                                fileNames->Array.map(fileName => {
+                                    <FormControlLabel 
+                                        key=fileName value=fileName label=fileName control={ <Radio/> } 
+                                        style=ReactDOM.Style.make(~marginRight="30px", ())
+                                    />
+                                })->React.array
+                            }
+                        </RadioGroup>
+                        <Row>
+                            <Button 
+                                variant=#contained
+                                onClick={_ => {
+                                    closeModal(modalRef, modalId)
+                                    onSelected(selectedFile.contents)
+                                }} 
+                            > 
+                                {React.string("Ok")} 
+                            </Button>
+                            <Button 
+                                variant=#outlined
+                                onClick={_ => {
+                                    closeModal(modalRef, modalId)
+                                    onCancel()
+                                }} 
+                            > 
+                                {React.string("Cancel")} 
+                            </Button>
+                        </Row>
+                    </Col>
+                </Paper>
+            })
+        }
+        openModal(modalRef, _ => React.null)
+            ->Promise.thenResolve(modalId => updateDialogContent(modalRef, modalId))
+            ->ignore
+    }
+
     let rndFileSelector = (fileName: option<string>) => {
         if (fileName->Belt.Option.isNone) {
             <Expln_React_TextFileReader 
-                onChange={(selected:option<(string,string)>) => {
+                onChange={(selected:option<array<(string,string)>>) => {
                     switch selected {
                         | None => ()
-                        | Some((fileName, fileText)) => onFileChange(Local({fileName:fileName}),fileText)
+                        | Some(files) => {
+                            if (files->Array.length > 1) {
+                                let fileNameToText = Belt_HashMapString.fromArray(files)
+                                rndRootFileSelector(
+                                    ~fileNames=files->Array.map(((fileName,_)) => fileName),
+                                    ~onSelected = fileName => {
+                                        onFileChange(
+                                            Local({fileName:fileName}),
+                                            fileNameToText->Belt_HashMapString.get(fileName)
+                                                ->Option.getExn(
+                                                    ~message=`Internal error: cannot get file by name ${fileName}`
+                                                ),
+                                            fileNameToText
+                                        )
+                                    },
+                                    ~onCancel=() => ()
+                                )
+                            } else if (files->Array.length == 1) {
+                                let (fileName, fileContent) = files->Array.getUnsafe(0)
+                                onFileChange(
+                                    Local({fileName:fileName}),
+                                    fileContent,
+                                    Belt_HashMapString.make(~hintSize=0)
+                                )
+                            }
+                        }
                     }
                 }} 
             />

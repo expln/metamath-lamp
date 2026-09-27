@@ -1,10 +1,21 @@
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
-open Expln_utils_promise
 open MM_react_common
 
 @module("./FileLoader") external loadFilePriv: (string, (int,int)=>unit, string=>unit, option<string>=>unit) => unit = "loadFile"
+
+let getBasePath = (path:string):string => {
+    let chIdx = ref(path->String.length - 1)
+    while (chIdx.contents >= 0 && "/" !== path->String.charAt(chIdx.contents)) {
+        chIdx := chIdx.contents - 1
+    }
+    if (chIdx.contents < 0) {
+        ""
+    } else {
+        path->String.substring(~start=0, ~end=chIdx.contents)
+    }
+}
 
 let loadFile = (
     ~url:string,
@@ -23,7 +34,7 @@ let loadFile = (
 let loadFileWithProgress = (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
@@ -46,7 +57,7 @@ let loadFileWithProgress = (
     }
 
     let actDownloadFile = () => {
-        openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
+        openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
             updateModal( 
                 modalRef, modalId, 
                 () => rndProgress( ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId) )
@@ -68,7 +79,7 @@ let loadFileWithProgress = (
                     }
                     switch transformErrorMsg {
                         | Some(transformErrorMsg) => {
-                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                                 updateModal(modalRef, modalId, () => {
                                     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                                         <Col spacing=1.>
@@ -94,10 +105,10 @@ let loadFileWithProgress = (
         })->ignore
     }
 
-    let dontAskAgain = ref(false)
+    let trustedUrl:ref<option<string>> = ref(None)
 
     let actShowWarning = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        let rec updateWarningDialogContent = (modalRef:modalRef, modalId:modalId):unit => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>
@@ -107,21 +118,40 @@ let loadFileWithProgress = (
                         <span>
                             { React.string(url) }
                         </span>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    onChange=evt2bool(checked => dontAskAgain.contents = checked)
-                                />
+                        <RadioGroup 
+                            row=false 
+                            value={
+                                trustedUrl.contents->Option.map(trustedUrl => trustedUrl == url ? "1" : "2")
+                                    ->Option.getOr("0")
                             }
-                            label="don't ask for this URL"
-                        />
+                            onChange=evt2str(newValue => {
+                                trustedUrl := switch newValue {
+                                    | "0" => None
+                                    | "1" => Some(url)
+                                    | _ => Some(getBasePath(url) ++ "/*")
+                                }
+                                updateWarningDialogContent(modalRef, modalId)
+                            })
+                        >
+                            {
+                                ["0", "1", "2"]->Array.map(value => {
+                                    let label = switch value {
+                                        | "0" => "Always ask confirmation for this URL"
+                                        | "1" => "Don't ask for this URL " ++ url
+                                        | _ => "Don't ask for all URLs starting with " ++ getBasePath(url) ++ "/"
+                                    }
+                                    <FormControlLabel 
+                                        key=value value label control={ <Radio/> } 
+                                        style=ReactDOM.Style.make(~marginRight="30px", ())
+                                    />
+                                })->React.array
+                            }
+                        </RadioGroup>
                         <Row>
                             <Button 
                                 variant=#contained
                                 onClick={_ => {
-                                    if (dontAskAgain.contents) {
-                                        onUrlBecomesTrusted(url)
-                                    }
+                                    trustedUrl.contents->Option.forEach(markUrlAsTrusted.current)
                                     closeModal(modalRef, modalId)
                                     actDownloadFile()
                                 }} 
@@ -130,7 +160,7 @@ let loadFileWithProgress = (
                             </Button>
                             <Button 
                                 variant=#outlined
-                                onClick={_ => closeModal(modalRef, modalId) } 
+                                onClick={_ => makeActTerminate(modalId)() } 
                             > 
                                 {React.string("Cancel")} 
                             </Button>
@@ -138,6 +168,9 @@ let loadFileWithProgress = (
                     </Col>
                 </Paper>
             })
+        }
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
+            updateWarningDialogContent(modalRef, modalId)
         })->ignore
     }
 
@@ -146,4 +179,32 @@ let loadFileWithProgress = (
     } else {
         actDownloadFile()
     }
+}
+
+type fileLoadResult =
+    | Ok(string)
+    | Error(option<string>)
+    | TerminatedByUser
+
+let loadFileWithProgressPromise = (
+    ~modalRef:modalRef,
+    ~showWarning:bool,
+    ~markUrlAsTrusted: React.ref<string=>unit>,
+    ~url:string,
+    ~progressText:string,
+    ~transformErrorMsg:option<option<string>=>string>=?
+): promise<fileLoadResult> => {
+    Promise.make((resolve,_) => {
+        loadFileWithProgress(
+            ~modalRef,
+            ~showWarning,
+            ~markUrlAsTrusted,
+            ~url,
+            ~progressText,
+            ~onReady = loadedText => resolve(Ok(loadedText)),
+            ~onError = msg => resolve(Error(msg)),
+            ~transformErrorMsg?,
+            ~onTerminated = () => resolve(TerminatedByUser)
+        )
+    })
 }
