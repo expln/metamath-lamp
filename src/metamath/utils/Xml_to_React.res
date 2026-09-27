@@ -77,16 +77,15 @@ let createStyle = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<React
         attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Array.includes(attr))->Belt.Option.isSome
         || addBorder
     ) {
-        Some(ReactDOM.Style.make(
-            ~fontWeight=?(attrs->Belt_MapString.get("font-weight")),
-            ~fontFamily=?(attrs->Belt_MapString.get("font-family")),
-            ~fontSize=?(attrs->Belt_MapString.get("font-size")),
-            ~fontStyle=?(attrs->Belt_MapString.get("font-style")),
-            ~color=?(attrs->Belt_MapString.get("color")),
-            ~border=?(if (addBorder) {Some("1px solid black")} else {None}),
-            ~borderCollapse=?(if (addBorder) {Some("collapse")} else {None}),
-            ()
-        ))
+        Some({
+            fontWeight:?(attrs->Belt_MapString.get("font-weight")),
+            fontFamily:?(attrs->Belt_MapString.get("font-family")),
+            fontSize:?(attrs->Belt_MapString.get("font-size")),
+            fontStyle:?(attrs->Belt_MapString.get("font-style")),
+            color:?(attrs->Belt_MapString.get("color")),
+            border:?(if (addBorder) {Some("1px solid black")} else {None}),
+            borderCollapse:?(if (addBorder) {Some("collapse")} else {None})
+        })
     } else {
         None
     }

@@ -11,7 +11,7 @@ let make = (~top:int=0, ~header:reElem, ~content:int=>reElem) => {
     <>
         <div 
             ref=ReactDOM.Ref.domRef(headerRef) 
-            style=ReactDOM.Style.make(~position="sticky", ~top=`${top->Belt_Int.toString}px`, ~zIndex="1000", ~background="white", ())
+            style={position:"sticky", top:`${top->Belt_Int.toString}px`, zIndex:"1000", background:"white"}
         >
             {header}
         </div>

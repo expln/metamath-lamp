@@ -930,7 +930,7 @@ let closeChildContext = (ctx:mmContext):unit => {
             parent.totalNumOfFrames = parent.totalNumOfFrames + childCtx.frames->Belt_HashMapString.size
             parent.addInfoComments->Array.pushMany(childCtx.addInfoComments)
             childCtx.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
-            childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(parent.deprOrTranDeprFrms->Belt_HashSetString.add)
+            childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(Belt_HashSetString.add(parent.deprOrTranDeprFrms, _))
             parent
         }
     }
@@ -1600,8 +1600,8 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
     let canBeFirstAndLast = canBeFirst->Belt_HashSetInt.toArray
         ->Array.filter(Belt_HashSetInt.has(canBeLast, _))
         ->Belt_HashSetInt.fromArray
-    canBeFirstAndLast->Belt_HashSetInt.forEach(canBeFirst->Belt_HashSetInt.remove)
-    canBeFirstAndLast->Belt_HashSetInt.forEach(canBeLast->Belt_HashSetInt.remove)
+    canBeFirstAndLast->Belt_HashSetInt.forEach(Belt_HashSetInt.remove(canBeFirst,_))
+    canBeFirstAndLast->Belt_HashSetInt.forEach(Belt_HashSetInt.remove(canBeLast,_))
 
     let parenInts = parens->getSpaceSeparatedValuesAsArray
         ->Array.map(ctxSymToInt(ctx, _))
