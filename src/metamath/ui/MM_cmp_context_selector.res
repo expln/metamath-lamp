@@ -8,7 +8,6 @@ open MM_wrk_settings
 open MM_wrk_editor
 open Local_storage_utils
 open MM_wrk_pre_ctx_data
-open Common
 
 let localFileUrlPrefix = "file://"
 
@@ -203,14 +202,10 @@ let shouldReloadContext = (singleScopes: array<mmSingleScope>, srcs: array<mmCtx
 
 let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleScope> => {
     switch ss.fileSrc {
-        | None => raise(MmException({
-            msg:`fileSrc is not set for the mmSingleScope with id '${ss.id}'`
-        }))
+        | None => Common.panic(`fileSrc is not set for the mmSingleScope with id '${ss.id}'`)
         | Some(src) => {
             switch ss.fileText {
-                | None => raise(MmException({
-                    msg:`fileText is not set for the mmSingleScope with id '${ss.id}'`
-                }))
+                | None => Common.panic(`fileText is not set for the mmSingleScope with id '${ss.id}'`)
                 | Some(Text(text)) => {
                     let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
                     let progressText = `Parsing ${name}`
@@ -257,7 +252,7 @@ let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleSc
 
 let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:modalRef):promise<mmScope> => {
     switch st.singleScopes->Array.find(ss => ss.id == singleScopeId) {
-        | None => raise(MmException({msg:`Could not find an mmSingleScope with id '${singleScopeId}'`}))
+        | None => Common.panic(`Could not find an mmSingleScope with id '${singleScopeId}'`)
         | Some(ss) => {
             parseSingleScope(ss, ~modalRef)->Promise.thenResolve(ss => st->updateSingleScope(ss.id,_=>ss))
         }
@@ -271,10 +266,10 @@ let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ss
         let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
         parseMmFileForSingleScope(mmScope, ~singleScopeId=ss.id, ~modalRef)->Promise.then(mmScope => {
             switch mmScope.singleScopes->Array.find(s => s.id == ss.id) {
-                | None => raise(MmException({msg:`None == singleScopes->find(s => s.id == ss.id)`}))
+                | None => Common.panic(`None == singleScopes->find(s => s.id == ss.id)`)
                 | Some(ss) => {
                     switch ss.ast {
-                        | None => raise(MmException({msg:`Could not parse MM file for ss.id = ${ss.id}`}))
+                        | None => Common.panic(`Could not parse MM file for ss.id = ${ss.id}`)
                         | Some(Error(msg)) => Promise.resolve(Error(msg))
                         | Some(Ok(_)) => parseMmFileForSingleScopeRec(mmScope, ~modalRef, ~ssIdx = ssIdx + 1)
                     }
@@ -312,7 +307,7 @@ let loadMmContext = (
                         {
                             MM_wrk_LoadCtx.ast: switch ss.ast {
                                 | Some(Ok(ast)) => ast
-                                | _ => raise(MmException({msg:`Cannot load an MM context from an empty or error ast.`}))
+                                | _ => Common.panic(`Cannot load an MM context from an empty or error ast.`)
                             },
                             stopBefore,
                             stopAfter,
@@ -346,7 +341,7 @@ let loadMmFileText = (
     Promise.make((rslv,_) => {
         FileLoader.loadFileWithProgress(
             ~modalRef,
-            ~showWarning=!(isTrustedUrl(trustedUrls.current, url)),
+            ~showWarning=!(Common.isTrustedUrl(trustedUrls.current, url)),
             ~progressText=`Downloading MM file from "${alias}"`,
             ~url,
             ~markUrlAsTrusted,
@@ -386,10 +381,10 @@ let rec loadMmFileTextForSingleScope = (
         }
 
         switch ss.fileSrc {
-            | None => raise(MmException({msg:`Cannot load MM file text for a None fileSrc.`}))
+            | None => Common.panic(`Cannot load MM file text for a None fileSrc.`)
             | Some(Local(_)) => {
                 switch ss.ast {
-                    | None => raise(MmException({msg:`Cannot load MM file text for a Local fileSrc.`}))
+                    | None => Common.panic(`Cannot load MM file text for a Local fileSrc.`)
                     | Some(_) => continue(UseAst)
                 }
             }
@@ -428,7 +423,7 @@ let srcDtoToFileSrc = (~src:mmCtxSrcDto, ~webSrcSettings:array<webSrcSettings>):
             url: src.url
         })
     } else {
-        raise(MmException({msg:`Cannot convert an mmCtxSrcDto to an mmFileSource.`}))
+        Common.panic(`Cannot convert an mmCtxSrcDto to an mmFileSource.`)
     }
 }
 
@@ -708,7 +703,7 @@ let make = (
                     let pathToUrl:Belt_HashMapString.t<string> = Belt_HashMapString.make(~hintSize=100)
                     let pathToAst: Belt_HashMapString.t<mmAstNode> = Belt_HashMapString.make(~hintSize=100)
                     collectIncludesToLoadInSingleScope(ss, pathToUrl)
-                    let newPaths:ref<array<string>> = ref(removeMany(
+                    let newPaths:ref<array<string>> = ref(Common.removeMany(
                         pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
                     ))
                     while (newPaths.contents->Array.length > 0) {
@@ -736,7 +731,7 @@ let make = (
                             }
                             i := i.contents + 1
                         }
-                        newPaths := removeMany(
+                        newPaths := Common.removeMany(
                             pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
                         )
                     }
@@ -745,8 +740,8 @@ let make = (
                         | Some(ast) => Ok(ss->setAst(Some(Ok(ast)))->setAllLabels(getAllAstrLabels(ast)))
                     }
                 } catch {
-                    | MmException({msg}) => Error(msg)
-                    | exn => Error(jsErrorToExnData(exn).msg)
+                    | Common.MmException({msg}) => Error(msg)
+                    | exn => Error(Common.jsErrorToExnData(exn).msg)
                 }
             }
             | None => Error(`Internal error: AST is not set`)
@@ -883,11 +878,11 @@ let make = (
                     | Ok(ctx) => {
                         let mmCtxSrcDtos = mmScope.singleScopes->Array.map(ss => {
                             switch ss.fileSrc {
-                                | None => raise(MmException({msg:`ss.fileSrc is None`}))
+                                | None => Common.panic(`ss.fileSrc is None`)
                                 | Some(src) => {
                                     let ast = switch ss.ast {
                                         | Some(Ok(ast)) => Some(ast)
-                                        | _ => raise(MmException({msg:`Cannot create mmCtxSrcDto from empty ast.`}))
+                                        | _ => Common.panic(`Cannot create mmCtxSrcDto from empty ast.`)
                                     }
                                     switch src {
                                         | Local({fileName}) => {
@@ -1027,7 +1022,7 @@ let make = (
         ~settings:settings, ~force:bool=false, ~srcs:option<array<mmCtxSrcDto>>=?, ~mmScope:option<mmScope>=?, 
     ):promise<result<unit,string>> => {
         if (srcs->Option.isSome && mmScope->Option.isSome) {
-            raise(MmException({msg:`Only one of srcs or mmScope must be specified.`}))
+            Common.panic(`Only one of srcs or mmScope must be specified.`)
         }
         getMmScopeToReload(~settings, ~force, ~srcs, ~mmScope)
             ->Promise.then(mmScope => {
