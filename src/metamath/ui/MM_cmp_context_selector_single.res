@@ -149,6 +149,26 @@ let make = (
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>
+                        <Row>
+                            <Button 
+                                variant=#contained
+                                onClick={_ => {
+                                    closeModal(modalRef, modalId)
+                                    onSelected(selectedFile.contents)
+                                }} 
+                            > 
+                                {React.string("Ok")} 
+                            </Button>
+                            <Button 
+                                variant=#outlined
+                                onClick={_ => {
+                                    closeModal(modalRef, modalId)
+                                    onCancel()
+                                }} 
+                            > 
+                                {React.string("Cancel")} 
+                            </Button>
+                        </Row>
                         <span style=ReactDOM.Style.make(~fontWeight="bolder", ())>
                             { React.string("Select file to load") }
                         </span>
