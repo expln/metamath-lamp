@@ -10,7 +10,7 @@ let make: (
     ~srcType: mmFileSourceType,
     ~onSrcTypeChange: mmFileSourceType => unit,
     ~fileSrc: option<mmFileSource>,
-    ~onFileChange: (mmFileSource, string) => unit,
+    ~onFileChange:(mmFileSource,string,Belt_HashMapString.t<string>)=>unit,
     ~parseError: option<string>,
     ~readInstr: readInstr,
     ~onReadInstrChange: readInstr => unit,

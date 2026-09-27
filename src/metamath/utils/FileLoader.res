@@ -134,19 +134,17 @@ let loadFileWithProgress = (
                             })
                         >
                             {
-                                ["0", "1", "2"]
-                                    ->Array.map(value => {
-                                        let label = switch value {
-                                            | "0" => "Always ask confirmation for this URL"
-                                            | "1" => "Don't ask for this URL " ++ url
-                                            | _ => "Don't ask for all URLs starting with " ++ getBasePath(url) ++ "/"
-                                        }
-                                        <FormControlLabel 
-                                            key=value value label control={ <Radio/> } 
-                                            style=ReactDOM.Style.make(~marginRight="30px", ())
-                                        />
-                                    })
-                                    ->React.array
+                                ["0", "1", "2"]->Array.map(value => {
+                                    let label = switch value {
+                                        | "0" => "Always ask confirmation for this URL"
+                                        | "1" => "Don't ask for this URL " ++ url
+                                        | _ => "Don't ask for all URLs starting with " ++ getBasePath(url) ++ "/"
+                                    }
+                                    <FormControlLabel 
+                                        key=value value label control={ <Radio/> } 
+                                        style=ReactDOM.Style.make(~marginRight="30px", ())
+                                    />
+                                })->React.array
                             }
                         </RadioGroup>
                         <Row>

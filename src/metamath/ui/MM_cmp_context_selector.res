@@ -793,7 +793,7 @@ let make = (
                     setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))
                 }}
                 fileSrc=singleScope.fileSrc
-                onFileChange={(src,text)=>actParseMmFileText(singleScope.id, src, text)
+                onFileChange={(src,text,files)=>actParseMmFileText(singleScope.id, src, text)
                         ->Promise.thenResolve(st => setState(_ => st))->Promise.done
                 }
                 parseError={
