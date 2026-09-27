@@ -1,4 +1,4 @@
-open Expln_React_Modal
+let getBasePath: string => string
 
 let loadFile: (
     ~url: string,
@@ -8,7 +8,7 @@ let loadFile: (
 ) => unit
 
 let loadFileWithProgress: (
-    ~modalRef:modalRef,
+    ~modalRef:Expln_React_Modal.modalRef,
     ~showWarning:bool,
     ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,
@@ -25,7 +25,7 @@ type fileLoadResult =
     | TerminatedByUser
 
 let loadFileWithProgressPromise: (
-    ~modalRef:modalRef,
+    ~modalRef:Expln_React_Modal.modalRef,
     ~showWarning:bool,
     ~markUrlAsTrusted: React.ref<string=>unit>,
     ~url:string,

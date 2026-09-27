@@ -5,6 +5,18 @@ open MM_react_common
 
 @module("./FileLoader") external loadFilePriv: (string, (int,int)=>unit, string=>unit, option<string>=>unit) => unit = "loadFile"
 
+let getBasePath = (path:string):string => {
+    let chIdx = ref(path->String.length - 1)
+    while (chIdx.contents >= 0 && "/" !== path->String.charAt(chIdx.contents)) {
+        chIdx := chIdx.contents - 1
+    }
+    if (chIdx.contents < 0) {
+        path
+    } else {
+        path->String.substring(~start=0, ~end=chIdx.contents)
+    }
+}
+
 let loadFile = (
     ~url:string,
     ~onProgress:option<(int,int)=>unit>=?,
@@ -93,10 +105,10 @@ let loadFileWithProgress = (
         })->ignore
     }
 
-    let dontAskAgain = ref(false)
+    let trustedUrl:ref<option<string>> = ref(None)
 
     let actShowWarning = () => {
-        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
+        let rec updateWarningDialogContent = (modalRef:modalRef, modalId:modalId):unit => {
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>
@@ -106,21 +118,42 @@ let loadFileWithProgress = (
                         <span>
                             { React.string(url) }
                         </span>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    onChange=evt2bool(checked => dontAskAgain.contents = checked)
-                                />
+                        <RadioGroup 
+                            row=false 
+                            value={
+                                trustedUrl.contents->Option.map(trustedUrl => trustedUrl == url ? "1" : "2")
+                                    ->Option.getOr("0")
                             }
-                            label="don't ask for this URL"
-                        />
+                            onChange=evt2str(newValue => {
+                                trustedUrl := switch newValue {
+                                    | "0" => None
+                                    | "1" => Some(url)
+                                    | _ => Some(getBasePath(url) ++ "/*")
+                                }
+                                updateWarningDialogContent(modalRef, modalId)
+                            })
+                        >
+                            {
+                                ["0", "1", "2"]
+                                    ->Array.map(value => {
+                                        let label = switch value {
+                                            | "0" => "Always ask confirmation for this URL"
+                                            | "1" => "Don't ask for this URL " ++ url
+                                            | _ => "Don't ask for all URLs starting with " ++ getBasePath(url) ++ "/"
+                                        }
+                                        <FormControlLabel 
+                                            key=value value label control={ <Radio/> } 
+                                            style=ReactDOM.Style.make(~marginRight="30px", ())
+                                        />
+                                    })
+                                    ->React.array
+                            }
+                        </RadioGroup>
                         <Row>
                             <Button 
                                 variant=#contained
                                 onClick={_ => {
-                                    if (dontAskAgain.contents) {
-                                        markUrlAsTrusted.current(url)
-                                    }
+                                    trustedUrl.contents->Option.forEach(markUrlAsTrusted.current)
                                     closeModal(modalRef, modalId)
                                     actDownloadFile()
                                 }} 
@@ -137,6 +170,9 @@ let loadFileWithProgress = (
                     </Col>
                 </Paper>
             })
+        }
+        openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
+            updateWarningDialogContent(modalRef, modalId)
         })->ignore
     }
 

@@ -510,15 +510,11 @@ let make = (
     }
 
     let constructUrlToLoad = (urlOfFileWithInclude:string, pathToInclude:string):string => {
-        let chIdx = ref(urlOfFileWithInclude->String.length - 1)
-        while (chIdx.contents >= 0 && "/" !== urlOfFileWithInclude->String.charAt(chIdx.contents)) {
-            chIdx := chIdx.contents - 1
-        }
-        if (chIdx.contents < 0) {
+        let baseUrl = FileLoader.getBasePath(urlOfFileWithInclude)
+        if (baseUrl == urlOfFileWithInclude) {
             panic(`Cannot construct a url to import '${pathToInclude}' into '${urlOfFileWithInclude}'`)
-        } else {
-            urlOfFileWithInclude->String.substring(~start=0, ~end=chIdx.contents) ++ "/" ++ pathToInclude
         }
+        baseUrl ++ "/" ++ pathToInclude
     }
 
     let rec collectIncludesToLoadInAst = (
