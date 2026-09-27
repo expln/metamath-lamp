@@ -30,3 +30,4 @@ yarn-error.log*
 /src/tmp/
 /dist/
 /public/webworker-main.js
+/lib/ocaml/
