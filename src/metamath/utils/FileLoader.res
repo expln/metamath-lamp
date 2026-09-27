@@ -129,7 +129,7 @@ let loadFileWithProgress = (
                             </Button>
                             <Button 
                                 variant=#outlined
-                                onClick={_ => closeModal(modalRef, modalId) } 
+                                onClick={_ => makeActTerminate(modalId)() } 
                             > 
                                 {React.string("Cancel")} 
                             </Button>

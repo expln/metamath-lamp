@@ -629,7 +629,7 @@ let make = (
             )
             switch loadedText {
                 | Error(msg) => panic(`Error downloading from '${url}: ${msg->Option.getOr("Unknown error")}'`)
-                | TerminatedByUser => panic(`Downloading from '${url} was terminated.'`)
+                | TerminatedByUser => panic(`Downloading from '${url}' was terminated.`)
                 | Ok(text) => text
             }
         }
