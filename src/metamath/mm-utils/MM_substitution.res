@@ -421,29 +421,33 @@ let rec iterateVarGroups = (
 
     let continueInstr = ref(Continue)
     if (!(subs.isDefined->Array.getUnsafe(frmVar))) {
-        subs.isDefined[frmVar] = true
-        subs.exprs[frmVar] = expr
-        subs.begins[frmVar] = subExprBeginIdx
-        if (curVarIdx == grp.numOfVars-1) {
-            subs.ends[frmVar] = grp.exprEndIdx
-            continueInstr.contents = invokeNext(maxSubExprLength)
-        } else if (parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(subExprBeginIdx))) {
-            let subExprLength = ref(1)
-            let end = ref(subExprBeginIdx)
-            parenCnt->parenCntReset
-            let pStatus = ref(Balanced)
-            while (subExprLength.contents <= maxSubExprLength && continueInstr.contents == Continue && pStatus.contents != Failed) {
-                subs.ends[frmVar] = end.contents
-                pStatus.contents = parenCnt->parenCntPut(expr->Array.getUnsafe(end.contents))
-                if (pStatus.contents == Balanced && parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(end.contents))) {
-                    continueInstr.contents = invokeNext(subExprLength.contents)
-                    parenCnt->parenCntReset
+        if (parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(subExprBeginIdx))) {
+            subs.isDefined[frmVar] = true
+            subs.exprs[frmVar] = expr
+            subs.begins[frmVar] = subExprBeginIdx
+            if (curVarIdx == grp.numOfVars-1) {
+                if (parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(grp.exprEndIdx))) {
+                    subs.ends[frmVar] = grp.exprEndIdx
+                    continueInstr.contents = invokeNext(maxSubExprLength)
                 }
-                subExprLength.contents = subExprLength.contents + 1
-                end.contents = end.contents + 1
+            } else {
+                let subExprLength = ref(1)
+                let end = ref(subExprBeginIdx)
+                parenCnt->parenCntReset
+                let pStatus = ref(Balanced)
+                while (subExprLength.contents <= maxSubExprLength && continueInstr.contents == Continue && pStatus.contents != Failed) {
+                    subs.ends[frmVar] = end.contents
+                    pStatus.contents = parenCnt->parenCntPut(expr->Array.getUnsafe(end.contents))
+                    if (pStatus.contents == Balanced && parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(end.contents))) {
+                        continueInstr.contents = invokeNext(subExprLength.contents)
+                        parenCnt->parenCntReset
+                    }
+                    subExprLength.contents = subExprLength.contents + 1
+                    end.contents = end.contents + 1
+                }
             }
+            subs.isDefined[frmVar] = false
         }
-        subs.isDefined[frmVar] = false
     } else {
         let existingExpr = subs.exprs->Array.getUnsafe(frmVar)
         let existingExprBeginIdx = subs.begins->Array.getUnsafe(frmVar)
