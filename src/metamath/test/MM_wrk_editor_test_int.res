@@ -562,6 +562,14 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
     })
 
+    it("unify-all does not duplicate error messages", _ => {
+        //issue #270
+        setTestDataDir("no-duplicate-error-messages")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state")
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+    })
+
     it("unify-all identifies syntax errors", _ => {
         setTestDataDir("syntax-errors")
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state")

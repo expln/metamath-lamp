@@ -102,7 +102,7 @@ let deleteSingleScope = (st,id,~defaultSrcType:mmFileSourceType) => {
 let setExpanded = (st,expanded) => {...st, expanded}
 let setLoadedContextSummary = (st,loadedContextSummary) => {...st, loadedContextSummary}
 
-let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
+let getDisplayNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
     switch src {
         | None => None
         | Some(Local({fileName})) => Some(fileName)
@@ -116,12 +116,23 @@ let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
     }
 }
 
+let getFileNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
+    switch src {
+        | None => None
+        | Some(Local({fileName})) => Some(fileName)
+        | Some(Web({url})) => {
+            // +1 to remove the delimiter /
+            Some(url->String.substringToEnd(~start=FileLoader.getBasePath(url)->String.length + 1))
+        }
+    }
+}
+
 let getSummary = st => {
     if (st.singleScopes->Array.length == 1 && (st.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isNone) {
         "No Metamath database is loaded; please select a database to load."
     } else {
         let filesInfo = st.singleScopes->Array.map(ss => {
-            let name = getNameFromFileSrc(ss.fileSrc)->Belt_Option.getWithDefault("")
+            let name = getDisplayNameFromFileSrc(ss.fileSrc)->Belt_Option.getWithDefault("")
             let readInstr = switch ss.readInstr {
                 | ReadAll => ""
                 | StopBefore => `, stopped before ${ss.label->Belt_Option.getWithDefault("")}`
@@ -207,7 +218,7 @@ let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleSc
             switch ss.fileText {
                 | None => Common.panic(`fileText is not set for the mmSingleScope with id '${ss.id}'`)
                 | Some(Text(text)) => {
-                    let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
+                    let name = getDisplayNameFromFileSrc(Some(src))->Belt_Option.getExn
                     let progressText = `Parsing ${name}`
                     Promise.make((resolve,_) => {
                         openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->Promise.thenResolve(modalId => {
@@ -224,7 +235,7 @@ let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleSc
                                 ~onDone = parseResult => {
                                     let ss = switch parseResult {
                                         | Error(msg) => {
-                                            let fileId = getNameFromFileSrc(ss.fileSrc)
+                                            let fileId = getDisplayNameFromFileSrc(ss.fileSrc)
                                                 ->Option.map(fileId => fileId ++ ": ")
                                                 ->Option.getOr("")
                                             let ss = ss->setAst(Some(Error(fileId ++ msg)))
@@ -683,7 +694,7 @@ let make = (
         while (i.contents < nonParsed->Array.length) {
             let parsedSs = await parseSingleScope(nonParsed->Array.getUnsafe(i.contents), ~modalRef)
             switch parsedSs.ast {
-                | None => panic(`Could not parse file ${getNameFromFileSrc(parsedSs.fileSrc)->Option.getOr("UNKNOWN")}`)
+                | None => panic(`Could not parse file ${getDisplayNameFromFileSrc(parsedSs.fileSrc)->Option.getOr("UNKNOWN")}`)
                 | Some(Error(msg)) => panic(msg)
                 | Some(Ok(_)) => parsed->Array.push(parsedSs)
             }
@@ -693,16 +704,18 @@ let make = (
     }
 
     let replaceIncludes = async (
-        ss:mmSingleScope, 
+        ss:mmSingleScope,
         localFiles:Belt_HashMapString.t<string>
     ):result<mmSingleScope, string> => {
         switch ss.ast {
             | Some(Ok(ast)) => {
+                let rootFileName = getFileNameFromFileSrc(ss.fileSrc)->Option.getOr("")
                 //Common.catchExn()
                 try {
                     let pathToUrl:Belt_HashMapString.t<string> = Belt_HashMapString.make(~hintSize=100)
                     let pathToAst: Belt_HashMapString.t<mmAstNode> = Belt_HashMapString.make(~hintSize=100)
                     collectIncludesToLoadInSingleScope(ss, pathToUrl)
+                    pathToUrl->Belt_HashMapString.remove(rootFileName)
                     let newPaths:ref<array<string>> = ref(Common.removeMany(
                         pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
                     ))
@@ -715,6 +728,7 @@ let make = (
                         while (i.contents < newPaths.contents->Array.length) {
                             let loadedSs = loadedFiles->Array.getUnsafe(i.contents)
                             collectIncludesToLoadInSingleScope(loadedSs, pathToUrl)
+                            pathToUrl->Belt_HashMapString.remove(rootFileName)
                             switch loadedSs.ast {
                                 | Some(Ok(ast)) => pathToAst->Belt_HashMapString.set(
                                     newPaths.contents->Array.getUnsafe(i.contents),
@@ -735,7 +749,7 @@ let make = (
                             pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
                         )
                     }
-                    switch replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.make(~hintSize=100)) {
+                    switch replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.fromArray([rootFileName])) {
                         | None => Ok(ss)
                         | Some(ast) => Ok(ss->setAst(Some(Ok(ast)))->setAllLabels(getAllAstrLabels(ast)))
                     }

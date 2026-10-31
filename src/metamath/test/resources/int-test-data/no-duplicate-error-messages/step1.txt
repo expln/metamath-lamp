@@ -1,0 +1,34 @@
+Variables:
+
+
+Disjoints:
+A B x y z
+
+
+--- p -------------------------------------------------------------------------------
+1
+: eleq2
+|- ( x = A -> ( y e. x <-> y e. A ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+2
+1 : rexbidv
+|- ( x = A -> ( E. z e. B z e. x <-> E. z e. B z e. A ) )
+jstfIsIncorrect
+Unif Error: Could not match essential hypothesis #1
+
+
+--- p -------------------------------------------------------------------------------
+3
+2 : rspcv
+|- ( A e. B -> ( A. w e. B E. z e. B z e. x -> E. y e. x y e. A ) )
+jstfIsIncorrect
+Unif Error: Could not match essential hypothesis #1
+
+
+--- g -------------------------------------------------------------------------------
+qed
+
+|- ph
+noJstf
