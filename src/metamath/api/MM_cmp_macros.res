@@ -268,7 +268,7 @@ let readStateFromLocStor = ():promise<state> => {
         let allLoadedMacroModules = macroModules->Belt_HashMapString.keysToArray
         let st:state = {
             selectedMacroModuleName: allLoadedMacroModules->Array.find(n => n == stateLocStor.selectedMacroModuleName)
-                ->Option.getOr(allLoadedMacroModules[0]->Option.getExn(~message="MM_cmp_macros.readStateFromLocStor.1")),
+                ->Option.getOr(allLoadedMacroModules[0]->Option.getOrThrow(~message="MM_cmp_macros.readStateFromLocStor.1")),
             macroModules: macroModules->Belt_HashMapString.toArray->Belt_MapString.fromArray,
         }
         st
@@ -729,7 +729,7 @@ let useStateRenderer = (
                                                     MM_api_macros.runMacro(
                                                         ~moduleName=state.selectedMacroModuleName, 
                                                         ~macroName
-                                                    )->Promise.done
+                                                    )->Promise.ignore
                                                 }}
                                             >
                                                 <ListItemText>
@@ -767,7 +767,7 @@ let make = (
     let (state, setState) = React.useState(() => None)
 
     React.useEffect0(() => {
-        readStateFromLocStor()->Promise.thenResolve(st => setState(_ => Some(st)))->Promise.done
+        readStateFromLocStor()->Promise.thenResolve(st => setState(_ => Some(st)))->Promise.ignore
         None
     })
 
@@ -810,7 +810,7 @@ let make = (
                             }
                             | Ok(st) => setState(_ => Some(st))
                         }
-                    })->Promise.done
+                    })->Promise.ignore
                     None
                 }
             }

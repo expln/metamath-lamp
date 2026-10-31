@@ -38,7 +38,7 @@ let exprSrcToDto = (
 ):exprSrcDto => {
     let nodeToIdx = (node:proofNode):int => {
         switch exprToIdx->Belt_HashMap.get(node->pnGetExpr) {
-            | None => raise(MmException({msg:`exprSrcToDto: cannot get idx by expr.`}))
+            | None => throw(MmException({msg:`exprSrcToDto: cannot get idx by expr.`}))
             | Some(idx) => idx
         }
     }
@@ -142,7 +142,7 @@ let createSyntaxProofsDto = (
         (
             expr,
             switch exprToIdx->Belt_HashMap.get(proofNode->pnGetExpr) {
-                | None => raise(MmException({msg:`Could not convert proofNode to proofNodeDto for a syntax proof.`}))
+                | None => throw(MmException({msg:`Could not convert proofNode to proofNodeDto for a syntax proof.`}))
                 | Some(idx) => nodes->Array.getUnsafe(idx)
             }
         )
@@ -178,7 +178,7 @@ let createProofTable = (
     ~ctx:option<mmContext>=?
 ):proofTable => {
     if (essentialsOnly && ctx->Belt_Option.isNone) {
-        raise(MmException({msg:"Error in createProofTable: ctx must be set when essentialsOnly == true."}))
+        throw(MmException({msg:"Error in createProofTable: ctx must be set when essentialsOnly == true."}))
     }
 
     let filterArgs = (args:array<int>, label:string):array<int> => {
@@ -202,14 +202,14 @@ let createProofTable = (
 
     let getIdxByExprExn = (expr:expr):int => {
         switch getIdxByExpr(expr) {
-            | None => raise(MmException({ msg:`Could not determine idx by expr in createProofTable().` }))
+            | None => throw(MmException({ msg:`Could not determine idx by expr in createProofTable().` }))
             | Some(idx) => idx
         }
     }
 
     let saveExprToTbl = (expr:expr,proof:exprSource):unit => {
         if (getIdxByExpr(expr)->Belt_Option.isSome) {
-            raise(MmException({ msg:`getIdxByExpr(expr)->Belt_Option.isSome in createProofTable().` }))
+            throw(MmException({ msg:`getIdxByExpr(expr)->Belt_Option.isSome in createProofTable().` }))
         }
         tbl->Array.push({expr, proof})
         let idx = tbl->Array.length-1
@@ -221,10 +221,10 @@ let createProofTable = (
         root,
         (_,n) => {
             switch n.proof {
-                | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [1].`}))
-                | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [1].`}))
+                | None => throw(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [1].`}))
+                | Some(VarType) => throw(MmException({msg:`VarType is not supported in createProofTable [1].`}))
                 | Some(AssertionWithErr(_)) =>
-                    raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [1].`}))
+                    throw(MmException({msg:`AssertionWithErr is not supported in createProofTable [1].`}))
                 | Some(Hypothesis(_)) => None
                 | Some(Assertion({args,label})) => {
                     Some(filterArgs(args,label)->Array.map(idx => tree.nodes->Array.getUnsafe(idx)))
@@ -233,10 +233,10 @@ let createProofTable = (
         },
         ~postProcess = (_, n) => {
             switch n.proof {
-                | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [2].`}))
-                | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [2].`}))
+                | None => throw(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [2].`}))
+                | Some(VarType) => throw(MmException({msg:`VarType is not supported in createProofTable [2].`}))
                 | Some(AssertionWithErr(_)) =>
-                    raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [2].`}))
+                    throw(MmException({msg:`AssertionWithErr is not supported in createProofTable [2].`}))
                 | Some(Hypothesis({label})) => {
                     if (getIdxByExpr(n.expr)->Belt_Option.isNone) {
                         saveExprToTbl(n.expr, Hypothesis({label:label}))

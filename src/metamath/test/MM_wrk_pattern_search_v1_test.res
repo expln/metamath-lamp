@@ -729,30 +729,30 @@ describe("frameMatchesPattern", _ => {
 
 describe("parseSearchStr", _ => {
     it("parses search patterns as expected", _ => {
-        assertEq(parseSearchStr("")->Result.getExn, [])
-        assertEq(parseSearchStr("a")->Result.getExn, [([], ["a"])])
-        assertEq(parseSearchStr("abc")->Result.getExn, [([], ["abc"])])
-        assertEq(parseSearchStr("a b c")->Result.getExn, [([], ["a", "b", "c"])])
-        assertEq(parseSearchStr("abc def")->Result.getExn, [([], ["abc", "def"])])
-        assertEq(parseSearchStr("abc def ghi")->Result.getExn, [([], ["abc", "def", "ghi"])])
-        assertEq(parseSearchStr("$a abc def")->Result.getExn, [([Asrt], ["abc", "def"])])
-        assertEq(parseSearchStr("$h abc def")->Result.getExn, [([Hyp], ["abc", "def"])])
-        assertEq(parseSearchStr("$+ abc def")->Result.getExn, [([Adj], ["abc", "def"])])
-        assertEq(parseSearchStr("$! abc def")->Result.getExn, [([Exact], ["abc", "def"])])
-        assertEq(parseSearchStr("$!\tabc\ndef")->Result.getExn, [([Exact], ["abc", "def"])])
-        assertEq(parseSearchStr("$a+ abc def")->Result.getExn, [([Asrt, Adj], ["abc", "def"])])
-        assertEq(parseSearchStr("$a! abc def")->Result.getExn, [([Asrt, Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("")->Result.getOrThrow, [])
+        assertEq(parseSearchStr("a")->Result.getOrThrow, [([], ["a"])])
+        assertEq(parseSearchStr("abc")->Result.getOrThrow, [([], ["abc"])])
+        assertEq(parseSearchStr("a b c")->Result.getOrThrow, [([], ["a", "b", "c"])])
+        assertEq(parseSearchStr("abc def")->Result.getOrThrow, [([], ["abc", "def"])])
+        assertEq(parseSearchStr("abc def ghi")->Result.getOrThrow, [([], ["abc", "def", "ghi"])])
+        assertEq(parseSearchStr("$a abc def")->Result.getOrThrow, [([Asrt], ["abc", "def"])])
+        assertEq(parseSearchStr("$h abc def")->Result.getOrThrow, [([Hyp], ["abc", "def"])])
+        assertEq(parseSearchStr("$+ abc def")->Result.getOrThrow, [([Adj], ["abc", "def"])])
+        assertEq(parseSearchStr("$! abc def")->Result.getOrThrow, [([Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$!\tabc\ndef")->Result.getOrThrow, [([Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$a+ abc def")->Result.getOrThrow, [([Asrt, Adj], ["abc", "def"])])
+        assertEq(parseSearchStr("$a! abc def")->Result.getOrThrow, [([Asrt, Exact], ["abc", "def"])])
         assertEq(parseSearchStr("$ah abc def"), Error("A sub-pattern cannot be both a hypothesis and an assertion at position 3."))
-        assertEq(parseSearchStr("$h+ abc def")->Result.getExn, [([Hyp, Adj], ["abc", "def"])])
-        assertEq(parseSearchStr("$h! abc def")->Result.getExn, [([Hyp, Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$h+ abc def")->Result.getOrThrow, [([Hyp, Adj], ["abc", "def"])])
+        assertEq(parseSearchStr("$h! abc def")->Result.getOrThrow, [([Hyp, Exact], ["abc", "def"])])
         assertEq(parseSearchStr("$ha abc def"), Error("A sub-pattern cannot be both a hypothesis and an assertion at position 3."))
         assertEq(parseSearchStr("$!+ abc def"), Error("A sub-pattern cannot be both Adjacent and Exact at position 3."))
         assertEq(parseSearchStr("$a") , Error("At least one symbol is expected at position 3."))
 
-        assertEq(parseSearchStr("$h abc def $a ghi jkl")->Result.getExn, [([Hyp], ["abc", "def"]), ([Asrt], ["ghi", "jkl"])])
-        assertEq(parseSearchStr("   $h+   abc \n $a! ghi \t")->Result.getExn, [([Hyp, Adj], ["abc"]), ([Asrt, Exact], ["ghi"])])
+        assertEq(parseSearchStr("$h abc def $a ghi jkl")->Result.getOrThrow, [([Hyp], ["abc", "def"]), ([Asrt], ["ghi", "jkl"])])
+        assertEq(parseSearchStr("   $h+   abc \n $a! ghi \t")->Result.getOrThrow, [([Hyp, Adj], ["abc"]), ([Asrt, Exact], ["ghi"])])
         assertEq(
-            parseSearchStr("$h+ x = A $h+ ph <-> ps $a! |- ph")->Result.getExn, 
+            parseSearchStr("$h+ x = A $h+ ph <-> ps $a! |- ph")->Result.getOrThrow, 
             [([Hyp, Adj], ["x", "=", "A"]), ([Hyp, Adj], ["ph", "<->", "ps"]), ([Asrt, Exact], ["|-", "ph"])]
         )
 

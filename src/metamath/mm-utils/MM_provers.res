@@ -63,7 +63,7 @@ let findAsrtParentsWithoutNewVars = (
                             let newExpr = applySubs(
                                 ~frmExpr = (hyps->Array.getUnsafe(argIdx.contents)).expr,
                                 ~subs,
-                                ~createWorkVar = _ => raise(MmException({
+                                ~createWorkVar = _ => throw(MmException({
                                     msg:`Work variables are not supported in findAsrtParentsWithoutNewVars().`
                                 }))
                             )
@@ -270,7 +270,7 @@ let findAsrtParentsWithNewVars = (
                     let argExpr = applySubs(
                         ~frmExpr = (frame.hyps->Array.getUnsafe(argIdx.contents)).expr,
                         ~subs=applResult.subs,
-                        ~createWorkVar = _ => raise(MmException({
+                        ~createWorkVar = _ => throw(MmException({
                             msg:`New work variables are not expected here [findAsrtParentsWithNewVars].`
                         }))
                     )
@@ -279,7 +279,7 @@ let findAsrtParentsWithNewVars = (
                         let sym = argExpr->Array.getUnsafe(i)
                         if (sym > maxVarBeforeSearch) {
                             argExpr[i] = switch applNewVarToTreeNewVar->Belt_MutableMapInt.get(sym) {
-                                | None => raise(MmException({msg:`Could not replace an applVar with a treeVar.`}))
+                                | None => throw(MmException({msg:`Could not replace an applVar with a treeVar.`}))
                                 | Some(treeVar) => treeVar
                             }
                         }
@@ -490,7 +490,7 @@ let proveBottomUp = (
         let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
         if (curNode->pnGetProof->Belt.Option.isNone) {
             let curDist = switch curNode->pnGetDist {
-                | None => raise(MmException({msg:`Encountered a node without dist.`}))
+                | None => throw(MmException({msg:`Encountered a node without dist.`}))
                 | Some(dist) => dist
             }
             switch onProgress {
@@ -807,7 +807,7 @@ let proveSyntaxTypes = (
         proofTree->Belt_Option.isNone
         && (wrkCtx->Belt_Option.isNone || frms->Belt_Option.isNone || parenCnt->Belt_Option.isNone)
     ) {
-        raise(MmException({msg:`Either proofTree or (wrkCtx and frms and parenCnt) should be passed.`}))
+        throw(MmException({msg:`Either proofTree or (wrkCtx and frms and parenCnt) should be passed.`}))
     }
 
     let progressState = progressTrackerMake( ~step=0.1, ~onProgress? )
@@ -873,7 +873,7 @@ let proveSyntaxTypes = (
         let stmtType = typedExpr->Array.getUnsafe(0)
         let syntaxTypes: array<int> = stmtTypeToSyntaxType->Belt_HashMapInt.get(stmtType)->Option.getOr(defaultSyntaxTypes)
         if (syntaxTypes->Array.length != 0) {
-            let expr = typedExpr->Array.sliceToEnd(~start=1)
+            let expr = typedExpr->Array.slice(~start=1)
             let node = ref(tree->ptGetNode([syntaxTypes->Array.getUnsafe(0)]->Array.concat(expr)))
             let ti = ref(0)
             while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Array.length) {
@@ -993,7 +993,7 @@ let unifyAll = (
 }
 
 let getOrderedSubarray = (arr:array<string>, start:int, end:int):array<string> => {
-    arr->Array.slice(~start, ~end=end)->Js.Array2.sortInPlace
+    arr->Array.slice(~start, ~end=end)->Expln_utils_common.sortInPlaceWith(String.compare)
 }
 
 let compareUnorderedSubArrays = (arr1:array<string>, arr2:array<string>, start:int, end:int):bool => {
@@ -1014,7 +1014,7 @@ let makeParenCnt = (
     } = ctx->ctxGetOptimizedConstsOrder(~parens)
     let allConstsActual = ctx->getAllConsts
     if (allConsts->Array.length != allConstsActual->Array.length) {
-        raise(MmException({msg:`allConsts.length != allConstsActual.length`}))
+        throw(MmException({msg:`allConsts.length != allConstsActual.length`}))
     }
     if (parenMin < 0) {
         // let allConstsStr = allConsts->Array.slice(~start=0, ~end=-parenMin)->Array.joinUnsafe(" ")
@@ -1024,25 +1024,25 @@ let makeParenCnt = (
             != 
             allConstsActual->Array.slice(~start=0, ~end=-parenMin)
         ) {
-            raise(MmException({msg:`allConsts.parens != allConstsActual.parens`}))
+            throw(MmException({msg:`allConsts.parens != allConstsActual.parens`}))
         }
     }
     if (canBeFirstMin <= canBeFirstMax) {
         // let canBeFirstStr = allConsts->Array.slice(~start=(-canBeFirstMax-1), ~end=-canBeFirstMin)->Array.joinUnsafe(" ")
         // Console.log2(`canBeFirst:`, canBeFirstStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeFirstMax-1), -canBeFirstMin)) {
-            raise(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
+            throw(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
         }
     }
     if (canBeLastMin <= canBeLastMax) {
         // let canBeLastStr = allConsts->Array.slice(~start=(-canBeLastMax-1), ~end=-canBeLastMin)->Array.joinUnsafe(" ")
         // Console.log2(`canBeLast:`, canBeLastStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeLastMax-1), -canBeLastMin)) {
-            raise(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))
+            throw(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))
         }
     }
     if (!compareUnorderedSubArrays(allConsts, allConstsActual, 0, allConsts->Array.length)) {
-        raise(MmException({msg:`allConsts.remaining != allConstsActual.remaining`}))
+        throw(MmException({msg:`allConsts.remaining != allConstsActual.remaining`}))
     }
 
     parenCntMake(~parenMin, ~canBeFirstMin, ~canBeFirstMax, ~canBeLastMin, ~canBeLastMax, )

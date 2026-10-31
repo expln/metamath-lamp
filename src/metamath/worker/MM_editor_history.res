@@ -59,7 +59,7 @@ let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
     }
 }
 
-module ProofStatusHash = Belt.Id.MakeHashableU({
+module ProofStatusHash = Belt.Id.MakeHashable({
     type t = option<proofStatus>
     let hash = (status:option<proofStatus>):int => {
         switch status {
@@ -73,7 +73,7 @@ module ProofStatusHash = Belt.Id.MakeHashableU({
     let eq = proofStatusEq
 })
 
-module BoolHash = Belt.Id.MakeHashableU({
+module BoolHash = Belt.Id.MakeHashable({
     type t = bool
     let hash = (b:bool):int => b?1:0
     let eq = (a,b) => a === b
@@ -284,7 +284,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     if (aModLen != bLen) {
         let aIdsStr = "["++a.stmts->Array.map(stmt => stmt.id)->Array.join(",")++"]"
         let bIdsStr = "["++b.stmts->Array.map(stmt => stmt.id)->Array.join(",")++"]"
-        raise(MmException({
+        throw(MmException({
             msg: `aModLen != bLen (aModLen=${aModLen->Int.toString}, bLen=${bLen->Int.toString}, `
                 ++ `aIds=${aIdsStr}, bIds=${bIdsStr})`
         }))
@@ -306,7 +306,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     b.stmts->Array.forEachWithIndex((stmtB,i) => {
         let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
-            raise(MmException({msg:`stmtA.id != stmtB.id`}))
+            throw(MmException({msg:`stmtA.id != stmtB.id`}))
         }
         if (stmtA.label != stmtB.label) {
             diffs->Array.push(StmtLabel({stmtId:stmtB.id, label:stmtB.label}))
@@ -364,10 +364,10 @@ let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
 
 let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDiff>>, maxLength:int) => {
     if (diff->Array.length == 0) {
-        raise(MmException({msg:`diff->Array.length == 0`}))
+        throw(MmException({msg:`diff->Array.length == 0`}))
     }
     if (prev->Array.length == 0) {
-        raise(MmException({msg:`prev->Array.length == 0`}))
+        throw(MmException({msg:`prev->Array.length == 0`}))
     }
     [ diff->Array.concat(prev->Array.getUnsafe(0)) ]->Array.concat(prev->Array.slice(~start=1, ~end=maxLength))
 }
@@ -537,7 +537,7 @@ let editorHistoryPrintIdInfo = (ht:editorHistory):unit => {
                 | StmtRemove({stmtIds}) => Some("-" ++ stmtIds->Array.join(","))
                 | _ => None
             }
-        })->Array.filter(Option.isSome(_))->Array.map(Option.getExn(_))->Array.join(", ")
+        })->Array.filter(Option.isSome(_))->Array.map(Option.getOrThrow(_))->Array.join(", ")
         if (addRemoveStmts->String.length > 0) {
             Console.log(`${Int.toString(i+1)}: ${addRemoveStmts}`)
         }
@@ -595,7 +595,7 @@ let proofStatusFromStr = (str:string):proofStatus => {
         | "w"  => Waiting
         | "n"  => NoJstf
         | "i"  => JstfIsIncorrect
-        | _ => raise(MmException({msg:`Cannot convert '${str}' to proofStatus.`}))
+        | _ => throw(MmException({msg:`Cannot convert '${str}' to proofStatus.`}))
     }
 }
 
@@ -674,7 +674,7 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
 
 let optGetEdls = (opt:option<'a>, typ:string, attrName:string):'a => {
     switch opt {
-        | None => raise(MmException({msg:`'${attrName}' is not set in an editorDiffLocStor for typ = '${typ}'.`}))
+        | None => throw(MmException({msg:`'${attrName}' is not set in an editorDiffLocStor for typ = '${typ}'.`}))
         | Some(str) => str
     }
 }
@@ -700,7 +700,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | "SA" => StmtAdd({idx:diff->edlsGetInt, stmt:diff->edlsGetStmt->stmtSnapshotFromLocStor})
         | "SR" => StmtRemove({stmtIds:diff->edlsGetIds})
         | "SM" => StmtMove({stmtId:diff->edlsGetId, idx:diff->edlsGetInt})
-        | _ => raise(MmException({msg:`Cannot convert editorDiffLocStor to editorDiff for diff.typ='${diff.t}'.`}))
+        | _ => throw(MmException({msg:`Cannot convert editorDiffLocStor to editorDiff for diff.typ='${diff.t}'.`}))
     }
 }
 

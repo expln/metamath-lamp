@@ -91,7 +91,7 @@ let parseStrExn = (str:string):xmlNode => {
                 } else if (node.nodeType == nodeTypeText) {
                     Text(node.nodeValue)
                 } else {
-                    Exn.raiseError(`Node type of ${node.nodeType->Belt.Int.toString} is not expected here.`)
+                    JsError.throwWithMessage(`Node type of ${node.nodeType->Belt.Int.toString} is not expected here.`)
                 }
             switch parents->Belt_MutableStack.top {
                 | None => ()
@@ -112,7 +112,7 @@ let parseStrExn = (str:string):xmlNode => {
     )
 
     switch rootXmlNodeOpt {
-        | None => Exn.raiseError("Got None as a result of parsing.")
+        | None => JsError.throwWithMessage("Got None as a result of parsing.")
         | Some(xmlNode) => xmlNode
     }
 }
@@ -120,11 +120,11 @@ let parseStrExn = (str:string):xmlNode => {
 
 
 let parseStr = (str:string):result<xmlNode,string> => {
-    let exToError = (ex:option<Exn.t>):result<xmlNode,string> => {
+    let exToError = (ex:option<JsExn.t>):result<xmlNode,string> => {
         let msg = switch ex {
             | None => "no error message"
             | Some(ex) => {
-                switch Exn.message(ex) {
+                switch JsExn.message(ex) {
                     | None => "no error message"
                     | Some(msg) => msg
                 }
@@ -136,7 +136,7 @@ let parseStr = (str:string):result<xmlNode,string> => {
     try {
         Ok(parseStrExn(str))
     } catch {
-        | Exn.Error(ex) => exToError(Some(ex))
-        | reEx => exToError(reEx->Exn.asJsExn)
+        | JsExn(ex) => exToError(Some(ex))
+        | reEx => exToError(reEx->JsExn.fromException)
     }
 }

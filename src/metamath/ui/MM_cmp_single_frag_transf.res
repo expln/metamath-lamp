@@ -46,7 +46,7 @@ let make = (
 
     let rec rndCustomElem = (elem:{..}):reElem => {
         if (!isObject(elem)) {
-            Exn.raiseError("Each component must be an object")
+            JsError.throwWithMessage("Each component must be an object")
         }
         let componentName = reqStrExn(elem["cmp"], 
             "Each component must have a string attribute 'cmp' which specifies component name"
@@ -61,7 +61,7 @@ let make = (
             | "span" => rndSpan(objToObj(elem))
             | "ApplyButtons" => rndApplyButtons(objToObj(elem))
             | "Divider" => rndDivider()
-            | _ => Exn.raiseError(`Unrecognized component '${componentName}'`)
+            | _ => JsError.throwWithMessage(`Unrecognized component '${componentName}'`)
         }
     }
     and childrenToArray = (children:array<Nullable.t<{..}>>, msg:string):reElem => {

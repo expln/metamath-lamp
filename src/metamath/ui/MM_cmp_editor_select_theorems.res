@@ -77,7 +77,7 @@ let make = (
         {rndCheckboxes()}
         <Row>
             <Button 
-                onClick={_=>actOk()->Promise.done} 
+                onClick={_=>actOk()->Promise.ignore} 
                 variant=#contained
                 disabled={selectedLabels->Belt_SetString.size==0}
             > 

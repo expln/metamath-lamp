@@ -372,7 +372,7 @@ let apiMatcherToMatcher = (
                     )
                 } catch {
                     | MmException({msg}) => Error(msg)
-                    | Exn.Error(exn) => Error(exn->Exn.message->Belt_Option.getWithDefault("Unknown error."))
+                    | JsExn(exn) => Error(exn->JsExn.message->Belt_Option.getWithDefault("Unknown error."))
                 }
             }
         }
@@ -1158,7 +1158,7 @@ let findAsrtsByUnif = (
     let frames:Belt_MapString.t<frame> = wrkCtx->getAllFrames
     let frames:array<frame> = asrtLabels->Array.map(asrtLabel => frames->Belt_MapString.get(asrtLabel))
         ->Array.filter(Option.isSome)
-        ->Array.map(Option.getExn(_, ~message="MM_api_editor.findAsrtsByUnif.1"))
+        ->Array.map(Option.getOrThrow(_, ~message="MM_api_editor.findAsrtsByUnif.1"))
         ->Array.filter(frame => asrtSyntaxTrees->Belt_HashMapString.has(frame.label))
     let ctxDisj = wrkCtx->getAllDisj
     let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
@@ -1173,7 +1173,7 @@ let findAsrtsByUnif = (
                             ~asrtDisj=frame.disj,
                             ~ctxDisj,
                             ~asrtExpr=asrtSyntaxTrees->Belt_HashMapString.get(frame.label)
-                                ->Option.getExn(~message="MM_api_editor.findAsrtsByUnif.2"),
+                                ->Option.getOrThrow(~message="MM_api_editor.findAsrtsByUnif.2"),
                             ~ctxExpr=exprSyntaxTree,
                             ~isMetavar,
                             ~foundSubs,

@@ -19,12 +19,12 @@ let compareCompressedProofsAfterRenumbering = (
     let expectedLabelsSet = expectedLabels->Belt_HashSetString.fromArray
     actualLabelsSet->Belt_HashSetString.forEach(actualLabel => {
         if (!(expectedLabelsSet->Belt_HashSetString.has(actualLabel))) {
-            raise(MmException({msg:`!(expectedLabelsSet->Belt_HashSetString.has(actualLabel))`}))
+            throw(MmException({msg:`!(expectedLabelsSet->Belt_HashSetString.has(actualLabel))`}))
         }
     })
     expectedLabelsSet->Belt_HashSetString.forEach(expectedLabel => {
         if (!(actualLabelsSet->Belt_HashSetString.has(expectedLabel))) {
-            raise(MmException({msg:`!(actualLabelsSet->Belt_HashSetString.has(expectedLabel))`}))
+            throw(MmException({msg:`!(actualLabelsSet->Belt_HashSetString.has(expectedLabel))`}))
         }
     })
 

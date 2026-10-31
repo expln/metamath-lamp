@@ -8,7 +8,7 @@ let isFunction: 'a => bool = %raw(`obj => typeof obj === 'function'`)
 
 let reqExn = (nullable:Nullable.t<'a>, msg:string):'a => {
     switch nullable->Nullable.toOption {
-        | None => Exn.raiseError(`A required attribute is missing: ${msg}`)
+        | None => JsError.throwWithMessage(`A required attribute is missing: ${msg}`)
         | Some(value) => value
     }
 }
@@ -16,7 +16,7 @@ let reqExn = (nullable:Nullable.t<'a>, msg:string):'a => {
 let reqStrExn = (nullable:Nullable.t<'a>, msg:string):string => {
     let res = reqExn(nullable, msg)
     if (!isString(res)) {
-        Exn.raiseError(`Not a string: ${msg}`)
+        JsError.throwWithMessage(`Not a string: ${msg}`)
     } else {
         res
     }
@@ -27,7 +27,7 @@ let optStrExn = (nullable:Nullable.t<'a>, msg:string):option<string> => {
         | None => None
         | Some(res) => {
             if (!isString(res)) {
-                Exn.raiseError(`Not a string: ${msg}`)
+                JsError.throwWithMessage(`Not a string: ${msg}`)
             } else {
                 Some(res)
             }
@@ -38,7 +38,7 @@ let optStrExn = (nullable:Nullable.t<'a>, msg:string):option<string> => {
 let reqBoolExn = (nullable:Nullable.t<'a>, msg:string):bool => {
     let res = reqExn(nullable, msg)
     if (!isBool(res)) {
-        Exn.raiseError(`Not a boolean: ${msg}`)
+        JsError.throwWithMessage(`Not a boolean: ${msg}`)
     } else {
         res
     }
@@ -49,7 +49,7 @@ let optBoolExn = (nullable:Nullable.t<'a>, msg:string):option<bool> => {
         | None => None
         | Some(res) => {
             if (!isBool(res)) {
-                Exn.raiseError(`Not a boolean: ${msg}`)
+                JsError.throwWithMessage(`Not a boolean: ${msg}`)
             } else {
                 Some(res)
             }
@@ -60,7 +60,7 @@ let optBoolExn = (nullable:Nullable.t<'a>, msg:string):option<bool> => {
 let reqArrExn = (nullable:Nullable.t<'a>, msg:string):array<'b> => {
     let res = reqExn(nullable, msg)
     if (!isArray(res)) {
-        Exn.raiseError(`Not an array: ${msg}`)
+        JsError.throwWithMessage(`Not an array: ${msg}`)
     } else {
         res
     }
@@ -69,7 +69,7 @@ let reqArrExn = (nullable:Nullable.t<'a>, msg:string):array<'b> => {
 let reqObjExn = (nullable:Nullable.t<'a>, msg:string):'a => {
     let res = reqExn(nullable, msg)
     if (!isObject(res)) {
-        Exn.raiseError(`Not an object: ${msg}`)
+        JsError.throwWithMessage(`Not an object: ${msg}`)
     } else {
         res
     }
@@ -80,7 +80,7 @@ let optObjExn = (nullable:Nullable.t<'a>, msg:string):option<'a> => {
         | None => None
         | Some(res) => {
             if (!isObject(res)) {
-                Exn.raiseError(`Not an object: ${msg}`)
+                JsError.throwWithMessage(`Not an object: ${msg}`)
             } else {
                 Some(res)
             }
@@ -91,7 +91,7 @@ let optObjExn = (nullable:Nullable.t<'a>, msg:string):option<'a> => {
 let reqFuncExn = (nullable:Nullable.t<'a>, msg:string):'a => {
     let res = reqExn(nullable, msg)
     if (!isFunction(res)) {
-        Exn.raiseError(`Not a function: ${msg}`)
+        JsError.throwWithMessage(`Not a function: ${msg}`)
     } else {
         res
     }

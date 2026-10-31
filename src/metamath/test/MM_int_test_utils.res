@@ -108,15 +108,15 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let expectedResultStr = try {
         Expln_utils_files.readStringFromFile(fileWithExpectedResult)->String.replaceRegExp(%re("/\r/g"), "")
     } catch {
-        | Exn.Error(exn) => {
+        | JsExn(exn) => {
             if (
-                exn->Exn.message
+                exn->JsExn.message
                     ->Belt_Option.getWithDefault("")
                     ->String.includes("no such file or directory")
             ) {
                 ""
             } else {
-                raise(MmException({msg:`Could not read from ${fileWithExpectedResult}`}))
+                throw(MmException({msg:`Could not read from ${fileWithExpectedResult}`}))
             }
         }
     }
@@ -133,7 +133,7 @@ let assertNoErrors = (st) => {
     if (st->editorStateHasCriticalErrors) {
         let filePath = curTestDataDir.contents ++ "/" ++ "editor-state-error.txt"
         Expln_utils_files.writeStringToFile( st->editorStateToStr, filePath )
-        raise(MmException({msg:`Editor state has errors: ${filePath}`}))
+        throw(MmException({msg:`Editor state has errors: ${filePath}`}))
     }
 }
 

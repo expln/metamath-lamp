@@ -51,7 +51,7 @@ let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
                     ~allowedValues=[ "serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif", 
                         "ui-sans-serif", "ui-monospace", "ui-rounded", "emoji", "math", "fangsong", ])
                 | "font-size" => {
-                    switch attrValue->Js_string2.match_(fontSizeValuePattern) {
+                    switch attrValue->String.match(fontSizeValuePattern) {
                         | None => Error(`"font-size" attribute should be specified using "em" units.`)
                         | Some(_) => Ok(())
                     }
@@ -107,7 +107,7 @@ let createDomProps = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<Re
 let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
     let saveChild = (childrenStack:Belt_MutableStack.t<(string,array<reElem>)>, child:reElem):unit => {
         switch childrenStack->Belt_MutableStack.top {
-            | None => Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
+            | None => JsError.throwWithMessage("childrenStack->Belt_MutableStack.top is None")
             | Some((_,children)) => children->Array.push(child)
         }
     }
@@ -190,7 +190,7 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
     )
 
     switch resOpt {
-        | None => Exn.raiseError("Got None as a result of convertion from XML to React Elem.")
+        | None => JsError.throwWithMessage("Got None as a result of convertion from XML to React Elem.")
         | Some(res) => res
     }
 }

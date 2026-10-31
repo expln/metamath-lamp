@@ -64,7 +64,7 @@ let make = (
 
     let frmExprToStr = (asrtLabel,expr) => {
         switch wrkCtx->getFrame(asrtLabel) {
-            | None => raise(MmException({msg:`Cannot find an assertion by label '${asrtLabel}'`}))
+            | None => throw(MmException({msg:`Cannot find an assertion by label '${asrtLabel}'`}))
             | Some(frame) => wrkCtx->frmIntsToStrExn(frame, expr)
         }
     }

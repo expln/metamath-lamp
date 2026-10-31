@@ -26,7 +26,7 @@ let collectComments = (ast:mmAstNode):Belt_HashMapString.t<string> => {
 let assertCommentEq = (allComments:Belt_HashMapString.t<string>, testCaseName:string, expectedComment:string) => {
     assertEqMsg(
         allComments->Belt_HashMapString.get(testCaseName)
-            ->Option.getExn(~message=`No comment found for the test case ${testCaseName}.`),
+            ->Option.getOrThrow(~message=`No comment found for the test case ${testCaseName}.`),
         expectedComment,
         testCaseName
     )

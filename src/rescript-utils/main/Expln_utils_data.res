@@ -37,7 +37,7 @@ let traverseTree = (
                             if (hasPostProcess) {
                                 switch currNode.nodesToPostProcess {
                                     | None =>
-                                        raise(ExplnUtilsException({
+                                        throw(ExplnUtilsException({
                                             msg:"this case is not possible, because each node has itself in its nodesToPostProcess (1)"
                                         }))
                                     | Some(nodes) => {
@@ -65,7 +65,7 @@ let traverseTree = (
                                                         Some(nodes)
                                                     }
                                                     | _ => 
-                                                        raise(ExplnUtilsException({
+                                                        throw(ExplnUtilsException({
                                                             msg:"this case is not possible, because each node has itself in its nodesToPostProcess (2)"
                                                         }))
                                                 }

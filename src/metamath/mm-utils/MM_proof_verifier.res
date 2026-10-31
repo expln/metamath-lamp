@@ -106,13 +106,13 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
             let t = hyp.expr->Array.getUnsafe(0)
             let v = hyp.expr->Array.getUnsafe(1)
             if (subsLock->Array.getUnsafe(v)) {
-                raise(MmException({msg:`subsLock[v]`}))
+                throw(MmException({msg:`subsLock[v]`}))
             } else {
                 let subsExpr = stack->stGetExpr(baseIdx+i)
                 if (subsExpr->Array.length < 2) {
-                    raise(MmException({msg:`subsExpr->Array.length < 2`}))
+                    throw(MmException({msg:`subsExpr->Array.length < 2`}))
                 } else if (subsExpr->Array.getUnsafe(0) != t) {
-                    raise(MmException({msg:`subsExpr[0] != t`}))
+                    throw(MmException({msg:`subsExpr[0] != t`}))
                 } else {
                     subsLock[v] = true
                     subs[v] = subsExpr
@@ -121,7 +121,7 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
         }
     })
     if (subsLock->Array.some(lock => !lock)) {
-        raise(MmException({msg:`subsLock->Array.some(lock => !lock)`}))
+        throw(MmException({msg:`subsLock->Array.some(lock => !lock)`}))
     } else {
         subs
     }
@@ -131,7 +131,7 @@ let validateTopOfStackMatchesFrame = (stack:proofStack, frame, subs:array<expr>)
     let baseIdx = stack.nodes->Array.length - frame.numOfArgs
     frame.hyps->Array.forEachWithIndex((hyp,i) => {
         if (hyp.typ == E && !compareExprAfterSubstitution(hyp.expr, subs, stack->stGetExpr(baseIdx+i))) {
-            raise(MmException({msg:`!compareExprAfterSubstitution(ess, subs, stack->stGetExpr(baseIdx+i))`}))
+            throw(MmException({msg:`!compareExprAfterSubstitution(ess, subs, stack->stGetExpr(baseIdx+i))`}))
         }
     })
 }
@@ -183,7 +183,7 @@ let compressedProofStrToInt = (str:string):int => {
 
 let intToCompressedProofStr: int => string = i => {
     if (i < 1) {
-        raise(MmException({msg:`intToCompressedProofStr: i < 1`}))
+        throw(MmException({msg:`intToCompressedProofStr: i < 1`}))
     } else {
         let res = [String.fromCharCode(aCode + mod(i-1,20))]
         let i = ref((i-1)/20)
@@ -259,7 +259,7 @@ let applyAsrt = (
 ):unit => {
     let stackLength = stack.nodes->Array.length
     if (stackLength < frame.numOfArgs) {
-        raise(MmException({msg:`stackLength < numOfArgs`}))
+        throw(MmException({msg:`stackLength < numOfArgs`}))
     } else {
         let subs = stExtractSubstitution(stack, frame)
         switch verifyDisjoints( ~subs, ~frmDisj=frame.disj, ~isDisjInCtx) {
@@ -269,7 +269,7 @@ let applyAsrt = (
                     ~exprToStr = ctxIntsToStrExn(ctx, _),
                     ~frmExprToStr = expr => ctx->frmIntsToStrExn(frame, expr),
                 )
-                raise(MmException({msg:`Disjoint verification failed: ${errMsg}`}))
+                throw(MmException({msg:`Disjoint verification failed: ${errMsg}`}))
             }
             | None => ()
         }
@@ -278,7 +278,7 @@ let applyAsrt = (
         let newNode = Calculated({
             id: stack.nextId,
             asrtLabel: frame.label,
-            args: stack.nodes->Array.sliceToEnd(~start=stackLength - frame.numOfArgs),
+            args: stack.nodes->Array.slice(~start=stackLength - frame.numOfArgs),
             expr,
             dbg:
                 if (ctx->isDebug) {
@@ -320,7 +320,7 @@ let applyUncompressedProof = (
             | None => {
                 switch ctx->getFrame(step) {
                     | Some(frame) => applyAsrt( ~stack, ~frame, ~ctx, ~isDisjInCtx )
-                    | None => raise(MmException({msg:`The proof step '${step}' doesn't refer to a hypothesis or assertion (in uncompressed proof).`}))
+                    | None => throw(MmException({msg:`The proof step '${step}' doesn't refer to a hypothesis or assertion (in uncompressed proof).`}))
                 }
             }
         }
@@ -359,14 +359,14 @@ let applyCompressedProof = (
         if (step == "Z") {
             let stackLen = stack.nodes->Array.length
             if (stackLen == 0) {
-                raise(MmException({msg:`Cannot execute 'Z' command because the stack is empty.`}))
+                throw(MmException({msg:`Cannot execute 'Z' command because the stack is empty.`}))
             } else {
                 savedNodes->Array.push(stack.nodes->Array.getUnsafe(stackLen-1))
             }
         } else {
             let i = compressedProofStrToInt(step)
             if (i < 1) {
-                raise(MmException({msg:`Unexpected condition when applying compressed proof: i < 1.`}))
+                throw(MmException({msg:`Unexpected condition when applying compressed proof: i < 1.`}))
             } else if (i <= hypLen) {
                 pushHypToStack(hyps->Array.getUnsafe(i-1))
             } else if (i <= hypLenPlusLabelsLen) {
@@ -376,13 +376,13 @@ let applyCompressedProof = (
                     | None => {
                         switch ctx->getFrame(labelToApply) {
                             | Some(frame) => applyAsrt( ~stack, ~frame, ~ctx, ~isDisjInCtx )
-                            | None => raise(MmException({msg:`The proof step '${labelToApply}' doesn't refer to a hypothesis or assertion (in compressed proof).`}))
+                            | None => throw(MmException({msg:`The proof step '${labelToApply}' doesn't refer to a hypothesis or assertion (in compressed proof).`}))
                         }
                     }
                 }
             } else {
                 switch savedNodes->Belt_Array.get(i-hypLenPlusLabelsLen-1) {
-                    | None => raise(MmException({msg:`Compressed proof refers to a saved step by the index which is out of bounds.`}))
+                    | None => throw(MmException({msg:`Compressed proof refers to a saved step by the index which is out of bounds.`}))
                     | Some(node) => stack.nodes->Array.push(node)
                 }
             }
@@ -406,9 +406,9 @@ let verifyProof = (
         | Uncompressed({labels}) => applyUncompressedProof(~ctx, ~stack, ~proofLabels=labels, ~isDisjInCtx)
     }
     if (stack.nodes->Array.length != 1) {
-        raise(MmException({msg:`stack->Array.length is ${stack.nodes->Array.length->Belt_Int.toString} but must be 1.`}))
+        throw(MmException({msg:`stack->Array.length is ${stack.nodes->Array.length->Belt_Int.toString} but must be 1.`}))
     } else if (!(stack->stGetExpr(0)->exprEq(expr))) {
-        raise(MmException({msg:
+        throw(MmException({msg:
             `stack[0] != expr` 
                 ++ `\nstack[0] is '${stack->stGetExpr(0)->ctxIntsToStrExn(ctx,_)}'`
                 ++ `\nexpr is     '${expr->ctxIntsToStrExn(ctx,_)}'`

@@ -1,5 +1,3 @@
-open Expln_React_common
-
 type valueLabelDisplay = [ #on | #off | #auto ]
 type size = [ #small | #medium ]
 

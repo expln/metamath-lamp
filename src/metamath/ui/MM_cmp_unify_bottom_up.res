@@ -188,7 +188,7 @@ let makeInitialState = (
             {
                 id: stmt.id,
                 expr: switch stmt.expr {
-                    | None => raise(MmException({msg:`expr must be set on a root statement.`}))
+                    | None => throw(MmException({msg:`expr must be set on a root statement.`}))
                     | Some(expr) => expr
                 },
                 isHyp:stmt.typ == E,
@@ -624,7 +624,7 @@ let sortByFromStr = str => {
         | "UnprovedStmtsNum" => UnprovedStmtsNum
         | "NumOfNewVars" => NumOfNewVars
         | "AsrtLabel" => AsrtLabel
-        | _ => raise(MmException({msg:`Cannot convert value of '${str}' to a sortBy.`}))
+        | _ => throw(MmException({msg:`Cannot convert value of '${str}' to a sortBy.`}))
     }
 }
 
@@ -803,7 +803,7 @@ let make = (
     let exprToLabel = (state:state, expr:expr):string => {
         switch state.rootStmtsRendered->Array.find(stmt => exprEq(expr, stmt.expr)) {
             | None => {
-                raise(MmException({
+                throw(MmException({
                     msg: "Could not find a label for an expression in MM_cmp_unify_bottom_up.exprToLabel()"
                 }))
             }
@@ -920,10 +920,11 @@ let make = (
                 let apiCallStartTimeStr = apiCallStartTime->Date.toISOString
                 if (!(startedForApiCalls->Array.includes(apiCallStartTimeStr))) {
                     startedForApiCalls->Array.push(apiCallStartTimeStr)
-                    startedForApiCalls->Js_array2.removeCountInPlace(
-                        ~pos=0, 
-                        ~count=startedForApiCalls->Array.length - 5
-                    )->ignore
+                    startedForApiCalls->Array.splice(
+                        ~start=0, 
+                        ~remove=startedForApiCalls->Array.length - 5,
+                        ~insert=[]
+                    )
                     setTimeout(() => actProve(), delayBeforeStartMs)->ignore
                 }
             }
@@ -989,7 +990,7 @@ let make = (
                     switch state.results {
                         | None => ()
                         | Some(Ok(_)) => {
-                            Exn.raiseError(
+                            JsError.throwWithMessage(
                                 "Internal error: state.resultsSorted is None, but state.results is Some(Ok(_))"
                             )
                         }
@@ -1412,7 +1413,7 @@ let make = (
                 switch state.results {
                     | None => React.null
                     | Some(Ok(_)) => {
-                        Exn.raiseError(
+                        JsError.throwWithMessage(
                             "Internal error: state.resultsSorted is None, but state.results is Some(Ok(_))"
                         )
                     }

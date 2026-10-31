@@ -91,7 +91,7 @@ let findTypes = (ctx:mmContext): (array<int>,Belt_HashMapInt.t<array<int>>) => {
             )
         } else if (args->Array.length == 3 && args->Array.getUnsafe(1) == "as") {
             let types = [args->Array.getUnsafe(0), args->Array.getUnsafe(2)]
-                ->Array.map(ctxSymToInt(ctx,_))->Array.filter(Option.isSome)->Array.map(Option.getExn(_))
+                ->Array.map(ctxSymToInt(ctx,_))->Array.filter(Option.isSome)->Array.map(Option.getOrThrow(_))
             if (types->Array.length == 2) {
                 let typ1 = types->Array.getUnsafe(0)
                 let typ2 = types->Array.getUnsafe(1)

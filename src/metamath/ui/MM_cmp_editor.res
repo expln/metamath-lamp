@@ -1540,7 +1540,7 @@ let make = (
         let stmtToInlineRef = ref(getNextStmt())
         while (stmtToInlineRef.contents->Option.isSome && errMsg.contents->Option.isNone) {
             let stmtToInline = stmtToInlineRef.contents
-                ->Option.getExn(~message="inlineTheoremForSteps: stmtToInlineRef.contents is None.")
+                ->Option.getOrThrow(~message="inlineTheoremForSteps: stmtToInlineRef.contents is None.")
             switch inlineTheoremForStep(
                 ~state=state.contents,
                 ~stmtId=stmtToInline.id,
@@ -1617,7 +1617,7 @@ let make = (
                     })
                     ->Array.filter(Option.isSome(_))
                     ->Array.map(opt => {
-                        opt->Option.getExn(
+                        opt->Option.getOrThrow(
                             ~message="actInlineTheorems internal error: cannot map to label."
                         )
                     })
@@ -2457,7 +2457,7 @@ let make = (
                         )->Promise.thenResolve(asrtSyntaxTreesArr => {
                             preCtxData.asrtSyntaxTrees = Some(Belt_HashMapString.fromArray(asrtSyntaxTreesArr))
                             closeModal(modalRef, modalId)
-                            preCtxData.asrtSyntaxTrees->Option.getExn(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
+                            preCtxData.asrtSyntaxTrees->Option.getOrThrow(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
                         })
                     })
             }
@@ -2478,7 +2478,7 @@ let make = (
                     ->Array.map(((label,_)) => label)
                     ->Array.map(label =>
                         preCtxData.ctxV.val.full->getFrame(label)
-                            ->Option.getExn(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
+                            ->Option.getOrThrow(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
                     )
                     ->Array.filter(frm => frm.ord <= maxFrmOrd.contents)
             )

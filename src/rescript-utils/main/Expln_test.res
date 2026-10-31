@@ -24,7 +24,7 @@ let it: (string, unit=>unit) => unit = (name, test) => {
                 Console.log("##############################################################")
                 Console.log2("error in test", exn)
                 Console.log("##############################################################")
-                raise(exn)
+                throw(exn)
             }
         }
     })->ignore

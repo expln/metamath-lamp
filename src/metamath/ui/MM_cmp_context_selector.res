@@ -122,7 +122,7 @@ let getFileNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
         | Some(Local({fileName})) => Some(fileName)
         | Some(Web({url})) => {
             // +1 to remove the delimiter /
-            Some(url->String.substringToEnd(~start=FileLoader.getBasePath(url)->String.length + 1))
+            Some(url->String.substring(~start=FileLoader.getBasePath(url)->String.length + 1))
         }
     }
 }
@@ -610,7 +610,7 @@ let make = (
                         level, 
                         statements: statements->Array.map(replaceIncludesInAst(_, ~pathToAst, ~replacedPaths))
                             ->Array.filter(Option.isSome)
-                            ->Array.map(Option.getExn(_))
+                            ->Array.map(Option.getOrThrow(_))
                             ->Array.flatMap(childAst => {
                                 switch childAst.stmt {
                                     | Block({level, statements}) if level == 0 => {
@@ -633,7 +633,7 @@ let make = (
             url->String.startsWith(localFileUrlPrefix) || Common.isTrustedUrl(trustedUrls.current, url)
         let loadTextFromUrl = async (url:string):string => {
             if (url->String.startsWith(localFileUrlPrefix)) {
-                let fileName = url->String.substringToEnd(~start=localFileUrlPrefix->String.length)
+                let fileName = url->String.substring(~start=localFileUrlPrefix->String.length)
                 switch localFiles->Belt_HashMapString.get(fileName) {
                     | Some(text) => text
                     | None => panic(`Cannot find local file content for ${fileName}`)
@@ -680,7 +680,7 @@ let make = (
                 id:url,
                 srcType:Web,
                 fileSrc:Some(Web({alias:url, url})),
-                fileText:Some(Text(text->Option.getExn(~message="Intenal error: expected to have text loaded"))),
+                fileText:Some(Text(text->Option.getOrThrow(~message="Intenal error: expected to have text loaded"))),
                 ast:None,
                 allLabels:[],
                 readInstr:ReadAll,
@@ -721,7 +721,7 @@ let make = (
                     ))
                     while (newPaths.contents->Array.length > 0) {
                         let urlsToLoad = newPaths.contents->Array.map(
-                            path => Belt_HashMapString.get(pathToUrl, path)->Option.getExn
+                            path => Belt_HashMapString.get(pathToUrl, path)->Option.getOrThrow
                         )
                         let loadedFiles = await loadAndParseFiles(urlsToLoad, localFiles)
                         let i = ref(0)
@@ -839,7 +839,7 @@ let make = (
                 fileSrc=singleScope.fileSrc
                 onFileChange={(src,text,localFiles)=>
                     actParseMmFileText(~id=singleScope.id, ~src, ~text, ~localFiles)
-                        ->Promise.thenResolve(st => setState(_ => st))->Promise.done
+                        ->Promise.thenResolve(st => setState(_ => st))->Promise.ignore
                 }
                 parseError={
                     switch singleScope.ast {

@@ -98,7 +98,7 @@ let make = React.memoCustomCompareProps( ({
                             )
                         ))
                     })
-                })->Promise.done
+                })->Promise.ignore
             }
         }
     }

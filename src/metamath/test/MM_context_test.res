@@ -105,7 +105,7 @@ describe("moveConstsToBegin", _ => {
         )
 
         //then
-        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
+        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Expln_utils_common.sortInPlaceWith((a,b) => String.compare(a->Belt_Int.toString, b->Belt_Int.toString)), [-1,-2,-3,-4,-5,-6])
     })
 
     it("doesn't fail if variables or unrecognized symbols are provided", _ => {
@@ -123,7 +123,7 @@ describe("moveConstsToBegin", _ => {
         )
 
         //then
-        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
+        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Expln_utils_common.sortInPlaceWith((a,b) => String.compare(a->Belt_Int.toString, b->Belt_Int.toString)), [-1,-2,-3,-4,-5,-6])
     })
 
     it("doesn't break var types", _ => {

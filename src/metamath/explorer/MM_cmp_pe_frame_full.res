@@ -81,7 +81,7 @@ let createVDataRec = (
                 if (hyp.typ == F) {
                     subs->Belt_HashMapString.set(
                         frame.frameVarToSymb->Array.getUnsafe(hyp.expr->Array.getUnsafe(1)),
-                        exprsStr->Array.getUnsafe(args->Array.getUnsafe(i))->Array.sliceToEnd(~start=1)
+                        exprsStr->Array.getUnsafe(args->Array.getUnsafe(i))->Array.slice(~start=1)
                     )
                 }
             })
@@ -193,7 +193,7 @@ let createInitialState = (
         switch frmCtx->ctxSymToInt(
             if (i < 0) { preCtx->ctxIntToSymExn(i) } else { frame.frameVarToSymb->Array.getUnsafe(i) }
         ) {
-            | None => raise(MmException({msg:`preCtx->ctxSymToInt == None in frmIntToCtxInt`}))
+            | None => throw(MmException({msg:`preCtx->ctxSymToInt == None in frmIntToCtxInt`}))
             | Some(n) => n
         }
     }
@@ -241,7 +241,7 @@ let createInitialState = (
         ->Belt_HashSetString.toArray
         ->Array.map(getFrame(preCtx, _))
         ->Array.filter(Option.isSome)
-        ->Array.map(Option.getExn(_))
+        ->Array.map(Option.getOrThrow(_))
         ->Array.filter(frm => frm.isAxiom)
         ->Array.length
     
@@ -641,7 +641,7 @@ let frameProofDataToStmtsDto = (
                 Some(
                     (
                         wrkCtx->frmIntToSymExn(frameProofData.frame, hyp.expr->Array.getUnsafe(1)),
-                        wrkCtx->ctxIntsToStrExn((proofTreeDto.nodes->Array.getUnsafe(arg)).expr->Array.sliceToEnd(~start=1)),
+                        wrkCtx->ctxIntsToStrExn((proofTreeDto.nodes->Array.getUnsafe(arg)).expr->Array.slice(~start=1)),
                     )
                 )
             } else {

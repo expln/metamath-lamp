@@ -43,7 +43,7 @@ let make = (
 
     let actAliasSelected = alias => {
         switch availableWebSrcs->Array.find(src => src.alias == alias) {
-            | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
+            | None => throw(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
             | Some(webSrc) => {
                 FileLoader.loadFileWithProgress(
                     ~modalRef,
@@ -233,7 +233,7 @@ let make = (
                                         onFileChange(
                                             Local({fileName:fileName}),
                                             fileNameToText->Belt_HashMapString.get(fileName)
-                                                ->Option.getExn(
+                                                ->Option.getOrThrow(
                                                     ~message=`Internal error: cannot get file by name ${fileName}`
                                                 ),
                                             fileNameToText

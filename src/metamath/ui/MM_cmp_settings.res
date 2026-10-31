@@ -287,7 +287,7 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
     let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
         let newId = ts.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
         let newTyp = ts.typ->String.trim
-        let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
+        let typHasWhitespace = newTyp->String.match(strContainsWhitespaceRegex)->Belt.Option.isSome
         let typIsEmpty = newTyp->String.length == 0
         let newColor = if (!(allColors->Array.includes(ts.color))) {
             allColors->Array.getUnsafe(0)
@@ -295,7 +295,7 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
             ts.color
         }
         let newPrefix = ts.prefix->String.trim
-        let prefixHasWhitespace = newPrefix->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
+        let prefixHasWhitespace = newPrefix->String.match(strContainsWhitespaceRegex)->Belt.Option.isSome
         let prefixIsEmpty = newPrefix->String.length == 0
         let err = if (typHasWhitespace) {
             Some("Type should not contain whitespaces.")
@@ -759,7 +759,7 @@ let readStateFromLocStor = ():settingsState => {
                 }
             }), ~default=()=>defaultSettings)
             switch parseResult {
-                | Error(msg) => raise(MmException({msg:`Cannot read settings from the local storage: ${msg}`}))
+                | Error(msg) => throw(MmException({msg:`Cannot read settings from the local storage: ${msg}`}))
                 | Ok(state) => {
                     validateAndCorrectState(state)
                 }
@@ -1650,7 +1650,7 @@ let make = (
     let rndApplyChangesBtn = () => {
         let disabled = eqState(prevState, state)
         <Row spacing=3. alignItems={#baseline}>
-            <Button disabled onClick={_=>actApplyChanges()->Promise.done} variant=#contained 
+            <Button disabled onClick={_=>actApplyChanges()->Promise.ignore} variant=#contained 
                 color=?{if(!isValid(state)){Some("pastelred")}else{None}}
             >
                 {React.string("Apply changes")}

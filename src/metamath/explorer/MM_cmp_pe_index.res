@@ -194,7 +194,7 @@ let make = React.memoCustomCompareProps(({
             }
             None
         })->ignore
-        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
+        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Expln_utils_common.sortInPlaceWith(String.compare)
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
         //make sure the selected type is still present in the context
@@ -228,7 +228,7 @@ let make = React.memoCustomCompareProps(({
                                 ~allFramesInDeclarationOrder,
                                 ~isAxiom=isAxiomFilter,
                                 ~typ=stmtTypeFilter->Option.map(typ => {
-                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
+                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getOrThrow(
                                         ~message=`Cannot convert symbol '${typ}' to int ` 
                                             ++ `in MM_cmp_pe_index.actApplyFilters[1].`
                                     )
@@ -259,7 +259,7 @@ let make = React.memoCustomCompareProps(({
                                 ~preCtx=preCtxData.ctxV.val.min,
                                 ~isAxiom=isAxiomFilter,
                                 ~typ=stmtTypeFilter->Option.map(typ => {
-                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
+                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getOrThrow(
                                         ~message=`Cannot convert symbol '${typ}' to int ` 
                                             ++ `in MM_cmp_pe_index.actApplyFilters[2].`
                                     )
@@ -285,7 +285,7 @@ let make = React.memoCustomCompareProps(({
                                             (
                                                 frame, 
                                                 labelToIdxs->Belt_HashMapString.get(frame.label)
-                                                    ->Option.getExn(~message="Error MM_cmp_pe_index.actApplyFilters[3]")
+                                                    ->Option.getOrThrow(~message="Error MM_cmp_pe_index.actApplyFilters[3]")
                                             )
                                         })
                                         ->filterByNonWrk

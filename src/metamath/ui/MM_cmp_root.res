@@ -380,7 +380,7 @@ let make = () => {
     let markUrlAsTrusted: React.ref<string=>unit> = React.useRef(_ => ())
     React.useEffect1(() => {
         markUrlAsTrusted.current = (url:string):unit => {
-            state.preCtxData.settingsV.val->MM_wrk_settings.markUrlAsTrusted(url)->actSettingsUpdated->Promise.done
+            state.preCtxData.settingsV.val->MM_wrk_settings.markUrlAsTrusted(url)->actSettingsUpdated->Promise.ignore
             trustedUrls.current->Array.push(url)
         }
         None
@@ -551,7 +551,7 @@ let make = () => {
             | None => ()
             | Some(initialStateLocStor) => {
                 reloadCtx.current->Option.forEach(reloadCtx => {
-                    reloadCtx(~srcs=initialStateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->Promise.done
+                    reloadCtx(~srcs=initialStateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->Promise.ignore
                 })
             }
         }
@@ -650,7 +650,7 @@ let make = () => {
                             modalRef
                             tabs={
                                 tabs
-                                    ->Array.sliceToEnd(~start=2)
+                                    ->Array.slice(~start=2)
                                     ->Array.map(tab => {MM_cmp_tabs_manager.id:tab.id, icon:tab.icon, label:tab.label})
                             }
                             onTabRename=actRenameTab

@@ -83,7 +83,7 @@ let applyWrkSubs = (expr, wrkSubs:wrkSubs): expr => {
             resultSize.contents = resultSize.contents + 1
         } else {
             switch wrkSubs.subs->Belt_MapInt.get(s) {
-                | None => raise(MmException({msg:`Cannot find a substitution for ${s->Belt_Int.toString} in applyWrkSubs.`}))
+                | None => throw(MmException({msg:`Cannot find a substitution for ${s->Belt_Int.toString} in applyWrkSubs.`}))
                 | Some(expr) => resultSize.contents = resultSize.contents + expr->Array.length
             }
         }
@@ -118,7 +118,7 @@ let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wr
 
 let applySubstitutionForEditor = (st, wrkSubs:wrkSubs):editorState => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot apply substitution without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot apply substitution without wrkCtx.`}))
         | Some(wrkCtx) => {
             let st = createNewDisj(st, wrkSubs.newDisj)
             {
@@ -132,7 +132,7 @@ let applySubstitutionForEditor = (st, wrkSubs:wrkSubs):editorState => {
 let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
     let frameVarToCtxVar = frameVar => {
         switch tmpFrame.frameVarToSymb->Belt_Array.get(frameVar) {
-            | None => raise(MmException({msg:`Cannot convert frameVar to ctxVar.`}))
+            | None => throw(MmException({msg:`Cannot convert frameVar to ctxVar.`}))
             | Some(ctxSym) => ctx->ctxSymToIntExn(ctxSym)
         }
     }
@@ -144,7 +144,7 @@ let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
                     ~frmExpr=[v],
                     ~subs,
                     ~createWorkVar = 
-                        _ => raise(MmException({msg:`Work variables are not supported in convertSubsToWrkSubs().`}))
+                        _ => throw(MmException({msg:`Work variables are not supported in convertSubsToWrkSubs().`}))
                 )
             )
         })
@@ -193,7 +193,7 @@ let findPossibleSubsByMatch = (
         Ok(foundSubs)
     } catch {
         | MmException({msg}) => Error(msg)
-        | Exn.Error(exn) => Error(exn->Exn.message->Belt_Option.getWithDefault("Unknown error."))
+        | JsExn(exn) => Error(exn->JsExn.message->Belt_Option.getWithDefault("Unknown error."))
     }
 }
 
@@ -278,7 +278,7 @@ let buildSyntaxTreesOfSameType = (
 
 let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
     if (expr->Array.length > 0 && allTypes->Array.includes(expr->Array.getUnsafe(0))) {
-        expr->Array.sliceToEnd(~start=1)
+        expr->Array.slice(~start=1)
     } else {
         expr
     }
@@ -331,7 +331,7 @@ let findPossibleSubsByUnif = (
 
 let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:bool):result<array<wrkSubs>,string> => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
             let foundSubs = if (useMatching) {
                 findPossibleSubsByMatch(~wrkCtx, ~parenCnt=st.preCtxData.parenCnt, ~frmExpr, ~expr)

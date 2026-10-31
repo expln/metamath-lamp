@@ -127,12 +127,12 @@ let extractSubstringByRegexWithErrMsg = (str:string, regex:RegExp.t, errMsg:stri
     }
 }
 
-let funcArgsRegex = RegExp.fromStringWithFlags("^[^\\(\\)]*\\(([^\\)]*)\\)", ~flags="s")
+let funcArgsRegex = RegExp.fromString("^[^\\(\\)]*\\(([^\\)]*)\\)", ~flags="s")
 let getFunctionParams = (funcStr:string):result<string,string> => {
     extractSubstringByRegexWithErrMsg(funcStr, funcArgsRegex, "Cannot extract the list of paramaters")
 }
 
-let funcBodyRegex = RegExp.fromStringWithFlags("[^\\{]*\\{(.*)\\}\\s*$", ~flags="s")
+let funcBodyRegex = RegExp.fromString("[^\\{]*\\{(.*)\\}\\s*$", ~flags="s")
 let getFunctionBody = (funcStr:string):result<string,string> => {
     extractSubstringByRegexWithErrMsg(funcStr, funcBodyRegex, "Cannot extract the function body")
 }
@@ -267,7 +267,7 @@ let srcToNewStmts = (
                                     reservedLabels->Belt_HashSetString.add(newLabel)
                                     newLabel
                                 } else {
-                                    raise(MmException({msg:`Could not find a label for an expr.`}))
+                                    throw(MmException({msg:`Could not find a label for an expr.`}))
                                 }
                             }
                         }
@@ -295,12 +295,12 @@ let srcToNewStmts = (
             let intToSym = i => {
                 if (i <= maxCtxVar) {
                     switch ctx->ctxIntToSym(i) {
-                        | None => raise(MmException({msg:`Cannot determine sym for an existing int in srcToNewStmts.`}))
+                        | None => throw(MmException({msg:`Cannot determine sym for an existing int in srcToNewStmts.`}))
                         | Some(sym) => sym
                     }
                 } else {
                     switch newVarNames->Belt_HashMapInt.get(i) {
-                        | None => raise(MmException({msg:`Cannot determine name of a new var in srcToNewStmts.`}))
+                        | None => throw(MmException({msg:`Cannot determine name of a new var in srcToNewStmts.`}))
                         | Some(name) => name
                     }
                 }
@@ -308,7 +308,7 @@ let srcToNewStmts = (
 
             let getFrame = (label:string):frame => {
                 switch ctx->getFrame(label) {
-                    | None => raise(MmException({msg:`Cannot get a frame by label '${label} in srcToNewStmts.'`}))
+                    | None => throw(MmException({msg:`Cannot get a frame by label '${label} in srcToNewStmts.'`}))
                     | Some(frame) => frame
                 }
             }
@@ -317,7 +317,7 @@ let srcToNewStmts = (
                 expr->Array.forEach(ei => {
                     if (ei > maxCtxVar && !(res.newVars->Array.includes(ei))) {
                         switch newVarTypes->Belt_HashMapInt.get(ei) {
-                            | None => raise(MmException({msg:`Cannot determine type of a new var in srcToNewStmts.`}))
+                            | None => throw(MmException({msg:`Cannot determine type of a new var in srcToNewStmts.`}))
                             | Some(typ) => addNewVarToResult(~newVarInt=ei, ~newVarType=typ)
                         }
                     }
@@ -481,7 +481,7 @@ let proofTreeDtoToNewStmtsDto = (
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Array.map(@warning("-8")([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
     let proofNode = switch treeDto.nodes->Array.find(node => node.expr->exprEq(exprToProve)) {
-        | None => raise(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
+        | None => throw(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
         | Some(node) => node
     }
 

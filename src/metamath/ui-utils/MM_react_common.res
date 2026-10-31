@@ -248,7 +248,7 @@ let openModalPaneWithTitle = (
             ~title?,
             ~content=content(~close),
         )
-    )->Promise.done
+    )->Promise.ignore
 }
 
 let rndDialogContent = (
@@ -357,7 +357,7 @@ let openInfoDialog = (
             })),
             ~cancelBtnText?,
         )
-    )->Promise.done
+    )->Promise.ignore
 }
 
 let openOkCancelDialog = (

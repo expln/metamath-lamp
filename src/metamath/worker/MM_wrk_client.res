@@ -45,7 +45,7 @@ let unregClient = id => {
     let i = ref(0)
     while (i.contents < clients->Array.length) {
         if ((clients->Array.getUnsafe(i.contents)).id == id) {
-            clients->Js_array2.removeCountInPlace(~pos=i.contents, ~count=1)->ignore
+            clients->Array.removeInPlace(i.contents)
         } else {
             i.contents = i.contents + 1
         }
@@ -69,7 +69,7 @@ let sendToWorkerPriv: workerRequest => unit = req => {
         webworkerRef.contents = Some(webworker)
     }
     switch webworkerRef.contents {
-        | None => raise(WorkerException(`Could not instantiate a webworker.`))
+        | None => throw(WorkerException(`Could not instantiate a webworker.`))
         | Some(webworker) => webworker["postMessage"](req)
     }
 }

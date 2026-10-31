@@ -24,7 +24,7 @@ type state = {
 
 let makeInitialState = (frms, initialTyp:option<int>) => {
     if (frms->frmsSize == 0) {
-        raise(MmException({msg:`Cannot search assertions when frms are empty.`}))
+        throw(MmException({msg:`Cannot search assertions when frms are empty.`}))
     }
     let allTypes = frms->frmsGetAllTypes
     {

@@ -61,9 +61,9 @@ let testTransform = (
     )
     let syntaxTreeNode = switch syntaxTree {
         | Ok([Ok(syntaxTreeNode)]) => syntaxTreeNode
-        | Error(msg) => Exn.raiseError(`[error-1] ${msg}; when building a syntax tree for '${selectedFragment}'`)
-        | Ok([Error(msg)]) => Exn.raiseError(`[error-2] ${msg}; when building a syntax tree for '${selectedFragment}'`)
-        | _ => Exn.raiseError(`[error-3] when building a syntax tree for '${selectedFragment}'`)
+        | Error(msg) => JsError.throwWithMessage(`[error-1] ${msg}; when building a syntax tree for '${selectedFragment}'`)
+        | Ok([Error(msg)]) => JsError.throwWithMessage(`[error-2] ${msg}; when building a syntax tree for '${selectedFragment}'`)
+        | _ => JsError.throwWithMessage(`[error-3] when building a syntax tree for '${selectedFragment}'`)
     }
 
     let step:userStmt = {

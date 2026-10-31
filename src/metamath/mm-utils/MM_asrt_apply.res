@@ -24,7 +24,7 @@ let applyAssertionResultHash = (a:applyAssertionResult):int => {
     )
 }
 
-module ApplyAssertionResultHash = Belt.Id.MakeHashableU({
+module ApplyAssertionResultHash = Belt.Id.MakeHashable({
     type t = applyAssertionResult
     let hash = applyAssertionResultHash
     let eq = applyAssertionResultEq
@@ -236,8 +236,12 @@ let iterateSubstitutionsWithWorkVars = (
     }
 
     predefinedSubs->Array.forEachWithIndex((predefined,i) => frm.subs.isDefined[i]=predefined)
-    workVars.newVars->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
-    workVars.newVarTypes->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
+    workVars.newVars->Array.splice(
+        ~start=initialNumOfWorkVars, ~remove=workVars.newVars->Array.length - initialNumOfWorkVars, ~insert=[]
+    )
+    workVars.newVarTypes->Array.splice(
+        ~start=initialNumOfWorkVars, ~remove=workVars.newVarTypes->Array.length - initialNumOfWorkVars, ~insert=[]
+    )
 
     res
 }
@@ -268,7 +272,7 @@ let getNextBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
 
 let getNextHypIdxToMatch = (hypIdx:int, comb:array<int>):int => {
     if (hypIdx >= comb->Array.length) {
-        raise(MmException({msg:`getNextHypIdxToMatch: hypIdx >= comb->Array.length`}))
+        throw(MmException({msg:`getNextHypIdxToMatch: hypIdx >= comb->Array.length`}))
     } else if (hypIdx < 0 || comb->Array.getUnsafe(hypIdx) >= 0) {
         switch getNextNonBlankIdx(hypIdx, comb) {
             | Some(idx) => idx

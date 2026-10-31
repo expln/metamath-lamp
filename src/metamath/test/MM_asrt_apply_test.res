@@ -205,7 +205,7 @@ let testApplyAssertions = (
                 let argExpr = applySubs(
                     ~frmExpr=hyp.expr,
                     ~subs=res.subs,
-                    ~createWorkVar=_=>raise(MmException({msg:`Cannot create work var in testApplyAssertions[1]`}))
+                    ~createWorkVar=_=>throw(MmException({msg:`Cannot create work var in testApplyAssertions[1]`}))
                 )
                 switch statements->Array.find(({expr}) => exprEq(expr,argExpr)) {
                     | Some({label}) => {
@@ -231,7 +231,7 @@ let testApplyAssertions = (
             applySubs(
                 ~frmExpr=frame.asrt,
                 ~subs=res.subs,
-                ~createWorkVar=_=>raise(MmException({msg:`Cannot create work var in testApplyAssertions[2]`}))
+                ~createWorkVar=_=>throw(MmException({msg:`Cannot create work var in testApplyAssertions[2]`}))
             )
         )
         workCtx->resetToParentContext
@@ -305,7 +305,7 @@ let testApplyAssertions = (
 
     //then
     let actualResultsStr = actualResults->Belt_MutableMapString.keysToArray
-        ->Js_array2.sortInPlace
+        ->Expln_utils_common.sortInPlaceWith(String.compare)
         ->Array.map(astrLabel => {
             switch actualResults->Belt_MutableMapString.get(astrLabel) {
                 | None => failMsg("actualResults->Belt_MutableMapString.get(astrLabel) == None")

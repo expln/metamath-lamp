@@ -522,7 +522,7 @@ module VisualizedJstf = {
                                         subs->Belt_HashMapString.set(
                                             frmSym,
                                             wrkCtx->ctxIntsToSymsExn( 
-                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Array.sliceToEnd(~start=1)
+                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Array.slice(~start=1)
                                             )
                                         )
                                         let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0))
@@ -555,7 +555,7 @@ let userStmtTypeAndIsGoalFromStr = (stmtTypeStr:string):(userStmtType,bool) => {
         | "e" => (E,false)
         | "p" => (P,false)
         | "g" => (P,true)
-        | _ => raise(MmException({msg:`Cannot convert '${stmtTypeStr}' to userStmtType and isGoal.`}))
+        | _ => throw(MmException({msg:`Cannot convert '${stmtTypeStr}' to userStmtType and isGoal.`}))
     }
 }
 
@@ -861,12 +861,12 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let before = (str:string, pos:int):string => str->String.substring(~start=0,~end=pos)
-    let after = (str:string, pos:int):string => str->String.substringToEnd(~start=pos+1)
+    let after = (str:string, pos:int):string => str->String.substring(~start=pos+1)
 
     let getLastSymbol = (str:string):string => {
         switch str->String.lastIndexOf(" ") {
             | -1 => str
-            | idx => str->String.substringToEnd(~start=idx+1)
+            | idx => str->String.substring(~start=idx+1)
         }
     }
 
@@ -1062,7 +1062,7 @@ let make = React.memoCustomCompareProps( ({
                 Some(
                     currentText->String.slice(~start=0, ~end=low)
                         ++ newText
-                        ++ currentText->String.sliceToEnd(~start=high)
+                        ++ currentText->String.slice(~start=high)
                 )
         }
     }
