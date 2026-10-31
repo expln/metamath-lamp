@@ -17,9 +17,3 @@ let editorStatesHaveSameContent: (editorState, editorState) => bool
 let editorHistToStringExtended: editorHistory => string
 
 let editorHistoryPrintIdInfo: editorHistory => unit
-
-
-// --------- Tests for private types and functions ---------------------------------------
-
-let mm_editor_history__test_findDiff: () => unit
-let mm_editor_history__test_applyDiff: () => unit

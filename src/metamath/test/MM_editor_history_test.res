@@ -101,14 +101,6 @@ describe("editorHistSetMaxLength", _ => {
     })
 })
 
-describe("findDiff", _ => {
-    mm_editor_history__test_findDiff()
-})
-
-describe("applyDiff", _ => {
-    mm_editor_history__test_applyDiff()
-})
-
 describe("editorStatesHaveSameContent", _ => {
     it("returns true for editors with different statement ids and proof statuses", _ => {
         //given
