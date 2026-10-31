@@ -24,7 +24,7 @@ let make = (
     let rndTypeSetting = ts => {
         <Col key=ts.id>
             <Row>
-                <TextField label="Type" size=#small style=ReactDOM.Style.make(~width="100px", ()) 
+                <TextField label="Type" size=#small style={width:"100px"} 
                     value=ts.typ onChange=evt2str(onTypeChange(ts.id,_)) />
                 {
                     rndColorSelect(
@@ -32,7 +32,7 @@ let make = (
                         ~label="Color"
                     )
                 }
-                <TextField label="Prefix" size=#small style=ReactDOM.Style.make(~width="100px", ()) 
+                <TextField label="Prefix" size=#small style={width:"100px"} 
                     value=ts.prefix onChange=evt2str(onPrefixChange(ts.id,_)) />
                 <IconButton key="delete-button" onClick={_ => onDelete(ts.id)}>
                     <MM_Icons.Delete/>
@@ -41,13 +41,13 @@ let make = (
             {
                 switch ts.err {
                     | None => React.null
-                    | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
+                    | Some(msg) => <pre style={color:"red"}>{React.string(msg)}</pre>
                 }
             }
         </Col>
     }
 
-    <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
+    <Col style={marginTop:"5px"}>
         { typeSettings->Array.map(rndTypeSetting)->React.array }
         <Row alignItems={#baseline} >
             <IconButton key="add-button" onClick={_ => onAdd()}>

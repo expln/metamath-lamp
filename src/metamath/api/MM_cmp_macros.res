@@ -435,18 +435,17 @@ let setSelectedMacroModuleName = (st:state, newSelectedMacroModuleName:string):p
     }
 }
 
-let expBtnBaseStyle = ReactDOM.Style.make(
-    ~display="block",
-    ~color="grey", 
-    ~border="1px solid",
-    ~marginRight="3px",
-    ~marginTop="13px",
-    ~padding="1px 3px 0px 2px",
-    ~fontFamily="courier",
-    ~fontSize="10px",
-    ~cursor="pointer",
-    ()
-)
+let expBtnBaseStyle:ReactDOM.Style.t = {
+    display:"block",
+    color:"grey", 
+    border:"1px solid",
+    marginRight:"3px",
+    marginTop:"13px",
+    padding:"1px 3px 0px 2px",
+    fontFamily:"courier",
+    fontSize:"10px",
+    cursor:"pointer",
+}
 
 let warningText = `
     Please be careful with what JavaScript code you use for macros. 
@@ -608,7 +607,7 @@ let useStateRenderer = (
         <TextField
             key={modName}
             size=#small
-            style=ReactDOM.Style.make(~width=if(selectedMacroModuleIsReadOnly) {"350px"} else {"300px"}, ())
+            style={width:if(selectedMacroModuleIsReadOnly) {"350px"} else {"300px"}}
             label="Script"
             autoFocus=true
             multiline=true
@@ -633,7 +632,7 @@ let useStateRenderer = (
                     <Col>
                         <TextField
                             size=#small
-                            style=ReactDOM.Style.make(~width="350px", ())
+                            style={width:"350px"}
                             label="Module name" 
                             value=selectedMacroModule.nameEdit
                             onChange=evt2str(actSetNameEdit)
@@ -666,7 +665,7 @@ let useStateRenderer = (
                                                     <MM_Icons.Warning/>
                                                 </IconButton>
                                             </td>
-                                            <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                                            <td style={paddingLeft:"5px"}>
                                                 {
                                                     rndScriptTextField(
                                                         ~modName=state.selectedMacroModuleName, 
@@ -749,7 +748,7 @@ let useStateRenderer = (
     }
 
     () => {
-        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+        <Paper style={padding:"10px"}>
             <Col>
                 {rndMacrosDropdown()}
                 {rndEditControls()}

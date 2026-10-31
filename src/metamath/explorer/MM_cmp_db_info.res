@@ -17,18 +17,16 @@ let make = React.memoCustomCompareProps(({
 }:props) => {
     let ctx = preCtxData.ctxV.val.full
 
-    let monospaceFontStyle = ReactDOM.Style.make(
-        ~fontFamily="monospace",
-        ~fontSize="1.05em",
-        ()
-    )
-    let baseTableStyle = ReactDOM.Style.make(
-        ~borderCollapse="collapse", 
-        ~border="1px solid black", 
-        ~padding="5px",
-        ~verticalAlign="verticalAlign",
-        ()
-    )
+    let monospaceFontStyle:ReactDOM.Style.t = {
+        fontFamily:"monospace",
+        fontSize:"1.05em",
+    }
+    let baseTableStyle:ReactDOM.Style.t = {
+        borderCollapse:"collapse", 
+        border:"1px solid black", 
+        padding:"5px",
+        verticalAlign:"verticalAlign",
+    }
     let tdStyle = ReactDOM.Style.combine(baseTableStyle, monospaceFontStyle)
     let rowStyle = tdStyle
     let tableStyle = tdStyle
@@ -50,7 +48,7 @@ let make = React.memoCustomCompareProps(({
             ctx->getAllConsts->Array.toSorted(String.compare)
                 ->Array.map(const => 
                     <span key=const 
-                        style=ReactDOM.Style.make(~marginRight="10px",~fontFamily="monospace",~fontSize="1.1em",())
+                        style={marginRight:"10px",fontFamily:"monospace",fontSize:"1.1em"}
                     >
                         {(const++" ")->React.string}
                     </span>
@@ -75,7 +73,7 @@ let make = React.memoCustomCompareProps(({
                 ctx->ctxIntToSymExn(typ),
                 vars->Array.map(ctxIntToSymExn(ctx, _))->Array.toSorted(String.compare)
                     ->Array.map(var => 
-                        <span key=var style=ReactDOM.Style.make(~marginRight="10px",())>{(var++" ")->React.string}</span>
+                        <span key=var style={marginRight:"10px"}>{(var++" ")->React.string}</span>
                     )->React.array
             )
         })->Array.toSorted(((a,_),(b,_)) => String.compare(a,b))
@@ -108,7 +106,7 @@ let make = React.memoCustomCompareProps(({
             ->Array.map(ctxIntToSymExn(ctx, _))->Array.toSorted(String.compare)
         let defaultTypesElem = defaultTypes->Array.map(typ => 
             <span key=typ 
-                style=ReactDOM.Style.make(~marginLeft="10px",~fontFamily="monospace",~fontSize="1.15em",())
+                style={marginLeft:"10px",fontFamily:"monospace",fontSize:"1.15em"}
             >
                 {(" "++typ)->React.string}
             </span>

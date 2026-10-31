@@ -27,7 +27,7 @@ let make = (
                                                 | None => None
                                                 | Some(childDisplay) => {
                                                     if (childDisplay === "none") {
-                                                        Some(ReactDOM.Style.make(~display="none", ()))
+                                                        Some({display:"none"})
                                                     } else {
                                                         None
                                                     }

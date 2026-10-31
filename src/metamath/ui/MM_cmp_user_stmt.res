@@ -106,11 +106,10 @@ let rndSymbol = (
                     }
                 })
                 let borderWidth:option<string> = borderStyle->Option.map(_ => "2px 0px")
-                let style = ReactDOM.Style.make( 
-                    ~backgroundColor=?spaceBackgroundColor, ~cursor, 
-                    ~borderColor, ~borderStyle=?borderStyle, ~borderWidth=?borderWidth,
-                    () 
-                )
+                let style:ReactDOM.Style.t = { 
+                    backgroundColor:?spaceBackgroundColor, cursor, 
+                    borderColor, borderStyle:?borderStyle, borderWidth:?borderWidth, 
+                }
                 if (longClickEnabled) {
                     <LongClickSpan
                         longClickEnabled
@@ -166,11 +165,10 @@ let rndSymbol = (
                     | Right => "2px 2px 2px 0px"
                 }
             })
-            let style = ReactDOM.Style.make(
-                ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, 
-                ~borderColor, ~borderStyle=?borderStyle, ~borderWidth=?borderWidth,
-                () 
-            )
+            let style:ReactDOM.Style.t = {
+                color, fontWeight, backgroundColor:?symbolBackgroundColor, cursor, 
+                borderColor, borderStyle:?borderStyle, borderWidth:?borderWidth, 
+            }
             if (longClickEnabled) {
                 <LongClickSpan 
                     longClickEnabled
@@ -389,14 +387,13 @@ let rndProofStatus = (
     ~onErrorIconClicked:option<unit=>unit>=?,
     ~onNoJstfIconClicked:option<unit=>unit>=?
 ):React.element => {
-    let commonStyle = ReactDOM.Style.make(
-        ~fontWeight="bold", 
-        ~width="13px", 
-        ~display="inline-block",
-        ~marginLeft=stmtPartMarginLeft, 
-        ~marginTop=stmtPartMarginTop, 
-        ()
-    )
+    let commonStyle:ReactDOM.Style.t = {
+        fontWeight:"bold", 
+        width:"13px", 
+        display:"inline-block",
+        marginLeft:stmtPartMarginLeft, 
+        marginTop:stmtPartMarginTop,
+    }
     switch proofStatus {
         | None => 
             <span 
@@ -405,16 +402,15 @@ let rndProofStatus = (
         | Some(status) => {
             switch status {
                 | Ready =>
-                    let style = commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                        ~color="green",
-                        ~cursor=
+                    let style = commonStyle->ReactDOM.Style.combine({
+                        color:"green",
+                        cursor:
                             if (onReadyIconClicked->Belt_Option.isSome || onReadyIconAltClicked->Belt_Option.isSome) {
                                 "pointer"
                             } else {
                                 "default"
-                            }, 
-                        ()
-                    ))
+                            },
+                    })
                     switch onReadyIconAltClicked {
                         | None => {
                             <span 
@@ -457,31 +453,28 @@ let rndProofStatus = (
                 | Waiting =>
                     <span 
                         title=?waitingTooltip
-                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                            ~color="orange",
-                            ~cursor=if (onWaitingIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
-                            ()
-                        ))}
+                        style={commonStyle->ReactDOM.Style.combine({
+                            color:"orange",
+                            cursor:if (onWaitingIconClicked->Belt_Option.isSome) {"pointer"} else {"default"},
+                        })}
                         onClick={_=>onWaitingIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >{React.string("\u223F")}</span>
                 | NoJstf =>
                     <span 
                         title=?noJstfTooltip
-                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                            ~color="red",
-                            ~cursor=if (onNoJstfIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
-                            ()
-                        ))}
+                        style={commonStyle->ReactDOM.Style.combine({
+                            color:"red",
+                            cursor:if (onNoJstfIconClicked->Belt_Option.isSome) {"pointer"} else {"default"},
+                        })}
                         onClick={_=>onNoJstfIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >{React.string("?")}</span>
                 | JstfIsIncorrect =>
                     <span 
                         title=?jstfIsIncorrectTooltip
-                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                            ~color="red",
-                            ~cursor=if (onErrorIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
-                            ()
-                        ))}
+                        style={commonStyle->ReactDOM.Style.combine({
+                            color:"red",
+                            cursor:if (onErrorIconClicked->Belt_Option.isSome) {"pointer"} else {"default"},
+                        })}
                         onClick={_=>onErrorIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >{React.string("\u2717")}</span>
             }
@@ -1153,15 +1146,14 @@ let make = React.memoCustomCompareProps( ({
         if (stmt.labelEditMode) {
             <Col 
                 spacing=0.
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
+                style={
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop,
+                }
             >
                 <TextField
                     size=#small
-                    style=ReactDOM.Style.make(~width="150px", ())
+                    style={width:"150px"}
                     autoFocus=true
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
@@ -1197,13 +1189,12 @@ let make = React.memoCustomCompareProps( ({
                     }
                 }
                 onLongClick=onLabelEditRequested
-                style=ReactDOM.Style.make(
-                    ~cursor=?{if (readOnly) {None} else {Some("pointer")}}, 
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ~display="inline-block",
-                    ()
-                )
+                style={
+                    cursor:?{if (readOnly) {None} else {Some("pointer")}}, 
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop, 
+                    display:"inline-block",
+                }
                 title=?{
                     if (readOnly) {
                         None
@@ -1223,7 +1214,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndSelectionButtons = () => {
         let style = if (viewOptions.smallBtns) {
-            Some(ReactDOM.Style.make(~padding="0px", ~minWidth="30px", ~minHeight="26px", ()))
+            Some({padding:"0px", minWidth:"30px", minHeight:"26px"})
         } else {
             None
         }
@@ -1231,21 +1222,21 @@ let make = React.memoCustomCompareProps( ({
             | Tree({clickedNodeId:Some(_,time)}) => time->Date.toISOString
             | _ => "1"
         }
-        <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
+        <Row alignItems=#center style={marginTop:"3px"}>
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection, W" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection, S" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
                 {
                     if (readOnly) {React.null} else {
                         <Button title="Add new step above" onClick={_=>actAddStmtAbove()} ?style> 
-                            <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
+                            <MM_Icons.Logout style={transform:"rotate(-90deg)"} />
                         </Button>
                     }
                 }
                 {
                     if (readOnly) {React.null} else {
                         <Button title="Add new step below" onClick={_=>actAddStmtBelow()} ?style> 
-                            <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
+                            <MM_Icons.Logout style={transform:"rotate(90deg)"} />
                         </Button>
                     }
                 }
@@ -1332,19 +1323,17 @@ let make = React.memoCustomCompareProps( ({
             }
             <Col 
                 spacing=0.
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
+                style={
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop,
+                }
             >
                 <TextField
                     inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
-                    style=ReactDOM.Style.make(
-                        ~width = (textFieldWidth)->Belt_Int.toString ++ "px", 
-                        ()
-                    )
+                    style={
+                        width:(textFieldWidth)->Belt_Int.toString ++ "px",
+                    }
                     inputProps={
                         "style": {"fontFamily": "monospace"}
                     }
@@ -1419,16 +1408,14 @@ let make = React.memoCustomCompareProps( ({
                 }
             let elems = [
                 <Paper 
-                    style=ReactDOM.Style.make(
-                        ~padding="1px 3px",
-                        ~backgroundColor=
-                            if (stmt.stmtErr->Belt_Option.isSome || stmt.syntaxErr->Belt_Option.isSome) {
+                    style={
+                        padding:"1px 3px",
+                        backgroundColor:if (stmt.stmtErr->Belt_Option.isSome || stmt.syntaxErr->Belt_Option.isSome) {
                                 "rgb(255,230,230)"
                             } else {"rgb(255,255,235)"}, 
-                        ~fontFamily="monospace",
-                        ~fontSize="1.3em",
-                        ()
-                    ) 
+                        fontFamily:"monospace",
+                        fontSize:"1.3em",
+                    } 
                 >
                     {
                         let onTextLeftClick = if (editStmtsByLeftClick) {
@@ -1479,11 +1466,10 @@ let make = React.memoCustomCompareProps( ({
 
             <Col 
                 spacing=0.
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
+                style={
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop,
+                }
             >
                 {elems->React.array}
             </Col>
@@ -1499,11 +1485,10 @@ let make = React.memoCustomCompareProps( ({
             <Col spacing=0.>
                 <FormControl
                     size=#small
-                    style=ReactDOM.Style.make(
-                        ~marginLeft=stmtPartMarginLeft,
-                        ~marginTop=stmtPartMarginTop,
-                        ()
-                    )
+                    style={
+                        marginLeft:stmtPartMarginLeft,
+                        marginTop:stmtPartMarginTop,
+                    }
                 >
                     <Select
                         value={typStrLowerCase}
@@ -1543,17 +1528,16 @@ let make = React.memoCustomCompareProps( ({
                     }
                 }
                 onLongClick=onTypEditRequested
-                style=ReactDOM.Style.make(
-                    ~cursor=?{if (readOnly) {None} else {Some("pointer")}}, 
-                    ~fontWeight="bold", 
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ~display="inline-block",
-                    ~backgroundColor=?(if (stmt.isBkm) {Some("rgb(65 65 65)")} else {None}),
-                    ~color= if (stmt.isBkm) {"white"} else {"black"},
-                    ~borderRadius="4px",
-                    ()
-                )
+                style={
+                    cursor:?{if (readOnly) {None} else {Some("pointer")}}, 
+                    fontWeight:"bold", 
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop, 
+                    display:"inline-block",
+                    backgroundColor:?(if (stmt.isBkm) {Some("rgb(65 65 65)")} else {None}),
+                    color:if (stmt.isBkm) {"white"} else {"black"},
+                    borderRadius:"4px",
+                }
                 title=?{
                     if (readOnly) {
                         None
@@ -1587,16 +1571,15 @@ let make = React.memoCustomCompareProps( ({
         if (stmt.jstfEditMode) {
             <Col 
                 spacing=0.
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
+                style={
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop,
+                }
             >
                 <TextField
                     size=#small
                     label="Justification"
-                    style=ReactDOM.Style.make(~width=textFieldWidth, ())
+                    style={width:textFieldWidth}
                     autoFocus=true
                     multiline=true
                     value=state.newText
@@ -1626,12 +1609,11 @@ let make = React.memoCustomCompareProps( ({
                             {React.string(args->Array.joinUnsafe(" ") ++ " : ")}
                             <span 
                                 className="underline-on-hover"
-                                style=ReactDOM.Style.make(
-                                    ~cursor="pointer", 
-                                    ~backgroundColor=?getFrmLabelBkgColor(label),
-                                    ~borderRadius="3px",
-                                    ()
-                                )
+                                style={
+                                    cursor:"pointer", 
+                                    backgroundColor:?getFrmLabelBkgColor(label),
+                                    borderRadius:"3px",
+                                }
                                 onClick=clickHnd2(
                                     clickClbkMake(~alt=true, ~act=actJstfEditRequested),
                                     clickClbkMake(~act=()=>actOpenFrameExplorer(label)),
@@ -1652,11 +1634,10 @@ let make = React.memoCustomCompareProps( ({
                 }
             <Row
                 spacing=0.
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
+                style={
+                    marginLeft:stmtPartMarginLeft, 
+                    marginTop:stmtPartMarginTop,
+                }
                 alignItems=#center
             >
                 <LongClickPaper
@@ -1673,19 +1654,18 @@ let make = React.memoCustomCompareProps( ({
                     onLongClick=actJstfEditRequested
                     ref_=ReactDOM.Ref.domRef(jstfRef) 
                     onClick=clickHnd(~alt=true, ~act=actJstfEditRequested)
-                    style=ReactDOM.Style.make( 
-                        ~padding, 
-                        ~overflowWrap="normal", 
-                        ~whiteSpace="nowrap", 
-                        ()
-                    )
+                    style={ 
+                        padding, 
+                        overflowWrap:"normal", 
+                        whiteSpace:"nowrap",
+                    }
                     title=?{if (readOnly) {None} else {Some(title)}}
                 >
                     jstfText
                 </LongClickPaper>
                 {
                     if (isInline) {
-                        <span style=ReactDOM.Style.make(~display="none", ())/>
+                        <span style={display:"none"}/>
                     } else {
                         let btns = []
                         if (jstfTextStr->String.trim != "") {
@@ -1703,13 +1683,13 @@ let make = React.memoCustomCompareProps( ({
                         if (visualizationIsAvailable) {
                             btns->Array.push(
                                 rndIconButton(
-                                    ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                    ~icon=<MM_Icons.AccountTree style={transform:"rotate(90deg)"} />, 
                                     ~key="v",
                                     ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None
                                 )
                             )
                         }
-                        <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
+                        <Row style={marginLeft:"10px"}>
                             { btns->React.array }
                         </Row>
                     }
@@ -1811,18 +1791,17 @@ let make = React.memoCustomCompareProps( ({
         if (stmt.proofStatus->Belt.Option.isSome) {
             rndProofStatusInner()
         } else {
-            <span style=ReactDOM.Style.make(~display="none", ())/>
+            <span style={display:"none"}/>
         }
     }
 
     let rndCheckbox = () => {
         <Checkbox
-            style=ReactDOM.Style.make(
-                ~marginLeft=stmtPartMarginLeft,
-                ~marginTop=stmtPartMarginTop,
-                ~padding="0px",
-                ()
-            )
+            style={
+                marginLeft:stmtPartMarginLeft,
+                marginTop:stmtPartMarginTop,
+                padding:"0px",
+            }
             disabled=checkboxDisabled
             checked=checkboxChecked
             onChange={evt => {
@@ -1846,7 +1825,7 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showCheckbox) {
             rndCheckbox()
         } else {
-            <span style=ReactDOM.Style.make(~display="none", ())/>
+            <span style={display:"none"}/>
         }
     }
 
@@ -1862,7 +1841,7 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showLabel) {
             rndLabel()
         } else {
-            <span style=ReactDOM.Style.make(~display="none", ())/>
+            <span style={display:"none"}/>
         }
     }
 
@@ -1878,7 +1857,7 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showType) {
             rndTyp()
         } else {
-            <span style=ReactDOM.Style.make(~display="none", ())/>
+            <span style={display:"none"}/>
         }
     }
 
@@ -1894,7 +1873,7 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showJstf) {
             rndJstf(~isInline=true, ~textFieldWidth="150px")
         } else {
-            <span style=ReactDOM.Style.make(~display="none", ())/>
+            <span style={display:"none"}/>
         }
     }
 
@@ -1908,16 +1887,15 @@ let make = React.memoCustomCompareProps( ({
             { rndContAndInfoBody() }
         </Row>
     } else {
-        let tdStyle = ReactDOM.Style.make(~padding="0px", ~borderCollapse="collapse", ())
+        let tdStyle:ReactDOM.Style.t = {padding:"0px", borderCollapse:"collapse"}
         <table 
-            style=ReactDOM.Style.make(
-                ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""},
-                ~padding="0px",
-                ~borderCollapse="collapse",
-                ()
-            )>
+            style={
+                cursor:if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""},
+                padding:"0px",
+                borderCollapse:"collapse",
+            }>
             <tbody>
-                <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                <tr style={verticalAlign:"top"}>
                     { rndCheckboxTd(tdStyle) }
                     { rndProofStatusTd(tdStyle) }
                     { rndLabelTd(tdStyle) }

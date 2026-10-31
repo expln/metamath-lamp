@@ -110,7 +110,7 @@ let make = React.memoCustomCompareProps(({
             />
             <TextField 
                 size=#small
-                style=ReactDOM.Style.make(~width="150px", ())
+                style={width:"150px"}
                 label="Go to page" 
                 value=goToPageText 
                 onChange=evt2str(newPage => setGoToPageText(_ => newPage->String.replaceRegExp(nonDigitPattern, "")))

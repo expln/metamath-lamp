@@ -107,7 +107,7 @@ let make = (
                     />
                 }
                 label="Show unproved only"
-                style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+                style={paddingRight:"10px", marginTop:"-2px", marginLeft:"2px"}
             />
         </Row>
     }

@@ -253,7 +253,7 @@ let make = (
     let rndError = msgOpt => {
         switch msgOpt {
             | None => React.null
-            | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
+            | Some(msg) => <pre style={color:"red"}>{React.string(msg)}</pre>
         }
     }
     
@@ -261,7 +261,7 @@ let make = (
         <TextField 
             label="Pattern"
             size=#small
-            style=ReactDOM.Style.make(~width="300px", ())
+            style={width:"300px"}
             autoFocus=true
             value=state.patternStr
             onChange=evt2str(actPatternChange)
@@ -276,7 +276,7 @@ let make = (
         <TextField 
             label="Label"
             size=#small
-            style=ReactDOM.Style.make(~width="100px", ())
+            style={width:"100px"}
             value=state.label
             onChange=evt2str(actLabelChange)
             onKeyDown=kbrdHnd2(
@@ -413,7 +413,7 @@ let make = (
         }
     }
 
-    <Paper ref=ReactDOM.Ref.domRef(rootPaperRef) style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper ref=ReactDOM.Ref.domRef(rootPaperRef) style={padding:"10px"}>
         <Col spacing=1.>
             {rndFilters()}
             {rndResults()}

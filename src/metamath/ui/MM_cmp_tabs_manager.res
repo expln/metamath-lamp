@@ -39,7 +39,7 @@ let make = (
     }
 
     let rndOpenButtons = () => {
-        <Row alignItems={#baseline} style=ReactDOM.Style.make(~marginBottom="20px", ())>
+        <Row alignItems={#baseline} style={marginBottom:"20px"}>
             {"Open new tab: "->React.string}
             <Button onClick={_=>onOpenEditor()} variant={#outlined}> {React.string("Editor")} </Button>
             <Button onClick={_=>onOpenExplorer()} variant={#outlined}> {React.string("Explorer")} </Button>
@@ -60,7 +60,7 @@ let make = (
     let rndTabControls = (tab:tabProps) => {
         <Row key=tab.id>
             {rndTabButtons(tab)}
-            <Paper style=ReactDOM.Style.make(~padding="5px", ())>
+            <Paper style={padding:"5px"}>
                 {
                     switch tab.icon {
                         | None => React.string(tab.label)
@@ -75,7 +75,7 @@ let make = (
             </Paper>
         </Row>
     }
-    <Col spacing=1. style=ReactDOM.Style.make(~margin="10px", ())>
+    <Col spacing=1. style={margin:"10px"}>
         {rndOpenButtons()}
         {tabs->Array.map(rndTabControls)->React.array}
     </Col>

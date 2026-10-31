@@ -27,12 +27,12 @@ let make = (
         </Row>
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.>
             <TextField
                 label="Editor state in JSON format"
                 size=#small
-                style=ReactDOM.Style.make(~width="800px", ())
+                style={width:"800px"}
                 autoFocus=true
                 multiline=true
                 maxRows=10

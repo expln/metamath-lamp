@@ -989,7 +989,7 @@ let make = (
         <Col>
         {
             srcs->Array.mapWithIndex((src,i) => {
-                <Paper key={i->Belt.Int.toString} style=ReactDOM.Style.make(~padding="3px", ())>
+                <Paper key={i->Belt.Int.toString} style={padding:"3px"}>
                     <Col>
                         {src.url->React.string}
                         {
@@ -1013,7 +1013,7 @@ let make = (
             <span>
                 { React.string(`Could not reload the context because of the error:`) }
             </span>
-            <span style=ReactDOM.Style.make(~color="red", ())>
+            <span style={color:"red"}>
                 { React.string(errMsg) }
             </span>
             {

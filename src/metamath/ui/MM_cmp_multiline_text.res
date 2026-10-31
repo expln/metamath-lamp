@@ -180,7 +180,7 @@ let make = (
                 <TextField
                     inputRef=ReactDOM.Ref.domRef(textFieldRef)
                     size=#small
-                    style=ReactDOM.Style.make(~width = width->Belt_Int.toString ++ "px", ())
+                    style={width:width->Belt_Int.toString ++ "px"}
                     autoFocus=true
                     multiline=true
                     value=state.newText
@@ -195,9 +195,9 @@ let make = (
             </Col>
         } else {
             let style = if (text->String.trim == "") {
-                ReactDOM.Style.make(~padding="4px", ())
+                {padding:"4px"}
             } else {
-                ReactDOM.Style.make(~padding="0px 4px", ())
+                {padding:"0px 4px"}
             }
             let title = if (editByAltClick) {
                 if (longClickEnabled) {

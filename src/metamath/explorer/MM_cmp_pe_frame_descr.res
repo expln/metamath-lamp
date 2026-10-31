@@ -45,14 +45,13 @@ let make = React.memoCustomCompareProps( ({
             | Some(A) | Some(P) => {
                 <span
                     key
-                    style=ReactDOM.Style.make(
-                        ~cursor="pointer", 
-                        ~backgroundColor=?getFrmLabelBkgColor(label),
-                        ~borderRadius="3px",
-                        ~color="blue",
-                        ~textDecoration="underline",
-                        ()
-                    )
+                    style={
+                        cursor:"pointer", 
+                        backgroundColor:?getFrmLabelBkgColor(label),
+                        borderRadius:"3px",
+                        color:"blue",
+                        textDecoration:"underline",
+                    }
                     onClick=clickHnd( ~act=()=>openFrameExplorer(label) )
                 >
                     {label->React.string}
@@ -64,7 +63,7 @@ let make = React.memoCustomCompareProps( ({
                         key
                         href=label 
                         target="_blank"
-                        style=ReactDOM.Style.make( ~cursor="pointer", ~color="blue", ~textDecoration="underline", () )
+                        style={cursor:"pointer", color:"blue", textDecoration:"underline"}
                     >
                         {label->React.string}
                     </a>
@@ -76,7 +75,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndExpr = (~key:string, ~expr:string) => {
-        <span key style=ReactDOM.Style.make( ~fontFamily="monospace", () ) >
+        <span key style={fontFamily:"monospace"} >
             {
                 getSpaceSeparatedValuesAsArray(expr)->Array.mapWithIndex((sym,idx) => {
                     let (color,fontWeight) = switch symColors->Belt_HashMapString.get(sym) {
@@ -85,7 +84,7 @@ let make = React.memoCustomCompareProps( ({
                     }
                     <span 
                         key={sym ++ "$" ++ idx->Int.toString} 
-                        style=ReactDOM.Style.make( ~color, ~fontWeight, ~fontSize="1.3em", () )
+                        style={color, fontWeight, fontSize:"1.3em"}
                     >
                         {React.string((idx>0?" ":"")++sym)}
                     </span>

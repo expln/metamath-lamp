@@ -52,7 +52,7 @@ let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<s
                 ps->Array.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
                     ->Array.joinUnsafe(" ")
             } 
-            style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={lineWidth->Belt_Float.toString}, ())
+            style={fill:"none", stroke:color, strokeWidth:{lineWidth->Belt_Float.toString}}
         />,
         bndFromPoints(ps)
     )
@@ -91,11 +91,10 @@ let text = (
             fontSize={fontSize->Belt_Float.toString}
             fontFamily="courier"
             fontWeight={if (bold) {"bold"} else {"normal"}}
-            style=ReactDOM.Style.make(
-                ~whiteSpace="pre", 
-                ~cursor=if (onClick->Belt_Option.isSome) {"pointer"} else {"default"}, 
-                ()
-            )
+            style={
+                whiteSpace:"pre", 
+                cursor:if (onClick->Belt_Option.isSome) {"pointer"} else {"default"},
+            }
             ?onClick
         >
             {text->React.string}
@@ -387,11 +386,11 @@ let make = (
         )
     }
 
-    <table style=ReactDOM.Style.make(~tableLayout="fixed", ~width="100%", ())>
+    <table style={tableLayout:"fixed", width:"100%"}>
         <tbody>
             <tr>
                 <td>
-                    <div style=ReactDOM.Style.make(~width="100%", ~overflow="auto", ())>
+                    <div style={width:"100%", overflow:"auto"}>
                         {rndContent()}
                     </div>
                 </td>

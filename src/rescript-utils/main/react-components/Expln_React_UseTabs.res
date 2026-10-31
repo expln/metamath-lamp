@@ -245,8 +245,8 @@ let useTabs = (
                                     }
                                 }
                                 if (tab.closable) {
-                                    <span style=ReactDOM.Style.make(~textTransform="none", ())>
-                                        <span style=ReactDOM.Style.make(~marginRight="5px", ())>
+                                    <span style={textTransform:"none"}>
+                                        <span style={marginRight:"5px"}>
                                             labelWithIcon
                                         </span>
                                         <IconButton 
@@ -255,10 +255,7 @@ let useTabs = (
                                                 ReactEvent.Synthetic.stopPropagation(evt)
                                                 removeTab(tab.id)
                                             }} 
-                                            style=ReactDOM.Style.make(
-                                                ~padding="0px",
-                                                ()
-                                            )
+                                            style={ padding:"0px", }
                                         >
                                             <Icons.Clear fontSize="small"  />
                                         </IconButton>
@@ -267,10 +264,7 @@ let useTabs = (
                                     labelWithIcon
                                 }
                             }
-                            style=ReactDOM.Style.make(
-                                ~backgroundColor=?(tab.color),
-                                ()
-                            )
+                            style={ backgroundColor:?(tab.color), }
                         />
                     })
                 )}

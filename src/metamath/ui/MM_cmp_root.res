@@ -636,7 +636,7 @@ let make = () => {
     }
 
     let rndTabContent = (top:int, tab:Expln_React_UseTabs.tab<'a>) => {
-        <div key=tab.id style=ReactDOM.Style.make(~display=if (tab.id == activeTabId) {"block"} else {"none"}, ())>
+        <div key=tab.id style={display:if (tab.id == activeTabId) {"block"} else {"none"}}>
             {
                 switch tab.data {
                     | Settings => 
@@ -733,14 +733,12 @@ let make = () => {
                         markUrlAsTrusted
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
-                        style=ReactDOM.Style.make(
-                            ~display=
-                                ?if(state.preCtxData.settingsV.val.hideContextSelector 
+                        style={
+                            display:?if(state.preCtxData.settingsV.val.hideContextSelector 
                                         && !state.ctxSelectorIsExpanded) {
                                     Some("none")
-                                } else {None}, 
-                            ()
-                        )
+                                } else {None},
+                        }
                         onExpandedChange=actCtxSelectorExpandedChange
                         doToggle=toggleCtxSelector
                     />
@@ -748,7 +746,7 @@ let make = () => {
                         if (showTabs) {
                             renderTabs()
                         } else {
-                            <div style=ReactDOM.Style.make(~display="none", ()) />
+                            <div style={display:"none"} />
                         }
                     }
                 </Col>

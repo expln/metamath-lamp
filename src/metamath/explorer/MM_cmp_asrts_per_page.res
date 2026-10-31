@@ -18,12 +18,12 @@ let make = (
         onCancel()
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.>
             <TextField
                 label="Assertions per page"
                 size=#small
-                style=ReactDOM.Style.make(~width="150px", ())
+                style={width:"150px"}
                 autoFocus=true
                 value=asrtsPerPage
                 onChange=evt2str(str => setAsrtsPerPage(_ => str))

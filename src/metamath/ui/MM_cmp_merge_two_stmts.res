@@ -14,10 +14,10 @@ let make = (
         React.string(stmt.label ++ " " ++ jstf)
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.>
             <Row>
-                <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                <span style={fontWeight:"bold"}>
                     {React.string("Merging ")}
                 </span>
                 <span>

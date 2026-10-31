@@ -54,7 +54,7 @@ let make = (
         onClose()
     }
 
-    <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+    <Paper style={padding:"10px"} >
         <Col>
             <Row alignItems=#center>
                 <FormControlLabel
@@ -66,7 +66,7 @@ let make = (
                     }
                     label="append timestamp"
                 />
-                <Button onClick={_=>actCopyToClipboard()} variant=#contained style=ReactDOM.Style.make(~width="90px", ()) > 
+                <Button onClick={_=>actCopyToClipboard()} variant=#contained style={width:"90px"} > 
                     {
                         if (copiedToClipboard->Belt.Option.isSome) {
                             React.string("Copied")
@@ -79,7 +79,7 @@ let make = (
             </Row>
             <TextField 
                 size=#small
-                style=ReactDOM.Style.make(~width="350px", ())
+                style={width:"350px"}
                 label="Notes" 
                 value=notes
                 onChange=evt2str(actNotesChanged)
@@ -90,7 +90,7 @@ let make = (
                 )
                 autoFocus=true
             />
-            <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(textToShow)}</pre>
+            <pre style={overflow:"auto"}>{React.string(textToShow)}</pre>
         </Col>
     </Paper>
 }

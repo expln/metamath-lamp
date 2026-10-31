@@ -404,7 +404,7 @@ let rndIconButton = (
             }} 
             color="primary"
             style=?{
-                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+                if (smallBtns) {Some({padding:"2px"})} else {None}
             }
         > 
             icon 
@@ -913,11 +913,11 @@ let make = React.memoCustomCompareProps(({
 
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
-            <span style=ReactDOM.Style.make(~color="red", ())>
+            <span style={color:"red"}>
                 {"Axiom"->React.string}
             </span>
         } else {
-            <span style=ReactDOM.Style.make(~color="green", ())>
+            <span style={color:"green"}>
                 {"Theorem"->React.string}
             </span>
         }
@@ -935,18 +935,17 @@ let make = React.memoCustomCompareProps(({
                 asrtType
                 {React.string(" ")}
                 <span 
-                    style=ReactDOM.Style.make(
-                        ~fontWeight="bold", 
-                        ~cursor="pointer", 
-                        ~backgroundColor=?getFrmLabelBkgColor(state.frame.label),
-                        ~borderRadius="3px",
-                        ()
-                    )
+                    style={
+                        fontWeight:"bold", 
+                        cursor:"pointer", 
+                        backgroundColor:?getFrmLabelBkgColor(state.frame.label),
+                        borderRadius:"3px",
+                    }
                 >
                     { React.string(state.frame.label) }
                 </span>
                 <span 
-                    style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
+                    style={fontFamily:"Arial Narrow", fontSize:"x-small", color:"grey", marginLeft:"5px"}
                 >
                     { (" " ++ (state.frms->frmsSize+1)->Belt_Int.toString)->React.string }
                 </span>
@@ -996,7 +995,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndSummary = state => {
-        let style=ReactDOM.Style.make( ~borderCollapse="collapse", () )
+        let style:ReactDOM.Style.t={borderCollapse:"collapse"}
         <table style>
             <tbody>
                 {
@@ -1004,10 +1003,10 @@ let make = React.memoCustomCompareProps(({
                         ->Array.filter(hyp => hyp.typ == E)
                         ->Array.mapWithIndex((hyp,i) => {
                             <tr key={i->Belt_Int.toString}>
-                                <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="15px", ()))}> 
+                                <td style={style->ReactDOMStyle.combine({paddingLeft:"15px"})}> 
                                     {(circleChar ++ nbsp ++ hyp.label)->React.string} 
                                 </td>
-                                <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="10px", ()))}> 
+                                <td style={style->ReactDOMStyle.combine({paddingLeft:"10px"})}> 
                                     <MM_cmp_pe_stmt
                                         modalRef
                                         ctx=state.frmCtx
@@ -1028,8 +1027,8 @@ let make = React.memoCustomCompareProps(({
                         })->React.array
                 }
                 <tr>
-                    <td style=ReactDOM.Style.make(~verticalAlign="top", ~paddingTop="10px", ())> {state.frame.label->React.string} </td>
-                    <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="10px", ~verticalAlign="top", ~paddingTop="10px", ()))}> 
+                    <td style={verticalAlign:"top", paddingTop:"10px"}> {state.frame.label->React.string} </td>
+                    <td style={style->ReactDOMStyle.combine({paddingLeft:"10px", verticalAlign:"top", paddingTop:"10px"})}> 
                         <MM_cmp_pe_stmt
                             modalRef
                             ctx=state.frmCtx
@@ -1079,7 +1078,7 @@ let make = React.memoCustomCompareProps(({
                         ~initIsAxiomFilter=true,
                         ~initReferencedByFilter=state.frame.label, ~initReferencedByTranFilter=true
                     )} 
-                    style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+                    style={color:"blue", textDecoration:"underline", cursor:"pointer"}
                 >
                     {React.string(state.provedFromAxioms->Int.toString)}
                 </a>
@@ -1095,7 +1094,7 @@ let make = React.memoCustomCompareProps(({
                     ~title="Dependents of " ++ state.frame.label,
                     ~initDependsOnFilter=state.frame.label
                 )} 
-                style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+                style={color:"blue", textDecoration:"underline", cursor:"pointer"}
             >
                 {React.string(state.frame.usageCnt->Int.toString)}
             </a>
@@ -1104,7 +1103,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndDisj = state => {
         switch state.disjStr {
-            | None => <div style=ReactDOM.Style.make(~display="none", ()) />
+            | None => <div style={display:"none"} />
             | Some(disj) => {
                 <div>
                     { (`Distinct variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
@@ -1116,7 +1115,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndDummyVarDisj = state => {
         switch state.dummyVarDisjStr {
-            | None => <div style=ReactDOM.Style.make(~display="none", ()) />
+            | None => <div style={display:"none"} />
             | Some(disj) => {
                 <div>
                     { (`Distinct dummy variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
@@ -1196,13 +1195,12 @@ let make = React.memoCustomCompareProps(({
         }
     }
     let linkColor = "rgb(0,0,238)"
-    let linkStyle = ReactDOM.Style.make(
-        ~cursor="pointer", 
-        ~textDecoration="underline",
-        ~color=linkColor,
-        ~textDecorationColor=linkColor,
-        ()
-    )
+    let linkStyle:ReactDOM.Style.t = {
+        cursor:"pointer", 
+        textDecoration:"underline",
+        color:linkColor,
+        textDecorationColor:linkColor,
+    }
     let rndRef = (state:state, pRec:proofRecord):reElem => {
         switch pRec.proof {
             | Hypothesis({label}) => label->React.string
@@ -1213,11 +1211,10 @@ let make = React.memoCustomCompareProps(({
                 <span
                     style={
                         linkStyle->ReactDOM.Style.combine(
-                            ReactDOM.Style.make(
-                                ~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", 
-                                ~textDecorationColor,
-                                ()
-                            )
+                            {
+                                backgroundColor:?getFrmLabelBkgColor(label), borderRadius:"3px", 
+                                textDecorationColor,
+                            }
                         )
                     }
                     onClick={clickHnd(~act=()=>openFrameExplorer(label))}
@@ -1228,19 +1225,18 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let expBtnBaseStyle = ReactDOM.Style.make(
-        ~color="lightgrey", 
-        ~border="1px solid",
-        ~marginRight="3px",
-        ~padding="1px 3px 0px 2px",
-        ~fontFamily="courier",
-        ~fontSize="10px",
-        ~cursor="pointer",
-        ()
-    )
+    let expBtnBaseStyle:ReactDOM.Style.t = {
+        color:"lightgrey", 
+        border:"1px solid",
+        marginRight:"3px",
+        padding:"1px 3px 0px 2px",
+        fontFamily:"courier",
+        fontSize:"10px",
+        cursor:"pointer",
+    }
     let rndExpBtn = (~state:state, ~pRecIdx:int):reElem => {
         let style = switch state.vData->Array.getUnsafe(pRecIdx) {
-            | None => expBtnBaseStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~opacity="0", ()))
+            | None => expBtnBaseStyle->ReactDOM.Style.combine({opacity:"0"})
             | Some(_) => expBtnBaseStyle
         }
         <a style onClick={_=>actToggleIdxExpanded(pRecIdx)}>
@@ -1290,10 +1286,10 @@ let make = React.memoCustomCompareProps(({
         <table>
             <tbody>
                 <tr>
-                    <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                    <td style={verticalAlign:"top"}>
                         {rndExpBtn(~state, ~pRecIdx)}
                     </td>
-                    <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                    <td style={verticalAlign:"top"}>
                         {
                             switch state.vData->Array.getUnsafe(pRecIdx) {
                                 | None => rndExprText(~state, ~pRec)
@@ -1320,7 +1316,7 @@ let make = React.memoCustomCompareProps(({
                 if (proofTableSize < state.proofRecordsPerPage) {
                     React.null
                 } else {
-                    <div style=ReactDOM.Style.make(~padding="5px", ())>
+                    <div style={padding:"5px"}>
                         <PaginationCmp
                             numOfPages=Math.Int.ceil(
                                 Belt_Float.fromInt(proofTableSize) /. Belt_Float.fromInt(state.proofRecordsPerPage)
@@ -1339,14 +1335,13 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndProof = state => {
-        let tdStyle=ReactDOM.Style.make(
-            ~borderCollapse="collapse", 
-            ~border="1px solid black", 
-            ~padding="5px",
-            ~verticalAlign="verticalAlign",
-            ()
-        )
-        let rowStyle=ReactDOM.Style.make(())
+        let tdStyle:ReactDOM.Style.t={
+            borderCollapse:"collapse", 
+            border:"1px solid black", 
+            padding:"5px",
+            verticalAlign:"verticalAlign",
+        }
+        let rowStyle:ReactDOM.Style.t={}
             ->ReactDOM.Style.unsafeAddProp("scrollMarginTop", top->Belt_Int.toString ++ "px")
         
         switch state.proofTable {
@@ -1357,7 +1352,7 @@ let make = React.memoCustomCompareProps(({
                     } else {
                         switch state.syntaxProofTableError {
                             | Some(msg) => {
-                                <pre style=ReactDOM.Style.make(~color="red", ())>
+                                <pre style={color:"red"}>
                                     {React.string(`Could not build a syntax breakdown: ${msg}`)}
                                 </pre>
                             }
@@ -1377,7 +1372,7 @@ let make = React.memoCustomCompareProps(({
                 <Col spacing=0.>
                     {
                         if (state.frame.isAxiom) {
-                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                            <span style={fontWeight:"bold"}>
                                 {"Syntax breakdown"->React.string}
                             </span>
                         } else {
@@ -1388,17 +1383,16 @@ let make = React.memoCustomCompareProps(({
                     }
                     <table
                         id=proofTableId
-                        style=ReactDOM.Style.combine(tdStyle, ReactDOM.Style.make(
-                            ~tableLayout="fixed",
-                            ~width="100%",
-                            ()
-                        ))
+                        style=ReactDOM.Style.combine(tdStyle, {
+                            tableLayout:"fixed",
+                            width:"100%",
+                        })
                     >
                         <thead>
                             <tr>
-                                <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} > {"Step"->React.string} </th>
-                                <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} > {"Hyp"->React.string} </th>
-                                <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} > {"Ref"->React.string} </th>
+                                <th style={tdStyle->ReactDOM.Style.combine({width:stepWidth})} > {"Step"->React.string} </th>
+                                <th style={tdStyle->ReactDOM.Style.combine({width:hypWidth})} > {"Hyp"->React.string} </th>
+                                <th style={tdStyle->ReactDOM.Style.combine({width:refWidth})} > {"Ref"->React.string} </th>
                                 <th style=tdStyle > {"Expression"->React.string} </th>
                             </tr>
                         </thead>
@@ -1415,27 +1409,24 @@ let make = React.memoCustomCompareProps(({
                                         style=rowStyle
                                     >
                                         <td 
-                                            style={tdStyle->ReactDOM.Style.combine( ReactDOM.Style.make(
-                                                ~width=stepWidth, ~verticalAlign="top", 
-                                                ()) )
+                                            style={tdStyle->ReactDOM.Style.combine( {
+                                                width:stepWidth, verticalAlign:"top"} )
                                             } 
                                             className=classColStep
                                         >
                                             {getStepNum(state,idx)->Belt_Int.toString->React.string}
                                         </td>
                                         <td 
-                                            style={tdStyle->ReactDOM.Style.combine( ReactDOM.Style.make(
-                                                ~width=hypWidth, ~verticalAlign="top", 
-                                                ()) )
+                                            style={tdStyle->ReactDOM.Style.combine( {
+                                                width:hypWidth, verticalAlign:"top"} )
                                             } 
                                             className=classColHyp 
                                         >
                                             {rndHyp(state,pRec)}
                                         </td>
                                         <td 
-                                            style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                                                ~width=refWidth, ~verticalAlign="top", 
-                                                ()))
+                                            style={tdStyle->ReactDOM.Style.combine({
+                                                width:refWidth, verticalAlign:"top"})
                                             } 
                                             className=classColRef 
                                         >
@@ -1456,13 +1447,13 @@ let make = React.memoCustomCompareProps(({
 
     let rndFooter = () => {
         Belt_Array.range(1,12)->Array.map(i => {
-            <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
+            <span key={i->Belt_Int.toString} style={fontSize:"20px"}>{nbsp->React.string}</span>
         })->React.array
     }
 
     if (refreshIsNeeded) {
         <Button onClick=(_=>actRefreshOnPreCtxDataChange()) variant=#contained 
-            style=ReactDOM.Style.make(~margin="10px", ())
+            style={margin:"10px"}
         > 
             { React.string("Refresh") }
         </Button>
@@ -1471,7 +1462,7 @@ let make = React.memoCustomCompareProps(({
             | None => {
                 switch loadErr {
                     | Some(msg) => {
-                        <pre style=ReactDOM.Style.make(~color="red", ~margin="10px", ())>
+                        <pre style={color:"red", margin:"10px"}>
                             {React.string(`Error: ${msg}`)}
                         </pre>
                     }
@@ -1485,7 +1476,7 @@ let make = React.memoCustomCompareProps(({
                 }
             }
             | Some(state) => {
-                <Col spacing=2. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                <Col spacing=2. style={padding:"5px 10px"}>
                     {rndMainMenu(state)}
                     {rndLabel(state)}
                     {rndDescr(state)}

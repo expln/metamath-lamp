@@ -50,7 +50,7 @@ let expandCollapseSrc = (st,srcIdx) => {
 let validProofIcon = 
     <span
         title="This is a valid proof"
-        style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())
+        style={color:"green", fontWeight:"bold"}
     >
         {React.string("\u2713")}
     </span>
@@ -77,7 +77,7 @@ let rndExpandCollapseIcon = (
     ~onClick: unit => unit,
 ) => {
     <span 
-        style=ReactDOM.Style.make( ~fontSize="13px", ~opacity={visible ? {"1.0"} : {"0.0"}}, ~cursor="pointer", () )
+        style={fontSize:"13px", opacity:{visible ? {"1.0"} : {"0.0"}}, cursor:"pointer"}
         onClick={_=>onClick()}
     >
         {React.string(expand ? "\u229E" : "\u229F")}
@@ -157,14 +157,14 @@ module rec ProofNodeDtoCmp: {
         let rndCollapsedArgs = (args, srcIdx) => {
             <span
                 onClick={_=>actToggleSrcExpanded(srcIdx)}
-                style=ReactDOM.Style.make(~cursor="pointer", ())
+                style={cursor:"pointer"}
             >
                 {React.string("( ")}
                 {
                     args->Array.mapWithIndex((arg,i) => {
                         <span
                             key={i->Belt_Int.toString} 
-                            style=ReactDOM.Style.make(~color=getColorForLabel(arg), ())
+                            style={color:getColorForLabel(arg)}
                         >
                             {React.string(nodeIdxToLabel(arg) ++ " ")}
                         </span>
@@ -175,7 +175,7 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndErr = (err,asrtLabel) => {
-            <pre style=ReactDOM.Style.make(~color="red", ~margin="0px", ())>
+            <pre style={color:"red", margin:"0px"}>
             { unifErrToStr(err, ~exprToStr, ~frmExprToStr = frmExprToStr(asrtLabel, _))->React.string }
             </pre>
         }
@@ -254,12 +254,11 @@ module rec ProofNodeDtoCmp: {
         let rndStatusIconForStmt = (node:proofNodeDto) => {
             <span
                 title="This is proved"
-                style=ReactDOM.Style.make(
-                    ~color="green", 
-                    ~fontWeight="bold", 
-                    ~visibility=if (node.proof->Belt_Option.isSome) {"visible"} else {"hidden"},
-                    ()
-                )
+                style={
+                    color:"green", 
+                    fontWeight:"bold", 
+                    visibility:if (node.proof->Belt_Option.isSome) {"visible"} else {"hidden"},
+                }
             >
                 {React.string("\u2713")}
             </span>
@@ -278,7 +277,7 @@ module rec ProofNodeDtoCmp: {
                 }
                 | AssertionWithErr(_) => {
                     <span
-                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
+                        style={color:"red", fontWeight:"bold", cursor:"pointer"}
                     >
                         {React.string("\u2717")}
                     </span>
@@ -291,22 +290,22 @@ module rec ProofNodeDtoCmp: {
             switch src {
                 | VarType => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
+                        <td style={verticalAlign:"top"}> {rndStatusIconForSrc(src)} </td>
                         <td> {React.string("VarType")} </td>
                         <td> {React.null} </td>
                     </tr>
                 }
                 | Hypothesis({label}) => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
+                        <td style={verticalAlign:"top"}> {rndStatusIconForSrc(src)} </td>
                         <td> {React.string("Hyp " ++ label)} </td>
                         <td> {React.null} </td>
                     </tr>
                 }
                 | Assertion({args, label}) | AssertionWithErr({args, label}) => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ()) >
+                        <td style={verticalAlign:"top"}> {rndStatusIconForSrc(src)} </td>
+                        <td style={verticalAlign:"top"} >
                             {
                                 rndExpandCollapseIcon(
                                     ~expand=!(state->isExpandedSrc(srcIdx)),
@@ -315,11 +314,10 @@ module rec ProofNodeDtoCmp: {
                                 )
                             }
                             <span
-                                style=ReactDOM.Style.make(
-                                    ~backgroundColor=?getFrmLabelBkgColor(label), 
-                                    ~borderRadius="3px",
-                                    ()
-                                )
+                                style={
+                                    backgroundColor:?getFrmLabelBkgColor(label), 
+                                    borderRadius:"3px",
+                                }
                             >
                                 <i>{React.string(label)}</i>
                             </span>
@@ -357,7 +355,7 @@ module rec ProofNodeDtoCmp: {
                 <tbody>
                     <tr>
                         <td> {rndStatusIconForStmt(node)} </td>
-                        <td style=ReactDOM.Style.make( ~color=getColorForLabel(nodeIdx), () ) > 
+                        <td style={color:getColorForLabel(nodeIdx)} > 
                             {
                                 rndExpandCollapseIcon(
                                     ~expand=!state.expanded,
@@ -367,7 +365,7 @@ module rec ProofNodeDtoCmp: {
                             }
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
-                        <td style=ReactDOM.Style.make(~minWidth="500px", ()) >
+                        <td style={minWidth:"500px"} >
                             {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
                             {
                                 rndExpandCollapseIcon(

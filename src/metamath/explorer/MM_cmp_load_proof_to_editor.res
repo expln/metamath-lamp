@@ -14,7 +14,7 @@ let make = (
         ~key="load-proof-to-editor-loadSteps", ~default=true
     )
 
-    <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+    <Paper style={padding:"10px"} >
         <Col>
             <FormControlLabel
                 control={

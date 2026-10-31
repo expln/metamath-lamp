@@ -1366,7 +1366,7 @@ let make = (
             <Row alignItems=#center key="parens-text-field">
                 <TextField 
                     size=#small
-                    style=ReactDOM.Style.make(~width="400px", ())
+                    style={width:"400px"}
                     label="Parentheses" 
                     value=state.parens 
                     onChange=evt2str(actParensChange)
@@ -1384,7 +1384,7 @@ let make = (
             | None => ()
             | Some(msg) => {
                 elems->Array.push(
-                    <pre style=ReactDOM.Style.make(~color="red", ()) key="parens-error">{React.string(msg)}</pre>
+                    <pre style={color:"red"} key="parens-error">{React.string(msg)}</pre>
                 )
             }
         }
@@ -1395,7 +1395,7 @@ let make = (
         switch err {
             | None => React.null
             | Some(msg) => {
-                <pre style=ReactDOM.Style.make(~color="red", ()) >{React.string(msg)}</pre>
+                <pre style={color:"red"} >{React.string(msg)}</pre>
             }
         }
     }
@@ -1413,7 +1413,7 @@ let make = (
             <Row alignItems=#center>
                 <TextField 
                     size=#small
-                    style=ReactDOM.Style.make(~width="500px", ())
+                    style={width:"500px"}
                     label="Regex to determine discouraged assertions by description" 
                     value=state.descrRegexToDisc
                     onChange=evt2str(actDescrRegexToDiscUpdated)
@@ -1439,7 +1439,7 @@ let make = (
             <Row alignItems=#center>
                 <TextField 
                     size=#small
-                    style=ReactDOM.Style.make(~width="500px", ())
+                    style={width:"500px"}
                     label="Regex to determine discouraged assertions by label" 
                     value=state.labelRegexToDisc
                     onChange=evt2str(actLabelRegexToDiscUpdated)
@@ -1459,7 +1459,7 @@ let make = (
             <Row alignItems=#center>
                 <TextField 
                     size=#small
-                    style=ReactDOM.Style.make(~width="500px", ())
+                    style={width:"500px"}
                     label="Regex to determine deprecated assertions by description" 
                     value=state.descrRegexToDepr
                     onChange=evt2str(actDescrRegexToDeprUpdated)
@@ -1479,7 +1479,7 @@ let make = (
             <Row alignItems=#center>
                 <TextField 
                     size=#small
-                    style=ReactDOM.Style.make(~width="500px", ())
+                    style={width:"500px"}
                     label="Regex to determine deprecated assertions by label" 
                     value=state.labelRegexToDepr
                     onChange=evt2str(actLabelRegexToDeprUpdated)
@@ -1496,11 +1496,11 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDeprErr)}
-            <table style=ReactDOM.Style.make(~borderCollapse="collapse", ~border="none", ())>
+            <table style={borderCollapse:"collapse", border:"none"}>
                 <thead>
                     <tr>
                         {
-                            <td className="table-single-border" colSpan=2 style=ReactDOM.Style.make(~border="none", ())>
+                            <td className="table-single-border" colSpan=2 style={border:"none"}>
                                 {"Allowed usage"->React.string}
                             </td>->addAlignAttr("center")
                         }
@@ -1521,19 +1521,19 @@ let make = (
                     </tr>
                     <tr>
                         {
-                            <td className="table-single-border" colSpan=2 style=ReactDOM.Style.make(~border="none", ())>
+                            <td className="table-single-border" colSpan=2 style={border:"none"}>
                                 {"of assertions in proofs"->React.string}
                             </td>->addAlignAttr("center")
                         }
                         {
-                            <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                            <td className="table-single-border" style={minWidth:"70px"}>
                                 <span>
                                     {"Syntax"->React.string}
                                 </span>
                             </td>->addAlignAttr("center")
                         }
                         {
-                            <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                            <td className="table-single-border" style={minWidth:"70px"}>
                                 <span>
                                     {"Essential"->React.string}
                                 </span>
@@ -1542,7 +1542,7 @@ let make = (
                     </tr>
                     <tr>
                         <td className="table-single-border rotateM90" rowSpan=3>{"Assertions"->React.string}</td>
-                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ()) >{"Discouraged"->React.string}</td>->addAlignAttr("right")}
+                        {<td className="table-single-border" style={padding:"3px"} >{"Discouraged"->React.string}</td>->addAlignAttr("right")}
                         {
                             <td className="table-single-border">
                                 {rndSingleCheckbox( ~checked=state.allowedFrms.inSyntax.useDisc, ~onChange=actUseDiscInSyntaxChange )}
@@ -1566,7 +1566,7 @@ let make = (
                         }
                     </tr>
                     <tr>
-                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
+                        {<td className="table-single-border" style={padding:"3px"}>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
                         {
                             <td className="table-single-border">
                                 {rndSingleCheckbox( ~checked=state.allowedFrms.inSyntax.useDepr, ~onChange=actUseDeprInSyntaxChange )}
@@ -1590,7 +1590,7 @@ let make = (
                         }
                     </tr>
                     <tr>
-                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
+                        {<td className="table-single-border" style={padding:"3px"}>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
                         {
                             <td className="table-single-border">
                                 {rndSingleCheckbox( ~checked=state.allowedFrms.inSyntax.useTranDepr, ~onChange=actUseTranDeprInSyntaxChange )}
@@ -1637,7 +1637,7 @@ let make = (
             />
             <TextField 
                 size=#small
-                style=ReactDOM.Style.make(~width="150px", ())
+                style={width:"150px"}
                 label="Long click delay, ms" 
                 value={state.longClickDelayMsStr} 
                 onChange=evt2str(actLongClickDelayMsStrChange)
@@ -1695,16 +1695,16 @@ let make = (
 
     let rndAboutThisApp = () => {
         <Row>
-            <span style=ReactDOM.Style.make(~cursor="pointer", ()) onClick=clickHnd(~act=actOpenAboutThisAppDialog)>
+            <span style={cursor:"pointer"} onClick=clickHnd(~act=actOpenAboutThisAppDialog)>
                 <MM_Icons.HelpOutline/>
             </span>
-            <span style=ReactDOM.Style.make(~cursor="pointer", ()) onClick=clickHnd(~act=actOpenAboutThisAppDialog)>
+            <span style={cursor:"pointer"} onClick=clickHnd(~act=actOpenAboutThisAppDialog)>
                 {React.string("About this application")}
             </span>
         </Row>
     }
 
-    <Col spacing=2. style=ReactDOM.Style.make(~margin="30px", ())>
+    <Col spacing=2. style={margin:"30px"}>
         {rndAboutThisApp()}
         <Divider/>
         {rndApplyChangesBtn()}
@@ -1739,7 +1739,7 @@ let make = (
         />
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style={width:"200px"}
             label="Initial step label" 
             value=state.defaultStmtLabel
             onChange=evt2str(actDefaultStmtLabelChange)
@@ -1747,7 +1747,7 @@ let make = (
         />
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style={width:"200px"}
             label="Default statement type" 
             value=state.defaultStmtType 
             onChange=evt2str(actDefaultStmtTypeChange)
@@ -1821,7 +1821,7 @@ let make = (
         </Row>
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style={width:"200px"}
             label="Max length of editor history" 
             value=state.editorHistMaxLengthStr
             onChange=evt2str(actEditorHistMaxLengthStrChange)
@@ -1829,7 +1829,7 @@ let make = (
         />
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style={width:"200px"}
             label="Max number of combinations" 
             value=state.combCntMaxStr
             onChange=evt2str(actCombCntMaxStrChange)
@@ -1852,7 +1852,7 @@ let make = (
         <Divider/>
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="310px", ())
+            style={width:"310px"}
             label="Prefix of metavariables in unification" 
             value=state.unifMetavarPrefix
             onChange=evt2str(actUnifMetavarPrefixChange)
@@ -1860,7 +1860,7 @@ let make = (
         />
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="310px", ())
+            style={width:"310px"}
             label="Sort disjoint variables by type" 
             value=state.sortDisjByType
             onChange=evt2str(actSortDisjByTypeChange)

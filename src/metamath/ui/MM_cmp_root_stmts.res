@@ -110,14 +110,14 @@ let make = (
                 {
                     state.flags->Array.mapWithIndex((flag,i) => {
                         let stmt = rootStmtsRendered->Array.getUnsafe(i)
-                        <tr key={i->Belt_Int.toString} style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                        <tr key={i->Belt_Int.toString} style={verticalAlign:"top"}>
                             <td>
                                 <Checkbox
                                     checked=flag
                                     onChange={_ => actToggleStmt(i)}
                                 />
                             </td>
-                            <td style=ReactDOM.Style.make(~paddingTop, ())>
+                            <td style={paddingTop:paddingTop}>
                                 { 
                                     if (proofStatusesAreAvailable) {
                                         rndProofStatus(
@@ -130,10 +130,10 @@ let make = (
                                     }
                                 }
                             </td>
-                            <td style=ReactDOM.Style.make(~paddingTop, ())>
+                            <td style={paddingTop:paddingTop}>
                                 {React.string(stmt.label ++ ": ")} 
                             </td>
-                            <td style=ReactDOM.Style.make(~paddingTop, ())>
+                            <td style={paddingTop:paddingTop}>
                                 {stmt.exprReElem} 
                             </td>
                         </tr>
@@ -143,10 +143,10 @@ let make = (
         </table>
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1. >
             stmtToProve
-            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+            <span style={fontWeight:"bold"}>
                 {React.string(title)}
             </span>
             {rndButtons()}

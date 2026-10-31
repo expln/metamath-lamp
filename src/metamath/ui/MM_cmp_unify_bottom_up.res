@@ -200,7 +200,7 @@ let makeInitialState = (
         exprToProve,
         title:
             <span>
-                <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                <span style={fontWeight:"bold"}>
                     {"Proving bottom-up "->React.string}
                 </span>
                 { MM_cmp_user_stmt.rndContText(~stmtCont=(rootUserStmts->Array.getUnsafe(maxRootStmtIdx)).cont) }
@@ -415,7 +415,7 @@ let stmtsDtoToResultRendered = (
                                 <td>
                                     { React.string(stmt.label) }
                                 </td>
-                                <td style=ReactDOM.Style.make(~textAlign="right", ())>
+                                <td style={textAlign:"right"}>
                                     <nobr>
                                     {
                                         switch stmt.jstf {
@@ -426,11 +426,10 @@ let stmtsDtoToResultRendered = (
                                                         {React.string("[" ++ args->Array.joinUnsafe(" ") ++ " : ")}
                                                     </span>
                                                     <span
-                                                        style=ReactDOM.Style.make(
-                                                            ~backgroundColor=?getFrmLabelBkgColor(label), 
-                                                            ~borderRadius="3px",
-                                                            ()
-                                                        )
+                                                        style={
+                                                            backgroundColor:?getFrmLabelBkgColor(label), 
+                                                            borderRadius:"3px",
+                                                        }
                                                     >
                                                         {React.string(label)}
                                                     </span>
@@ -443,8 +442,8 @@ let stmtsDtoToResultRendered = (
                                     }
                                     </nobr>
                                 </td>
-                                <td style=ReactDOM.Style.make(~color= if (stmt.isProved) {"green"} else {"#565656"},
-                                            ~fontWeight="bold", ())>
+                                <td style={color:if (stmt.isProved) {"green"} else {"#565656"},
+                                            fontWeight:"bold"}>
                                     {React.string( if (stmt.isProved) {"\u2713"} else {"?"} )}
                                 </td>
                                 <td> 
@@ -642,12 +641,11 @@ let rndCheckboxWithLabelAndBorder = (
             />
         }
         label
-        style=ReactDOM.Style.make(
-            ~border="solid 1px lightgrey", 
-            ~borderRadius="7px", 
-            ~paddingRight="10px",
-            ()
-        )
+        style={
+            border:"solid 1px lightgrey", 
+            borderRadius:"7px", 
+            paddingRight:"10px",
+        }
     />
 }
 
@@ -1039,7 +1037,7 @@ let make = (
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                                 {React.string("Close")}
                             </Button>
-                        <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
+                        <Col spacing=1. style={margin:"5px"}>
                             {closeBtn}
                             <MM_cmp_proof_tree
                                 tree
@@ -1141,7 +1139,7 @@ let make = (
                     <TextField 
                         label="Search depth"
                         size=#small
-                        style=ReactDOM.Style.make(~width="100px", ())
+                        style={width:"100px"}
                         autoFocus=true
                         value=state.depthStr
                         onChange=evt2str(actDepthUpdated)
@@ -1161,14 +1159,13 @@ let make = (
                             />
                         }
                         label="Allow new disjoints"
-                        style=ReactDOM.Style.make(
-                            ~border="solid 1px lightgrey", 
-                            ~borderRadius="7px", 
-                            ~paddingRight="10px",
-                            ~marginTop="-2px",
-                            ~marginLeft="2px",
-                            ()
-                        )
+                        style={
+                            border:"solid 1px lightgrey", 
+                            borderRadius:"7px", 
+                            paddingRight:"10px",
+                            marginTop:"-2px",
+                            marginLeft:"2px",
+                        }
                     />
                     <FormControlLabel
                         control={
@@ -1178,14 +1175,13 @@ let make = (
                             />
                         }
                         label="Allow new steps"
-                        style=ReactDOM.Style.make(
-                            ~border="solid 1px lightgrey", 
-                            ~borderRadius="7px", 
-                            ~paddingRight="10px",
-                            ~marginTop="-2px",
-                            ~marginLeft="2px",
-                            ()
-                        )
+                        style={
+                            border:"solid 1px lightgrey", 
+                            borderRadius:"7px", 
+                            paddingRight:"10px",
+                            marginTop:"-2px",
+                            marginLeft:"2px",
+                        }
                     />
                     <FormControlLabel
                         control={
@@ -1196,13 +1192,12 @@ let make = (
                         }
                         label="Allow new variables"
                         disabled={!state.allowNewStmts}
-                        style=ReactDOM.Style.make(
-                            ~border="solid 1px lightgrey", 
-                            ~borderRadius="7px", 
-                            ~paddingRight="10px",
-                            ~marginTop="-2px",
-                            ()
-                        )
+                        style={
+                            border:"solid 1px lightgrey", 
+                            borderRadius:"7px", 
+                            paddingRight:"10px",
+                            marginTop:"-2px",
+                        }
                     />
                 </Row>
                 <table>
@@ -1211,7 +1206,7 @@ let make = (
                             <td>
                                 {React.string("Allow usage of assertions:")}
                             </td>
-                            <td style=ReactDOM.Style.make(~paddingLeft="10px", ())>
+                            <td style={paddingLeft:"10px"}>
                                 {
                                     rndCheckboxWithLabelAndBorder(
                                         ~checked=state.useDisc,
@@ -1247,7 +1242,7 @@ let make = (
                         label="Max num of branches"
                         size=#small
                         disabled={state.debugLevel == 0}
-                        style=ReactDOM.Style.make(~width="200px", ())
+                        style={width:"200px"}
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
                         onKeyDown=kbrdHnd2(
@@ -1277,7 +1272,7 @@ let make = (
                 <TextField
                     label="Actual parameters of the bottom-up prover"
                     size=#small
-                    style=ReactDOM.Style.make(~width="800px", ())
+                    style={width:"800px"}
                     autoFocus=false
                     multiline=true
                     rows=10
@@ -1355,7 +1350,7 @@ let make = (
     let actOpenWarningsDialog = ( warnings:array<string>, ) => {
         openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                <Paper style={padding:"10px"}>
                     <Col>
                         <ol>
                             {
@@ -1390,7 +1385,7 @@ let make = (
     let actShowActualParams = () => {
         openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                <Paper style={padding:"10px"}>
                     <Col>
                         {rndActualProverParams()}
                         <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
@@ -1423,7 +1418,7 @@ let make = (
                     }
                     | Some(Error(msg)) => {
                         <Col>
-                            <pre style=ReactDOM.Style.make(~color="red", ())> {React.string("Error:")} </pre>
+                            <pre style={color:"red"}> {React.string("Error:")} </pre>
                             <pre> {React.string(msg)} </pre>
                         </Col>
                     }
@@ -1534,7 +1529,7 @@ let make = (
         ~setFlags: array<bool> => unit,
     ) => {
         if (titleOnly) {
-            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+            <Row style={border:"solid lightgrey 1px", borderRadius:"6px", margin:"2px"}>
                 {React.string(title)}
             </Row>
         } else {
@@ -1555,25 +1550,24 @@ let make = (
             } else {
                 ("select none", () => setFlags(flags->unselectAllArgs))
             }
-            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+            <Row style={border:"solid lightgrey 1px", borderRadius:"6px", margin:"2px"}>
                 {React.string(title)}
                 <span
                     onClick={_=> { 
                         actOpenRootStmtsDialog( ~title = dialogTitle, ~stmtToProve, ~getFlags, ~setFlags, ) 
                     }}
-                    style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+                    style={cursor:"pointer", color:"blue"}
                 >
                     {React.string(numberOfSelected)}
                 </span>
                 <span
                     onClick={_=> selectUnselectAct() }
-                    style=ReactDOM.Style.make(
-                        ~cursor="pointer", 
-                        ~border="solid lightgrey 0px", 
-                        ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
-                        ~paddingLeft="5px", ~paddingRight="5px", 
-                        ()
-                    )
+                    style={
+                        cursor:"pointer", 
+                        border:"solid lightgrey 0px", 
+                        borderRadius:"10px", backgroundColor:"rgb(240, 240, 240)", 
+                        paddingLeft:"5px", paddingRight:"5px",
+                    }
                 >
                     {React.string(selectUnselectText)}
                 </span>
@@ -1606,7 +1600,7 @@ let make = (
                     onClick={_=>actToggleArgs1EqArgs0()}
                     color = ?(if (state.args1EqArgs0) {Some("primary")} else {Some("lightgrey")})
                 >
-                    <MM_Icons.Pause style=ReactDOM.Style.make(~transform="rotate(-90deg)", ())/>
+                    <MM_Icons.Pause style={transform:"rotate(-90deg)"}/>
                 </IconButton>
                 {
                     rndRootStmtsForLevelShort(
@@ -1622,7 +1616,7 @@ let make = (
         }
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.5>
             {rndTitle()}
             {if (!isApiCall) {rndRootStmts()} else {React.null}}

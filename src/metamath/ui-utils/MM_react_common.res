@@ -173,9 +173,9 @@ let kbrdHnds = ( clbks:array<kbrdCallback>):(ReactEvent.Keyboard.t => unit) => {
 }
 
 let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?) => {
-    <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
+    <Paper style={padding:onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px")}>
         <Row alignItems=#center spacing=1.>
-            <span style=ReactDOM.Style.make(~paddingLeft="10px", ())>
+            <span style={paddingLeft:"10px"}>
                 {
                     switch pct {
                         | Some(pct) => `${text}: ${(pct *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString}%`
@@ -201,7 +201,7 @@ let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd):reEle
     <TextField 
         key=?key
         size=#small
-        style=ReactDOM.Style.make(~width="0px", ~height="0px", ~opacity="0", ())
+        style={width:"0px", height:"0px", opacity:"0"}
         onKeyDown
         autoFocus=true
         autoComplete="off"
@@ -212,14 +212,13 @@ let rndModalPaneWithTitle = (
     ~title:option<string>=?,
     ~content:React.element, 
 ) => {
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.>
             <span 
-                style=ReactDOM.Style.make(
-                    ~fontWeight="bold", 
-                    ~display=?{if (title->Belt_Option.isNone) {Some("none")} else {None}}, 
-                    ()
-                )
+                style={
+                    fontWeight:"bold", 
+                    display:?{if (title->Belt_Option.isNone) {Some("none")} else {None}},
+                }
             >
                 {title->Belt_Option.getWithDefault("")->String.padEnd(40, Common.nbsp)->React.string}
             </span>
@@ -290,7 +289,7 @@ let rndInfoDialog = (
                                         <td>
                                             icon
                                         </td>
-                                        <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                                        <td style={paddingLeft:"5px"}>
                                             {rndDialogContent(~text, ~content)}
                                         </td>
                                     </tr>
@@ -388,14 +387,13 @@ let openOkCancelDialog = (
 let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey" ):React.element => {
     <span
         onClick={_=> onClick() }
-        style=ReactDOM.Style.make( 
-            ~cursor="pointer", 
-            ~color, 
-            ~fontSize="0.7em", 
-            ~padding="2px",
-            ~borderRadius="3px",
-            () 
-        )
+        style={ 
+            cursor:"pointer", 
+            color, 
+            fontSize:"0.7em", 
+            padding:"2px",
+            borderRadius:"3px", 
+        }
         className="grey-bkg-on-hover"
     >
         {React.string(text)}
@@ -424,7 +422,7 @@ let rndColorSelect = (
             {
                 React.array(availableColors->Array.map(color => {
                     <MenuItem key=color value=color>
-                        <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
+                        <div style={width:"50px", height:"20px", backgroundColor:color} />
                     </MenuItem>
                 }))
             }
