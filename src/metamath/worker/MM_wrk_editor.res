@@ -1864,7 +1864,11 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                                             ~frmExprToStr = 
                                                 expr => wrkCtx->frmIntsToStrExn(wrkCtx->getFrameExn(asrtLabel),expr)
                                         )
-                                    })->Array.joinUnsafe("\n\n")
+                                    })
+                                        ->Belt_HashSetString.fromArray
+                                        ->Belt_HashSetString.toArray
+                                        ->Array.toSorted(String.compare)
+                                        ->Array.joinUnsafe("\n\n")
                                 )
                             } else {
                                 None
