@@ -194,7 +194,7 @@ let make = (
                 {rndButtons()}
             </Col>
         } else {
-            let style = if (text->String.trim == "") {
+            let style:ReactDOM.Style.t = if (text->String.trim == "") {
                 {padding:"4px"}
             } else {
                 {padding:"0px 4px"}

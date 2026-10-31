@@ -1213,7 +1213,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndSelectionButtons = () => {
-        let style = if (viewOptions.smallBtns) {
+        let style:option<ReactDOM.Style.t> = if (viewOptions.smallBtns) {
             Some({padding:"0px", minWidth:"30px", minHeight:"26px"})
         } else {
             None
