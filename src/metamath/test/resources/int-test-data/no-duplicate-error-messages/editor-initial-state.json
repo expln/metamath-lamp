@@ -1,0 +1,39 @@
+{
+  "descr": "https://github.com/expln/metamath-lamp/issues/270",
+  "varsText": "",
+  "disjText": "A B x y z",
+  "stmts": [
+    {
+      "label": "1",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( x = A -> ( y e. x <-> y e. A ) )",
+      "jstfText": ": eleq2"
+    },
+    {
+      "label": "2",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( x = A -> ( E. z e. B z e. x <-> E. z e. B z e. A ) )",
+      "jstfText": "1 : rexbidv"
+    },
+    {
+      "label": "3",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( A e. B -> ( A. w e. B E. z e. B z e. x -> E. y e. x y e. A ) )",
+      "jstfText": "2 : rspcv"
+    },
+    {
+      "label": "qed",
+      "typ": "p",
+      "isGoal": true,
+      "isBkm": false,
+      "cont": "|- ph",
+      "jstfText": ""
+    }
+  ]
+}
