@@ -113,8 +113,8 @@ let extractSubstringByRegex = (str:string, regex:RegExp.t):result<string,int> =>
         | None => Error(1)
         | Some(res) => {
             switch (res->RegExp.Result.matches)[0] {
-                | None => Error(2)
-                | Some(substr) => Ok(substr)
+                | None | Some(None) => Error(2)
+                | Some(Some(substr)) => Ok(substr)
             }
         }
     }
