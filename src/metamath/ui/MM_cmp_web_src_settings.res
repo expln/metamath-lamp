@@ -23,11 +23,11 @@ let make = (
         let isDefault = defaultIds->Array.includes(src.id)
         <Col key=src.id>
             <Row>
-                <TextField label="Alias (optional)" size=#small style=ReactDOM.Style.make(~width="150px", ()) 
+                <TextField label="Alias (optional)" size=#small style={width:"150px"} 
                     value=src.alias onChange=evt2str(onAliasChange(src.id,_)) 
                     disabled=isDefault
                 />
-                <TextField label="URL" size=#small style=ReactDOM.Style.make(~width="400px", ()) 
+                <TextField label="URL" size=#small style={width:"400px"} 
                     value=src.url onChange=evt2str(onUrlChange(src.id,_)) 
                     disabled=isDefault
                 />
@@ -39,14 +39,13 @@ let make = (
                         />
                     }
                     label="Download without warning"
-                    style=ReactDOM.Style.make(
-                        ~border="solid 1px lightgrey", 
-                        ~borderRadius="7px", 
-                        ~paddingRight="10px",
-                        ~marginTop="-2px",
-                        ~marginLeft="2px",
-                        ()
-                    )
+                    style={
+                        border:"solid 1px lightgrey", 
+                        borderRadius:"7px", 
+                        paddingRight:"10px",
+                        marginTop:"-2px",
+                        marginLeft:"2px",
+                    }
                 />
                 <IconButton key="delete-button" onClick={_ => onDelete(src.id)} disabled=isDefault>
                     <MM_Icons.Delete/>
@@ -55,13 +54,13 @@ let make = (
             {
                 switch src.err {
                     | None => React.null
-                    | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
+                    | Some(msg) => <pre style={color:"red"}>{React.string(msg)}</pre>
                 }
             }
         </Col>
     }
 
-    <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
+    <Col style={marginTop:"5px"}>
         { webSrcSettings->Array.map(rndWebSrcSetting)->React.array }
         <Row alignItems={#baseline} >
             <IconButton key="add-button" onClick={_ => onAdd()}>

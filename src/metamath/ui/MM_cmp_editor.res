@@ -85,7 +85,7 @@ let rndIconButton = (
             onClick={_ => onClick()}
             color="primary"
             style=?{
-                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+                if (smallBtns) {Some({padding:"2px"})} else {None}
             }
         > 
             icon 
@@ -314,7 +314,7 @@ let make = (
                     ~title="Error in UnifyAll",
                     ~content={
                         <Col>
-                            <pre style=ReactDOM.Style.make(~color="red", ())> {React.string("Error:")} </pre>
+                            <pre style={color:"red"}> {React.string("Error:")} </pre>
                             <pre> {React.string(msg)} </pre>
                         </Col>
                     }, 
@@ -336,7 +336,7 @@ let make = (
     let showErrMsg = (~title:option<string>=?, ~text:string) => {
         openInfoDialog( ~modalRef, ~title?, ~text,
             ~icon=
-                <span style=ReactDOM.Style.make(~color="red", () ) >
+                <span style={color:"red"} >
                     <MM_Icons.PriorityHigh/>
                 </span>
         )
@@ -402,7 +402,7 @@ let make = (
     let actDeleteCheckedStmts = () => {
         openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                <Paper style={padding:"10px"}>
                     <Col spacing=1.>
                         {
                             let numOfSelectedStmts = state.checkedStmtIds->Array.length
@@ -1365,7 +1365,7 @@ let make = (
             | Error(errorMsg) => {
                 openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                        <Paper style={padding:"10px"}>
                             <Col spacing=1.>
                                 { React.string(errorMsg) }
                                 <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
@@ -1540,7 +1540,7 @@ let make = (
         let stmtToInlineRef = ref(getNextStmt())
         while (stmtToInlineRef.contents->Option.isSome && errMsg.contents->Option.isNone) {
             let stmtToInline = stmtToInlineRef.contents
-                ->Option.getExn(~message="inlineTheoremForSteps: stmtToInlineRef.contents is None.")
+                ->Option.getOrThrow(~message="inlineTheoremForSteps: stmtToInlineRef.contents is None.")
             switch inlineTheoremForStep(
                 ~state=state.contents,
                 ~stmtId=stmtToInline.id,
@@ -1617,7 +1617,7 @@ let make = (
                     })
                     ->Array.filter(Option.isSome(_))
                     ->Array.map(opt => {
-                        opt->Option.getExn(
+                        opt->Option.getOrThrow(
                             ~message="actInlineTheorems internal error: cannot map to label."
                         )
                     })
@@ -1688,7 +1688,7 @@ let make = (
     let actOpenMoveStepsDialog = () => {
         openModal(modalRef, () => React.null)->Promise.thenResolve(modalId => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                <Paper style={padding:"10px"}>
                     <Col>
                         <ListCmp disablePadding=true>
                             <ListItem disablePadding=true >
@@ -1831,7 +1831,7 @@ let make = (
     let rndError = (msgOpt,color) => {
         switch msgOpt {
             | None => React.null
-            | Some(msg) => <pre style=ReactDOM.Style.make(~color, ~whiteSpace="pre-wrap", ())>{React.string(msg)}</pre>
+            | Some(msg) => <pre style={color, whiteSpace:"pre-wrap"}>{React.string(msg)}</pre>
         }
     }
 
@@ -2017,7 +2017,7 @@ let make = (
                     checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
                     onChange={_ => actToggleMainCheckbox()}
                     style=?{
-                        if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+                        if (smallBtns) {Some({padding:"2px"})} else {None}
                     }
                 />
                 {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
@@ -2041,18 +2041,18 @@ let make = (
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
                     ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns
                 )}
-                {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
+                {rndIconButton(~icon=<MM_Icons.Logout style={transform:"rotate(-90deg)"} />, 
                     ~onClick=()=>actDuplicateStmt(true), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step up", 
                     ~smallBtns, )}
-                {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(+90deg)", ()) />, 
+                {rndIconButton(~icon=<MM_Icons.Logout style={transform:"rotate(+90deg)"} />, 
                     ~onClick=()=>actDuplicateStmt(false), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step down", 
                     ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
                     ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog,
                     ~title="Restore previous state", ~smallBtns)}
-                {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
+                {rndIconButton(~icon=<MM_Icons.MergeType style={transform:"rotate(180deg)"}/>, 
                     ~onClick=actMergeStmts,
                     ~active= numOfCheckedStmts==1 || thereIsDuplicatedStmt, 
                     ~title="Merge two similar steps", ~smallBtns)}
@@ -2091,7 +2091,7 @@ let make = (
         if (stmt.stmtErr->Belt_Option.isSome 
             || stmt.syntaxErr->Belt_Option.isSome 
             || stmt.unifErr->Belt_Option.isSome) {
-            <Col style=ReactDOM.Style.make(~marginLeft="10px", ())>
+            <Col style={marginLeft:"10px"}>
                 {rndError(stmt.stmtErr->Belt.Option.map(err => err.msg),"red")}
                 {
                     rndError(
@@ -2186,8 +2186,8 @@ let make = (
     }
 
     let rndLoc = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="12px", ())>
-            <span onClick={_=>actBeginEdit0(setLocEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px", marginTop:"12px"}>
+            <span onClick={_=>actBeginEdit0(setLocEditMode)} style={cursor:"pointer"}>
                 {React.string("Location")}
             </span>
             <Col>
@@ -2205,8 +2205,8 @@ let make = (
     }
 
     let rndDescr = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ())>
-            <span onClick={_=>actBeginEdit0(setDescrEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px"}>
+            <span onClick={_=>actBeginEdit0(setDescrEditMode)} style={cursor:"pointer"}>
                 {React.string("Description")}
             </span>
             <Col>
@@ -2240,8 +2240,8 @@ let make = (
     }
 
     let rndVars = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="3px", ())>
-            <span onClick={_=>actBeginEdit0(setVarsEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px", marginTop:"3px"}>
+            <span onClick={_=>actBeginEdit0(setVarsEditMode)} style={cursor:"pointer"}>
                 {React.string("Variables")}
             </span>
             <Col>
@@ -2265,8 +2265,8 @@ let make = (
     }
 
     let rndDisj = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ())>
-            <span onClick={_=>actBeginEdit0(setDisjEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px"}>
+            <span onClick={_=>actBeginEdit0(setDisjEditMode)} style={cursor:"pointer"}>
                 {React.string("Disjoints")}
             </span>
             <Col>
@@ -2323,7 +2323,7 @@ let make = (
 
     let rndPagination = () => {
         if (paginationIsRequired) {
-            <div style=ReactDOM.Style.make(~padding="5px", ())>
+            <div style={padding:"5px"}>
                 <PaginationCmp
                     numOfPages
                     pageIdx
@@ -2341,7 +2341,7 @@ let make = (
 
     let rndGoToNextPageWithErrorsBtn = () => {
         if (thereAreAnyErrorsInEditor && paginationIsRequired) {
-            <Row style=ReactDOM.Style.make(~padding="5px", ())>
+            <Row style={padding:"5px"}>
                 {
                     rndSmallTextBtn( 
                         ~text="< Go to previos page with errors", ~color="red", 
@@ -2376,12 +2376,12 @@ let make = (
 
     let rndFooter = () => {
         Belt_Array.range(1,12)->Array.map(i => {
-            <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
+            <span key={i->Belt_Int.toString} style={fontSize:"20px"}>{nbsp->React.string}</span>
         })->React.array
     }
 
     let rndShowContentBtn = () => {
-        <Col spacing=1.0 style=ReactDOM.Style.make(~padding="20px", ())>
+        <Col spacing=1.0 style={padding:"20px"}>
             {"Editor content is hidden."->React.string}
             <Button onClick={_=>{ setContIsHidden(_=>false) }} variant=#contained >
                 {React.string("Show editor content")}
@@ -2457,7 +2457,7 @@ let make = (
                         )->Promise.thenResolve(asrtSyntaxTreesArr => {
                             preCtxData.asrtSyntaxTrees = Some(Belt_HashMapString.fromArray(asrtSyntaxTreesArr))
                             closeModal(modalRef, modalId)
-                            preCtxData.asrtSyntaxTrees->Option.getExn(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
+                            preCtxData.asrtSyntaxTrees->Option.getOrThrow(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
                         })
                     })
             }
@@ -2478,7 +2478,7 @@ let make = (
                     ->Array.map(((label,_)) => label)
                     ->Array.map(label =>
                         preCtxData.ctxV.val.full->getFrame(label)
-                            ->Option.getExn(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
+                            ->Option.getOrThrow(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
                     )
                     ->Array.filter(frm => frm.ord <= maxFrmOrd.contents)
             )

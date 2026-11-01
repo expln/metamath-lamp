@@ -67,9 +67,9 @@ let make = (
         None
     }, [smallBtns])
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col>
-            <span style=ReactDOM.Style.make(~fontWeight="bold", ~fontSize="1.1em", ())>
+            <span style={fontWeight:"bold", fontSize:"1.1em"}>
                 { React.string("View Options") }
             </span>
             <Button onClick={_=>onClose()}> {React.string("Close")} </Button>
@@ -130,7 +130,7 @@ let make = (
             <Row>
                 <TextField 
                     size=#small
-                    style=ReactDOM.Style.make(~width="110px", ())
+                    style={width:"110px"}
                     label="Steps per page" 
                     value=stepsPerPageTextEffective
                     autoFocus=true

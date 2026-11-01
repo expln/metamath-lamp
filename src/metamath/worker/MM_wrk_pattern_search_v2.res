@@ -47,7 +47,7 @@ type subSeqMatchRes = {
 }
 
 let getVarType = (varTypes: array<int>, var:int):int => {
-    varTypes[var]->Option.getExn(~message=`No type is defiend for var ${var->Int.toString}`)
+    varTypes[var]->Option.getOrThrow(~message=`No type is defiend for var ${var->Int.toString}`)
 }
 
 let exprSymMatchesSeqConst = (~exprSym:int, ~seqConst:int, ~varTypes: array<int>):bool => {
@@ -340,7 +340,7 @@ let exprIncludesVarAdjSeq = (
                         matched := seqVar.capVar == exprSym
                     } else if ( 
                         exprSym >= 0 
-                        && !(seqVar.capVars.contents[exprSym]->Option.getExn(~message="capVars.length is too small."))
+                        && !(seqVar.capVars.contents[exprSym]->Option.getOrThrow(~message="capVars.length is too small."))
                         && varTypes->getVarType(exprSym) == seqVar.typ
                     ) {
                         seqVar.capVar = exprSym
@@ -462,7 +462,7 @@ and let exprIncludesVarOrderedSeq = (
 ):unit => {
     if (childElems->Array.length <= childElemIdx) {
         switch res {
-            | None => Exn.raiseError("exprIncludesVarOrderedSeq: res is None")
+            | None => JsError.throwWithMessage("exprIncludesVarOrderedSeq: res is None")
             | Some(res) => next({...res, matchEnd:startIdx-1})
         }
     } else if (startIdx <= maxIdx) {
@@ -499,7 +499,7 @@ and let exprIncludesVarUnorderedSeq = (
 ):unit => {
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         switch res {
-            | None => Exn.raiseError("exprIncludesVarUnorderedSeq: res is None")
+            | None => JsError.throwWithMessage("exprIncludesVarUnorderedSeq: res is None")
             | Some(res) => next({...res, matchEnd:startIdx-1})
         }
     } else if (startIdx <= maxIdx) {
@@ -600,7 +600,7 @@ let exprIncludesSeq = (
                 stop := true
                 switch res.contents {
                     | None => res := Some(getMatchedIndices(seq))
-                    | Some(_) => Exn.raiseError("next() is called twice in exprIncludesSeq.")
+                    | Some(_) => JsError.throwWithMessage("next() is called twice in exprIncludesSeq.")
                 }
             },
             ~stop, ~frmData, ~stmtI
@@ -617,7 +617,7 @@ let makeSym = (symStr:string, symMap:Belt_HashMapString.t<constOrVar>):sym => {
     {
         matchedIdx: -1,
         constOrVar: 
-            symMap->Belt_HashMapString.get(symStr)->Option.getExn(~message=`makeSym: unknown symbol ${symStr}`)
+            symMap->Belt_HashMapString.get(symStr)->Option.getOrThrow(~message=`makeSym: unknown symbol ${symStr}`)
     }
 }
 
@@ -755,7 +755,7 @@ let checkControlToken = (tok:string, errors:array<string>):unit => {
         tok == P.operatorOrdered || tok == P.operatorUnordered || tok == P.operatorOneOf 
         || tok == P.openParenthesis || tok == P.closeParenthesis
     )) {
-        let flags = tok->String.substringToEnd(~start=tok->String.startsWith(P.openParenthesis)?2:1)
+        let flags = tok->String.substring(~start=tok->String.startsWith(P.openParenthesis)?2:1)
         if (flags->String.length > 0) {
             let flagHyps = ref(false)
             let flagHyp = ref(false)
@@ -881,7 +881,7 @@ let parsePattern = (
                                 | None => {
                                     makeSymMap(
                                         ast, 
-                                        ctx->Option.getExn(
+                                        ctx->Option.getOrThrow(
                                             ~message="parsePattern: either symMap or ctx must be provided."
                                         ),
                                         ref([])
@@ -943,7 +943,7 @@ let convertMatchedIndices = (frm:MC.frame, idxs:array<int>):array<array<int>> =>
         let curResArr = res->Array.getUnsafe(hypI.contents)
         let curIdx = ref(idxs[idxI.contents])
         while (curIdx.contents->Option.mapOr(false, curIdx => curIdx <= maxIdx) && idxI.contents <= maxIdxI) {
-            curResArr->Array.push(curIdx.contents->Option.getExn - hypLenSum.contents)
+            curResArr->Array.push(curIdx.contents->Option.getOrThrow - hypLenSum.contents)
             idxI := idxI.contents + 1
             curIdx := idxs[idxI.contents]
         }
@@ -959,11 +959,11 @@ let convertMatchedIndices = (frm:MC.frame, idxs:array<int>):array<array<int>> =>
 }
 
 let mergeMatchedIndices = (idxs:array<array<array<int>>>):array<array<int>> => {
-    let numOfStmts = idxs[0]->Option.getExn(~message="mergeMatchedIndices: error 1")->Array.length
+    let numOfStmts = idxs[0]->Option.getOrThrow(~message="mergeMatchedIndices: error 1")->Array.length
     let res:array<array<int>> = makeEmptyMatchedIdxs(numOfStmts)
     idxs->Array.forEach((patIdxs:array<array<int>>) => {
         patIdxs->Array.forEachWithIndex((stmtIdxs:array<int>, stmtI) => {
-            res[stmtI]->Option.getExn(~message="mergeMatchedIndices: error 2")->Array.pushMany(stmtIdxs)
+            res[stmtI]->Option.getOrThrow(~message="mergeMatchedIndices: error 2")->Array.pushMany(stmtIdxs)
         })
     })
     res->Array.forEach(stmtIdxs => Array.sort(stmtIdxs, Int.compare))

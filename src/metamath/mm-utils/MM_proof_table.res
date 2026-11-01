@@ -124,7 +124,7 @@ let collectReusedIdxs = (tbl,rootIdx):Belt_HashSetInt.t => {
 let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proof => {
     let tblLen = tbl->Array.length
     if (tblLen <= rootIdx) {
-        raise(MmException({msg:`tblLen <= rootIdx`}))
+        throw(MmException({msg:`tblLen <= rootIdx`}))
     }
     let mandHypLen = mandHyps->Array.length
     let mandHypLabelToInt = Belt_HashMapString.fromArray(
@@ -189,7 +189,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true)
 
     let getIdxByNodeIdExn = (nodeId:int):int => {
         switch getIdxByNodeId(nodeId) {
-            | None => raise(MmException({ msg:`Could not determine idx by nodeId in createProofTableFromProof().` }))
+            | None => throw(MmException({ msg:`Could not determine idx by nodeId in createProofTableFromProof().` }))
             | Some(idx) => idx
         }
     }
@@ -202,7 +202,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true)
 
     let saveExprToTbl = (nodeId:int,expr:expr,proof:exprSource):unit => {
         if (getIdxByNodeId(nodeId)->Belt_Option.isSome) {
-            raise(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
+            throw(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
         }
         if (mergeSameRows) {
             switch tbl->Array.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {

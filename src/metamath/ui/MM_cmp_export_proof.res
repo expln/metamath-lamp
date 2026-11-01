@@ -68,7 +68,7 @@ let make = (
         }
     }
 
-    <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+    <Paper style={padding:"10px"} >
         <Col spacing=1.>
             <Row alignItems=#center>
                 <FormControlLabel
@@ -100,7 +100,7 @@ let make = (
                     label="all hypotheses"
                     disabled={proofTextReqHyps == proofTextAllHyps}
                 />
-                <Button onClick={_=>actCopyToClipboard()} variant=#contained style=ReactDOM.Style.make(~width="90px", ()) > 
+                <Button onClick={_=>actCopyToClipboard()} variant=#contained style={width:"90px"} > 
                     {
                         if (copiedToClipboard->Belt.Option.isSome) {
                             React.string("Copied")
@@ -112,7 +112,7 @@ let make = (
                 <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             </Row>
             { rndHiddenTextField( ~onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose) ) }
-            <pre style=ReactDOM.Style.make(~overflowWrap="break-word", ~whiteSpace="pre-wrap", ())>
+            <pre style={overflowWrap:"break-word", whiteSpace:"pre-wrap"}>
                 {React.string(proofText)}
             </pre>
             {rndProofTable()}

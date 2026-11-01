@@ -33,7 +33,7 @@ let evt2str = (strConsumer:string=>unit) => {
         switch target["value"]->Nullable.toOption {
             | None => {
                 Console.error2("target", target)
-                Exn.raiseError(`evt2str: cannot get 'value' property on the event target.`)
+                JsError.throwWithMessage(`evt2str: cannot get 'value' property on the event target.`)
             }
             | Some(str) => strConsumer(str)
         }
@@ -45,7 +45,7 @@ let evt2bool = (boolConsumer:bool=>unit) => {
         switch target["checked"]->Nullable.toOption {
             | None => {
                 Console.error2("target", target)
-                Exn.raiseError(`evt2bool: cannot get 'checked' property on the event target.`)
+                JsError.throwWithMessage(`evt2bool: cannot get 'checked' property on the event target.`)
             }
             | Some(bool) => boolConsumer(bool)
         }

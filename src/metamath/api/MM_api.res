@@ -33,7 +33,7 @@ external apiInputToNullableObj: apiInput => Nullable.t<{..}> = "%identity"
 
 let apiInputToObjExn = (apiInput:apiInput, msg:string):{..} => {
     switch apiInput->apiInputToNullableObj->Nullable.toOption {
-        | None => Exn.raiseError(msg)
+        | None => JsError.throwWithMessage(msg)
         | Some(obj) => obj
     }
 }

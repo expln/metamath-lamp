@@ -293,7 +293,7 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bo
             switch parents->Array.find(par => exprSrcEq(par, parent)) {
                 | Some(existingParent) => {
                     if (exprSrcIsProved(existingParent)) {
-                        raise(MmException({
+                        throw(MmException({
                             msg:`Unexpected: an unproved node '${pnGetExprStr(node)}' has a proved parent.`
                         }))
                     }

@@ -90,7 +90,7 @@ let make = (
 
     let rndButtons = () => {
         let thereAreBkmSteps = paginationData->Option.map(data => data.thereAreBkmSteps)->Option.getOr(false)
-        <Row alignItems=#center style=ReactDOM.Style.make(~padding="4px", ())>
+        <Row alignItems=#center style={padding:"4px"}>
             <Button onClick={_=>onRestore(curIdx)} disabled=restoreThisIsDisabled variant=#contained color="grey" > 
                 {React.string("Restore this")} 
             </Button>
@@ -113,10 +113,10 @@ let make = (
     }
 
     let rndMultilineText = (text:string, renderer:option<string=>reElem>) => {
-        let style = if (text->String.trim == "") {
-            ReactDOM.Style.make(~padding="4px", ())
+        let style:ReactDOM.Style.t = if (text->String.trim == "") {
+            {padding:"4px"}
         } else {
-            ReactDOM.Style.make(~padding="0px", ())
+            {padding:"0px"}
         }
         <Paper variant=#outlined style >
             {
@@ -132,7 +132,7 @@ let make = (
     }
 
     let rndDescr = (editorState:editorState) => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="12px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px", marginTop:"12px"}>
             <span>
                 {React.string("Description")}
             </span>
@@ -141,7 +141,7 @@ let make = (
     }
 
     let rndVars = (editorState:editorState) => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="3px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px", marginTop:"3px"}>
             <span >
                 {React.string("Variables")}
             </span>
@@ -150,7 +150,7 @@ let make = (
     }
 
     let rndDisj = (editorState:editorState) => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="3px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style={marginLeft:"7px", marginTop:"3px"}>
             <span >
                 {React.string("Disjoints")}
             </span>
@@ -226,7 +226,7 @@ let make = (
             | Some(paginationData) => {
                 let paginationIsRequired = paginationData.stmtsToShow->Array.length > paginationData.stepsPerPage
                 if (paginationIsRequired) {
-                    <div style=ReactDOM.Style.make(~padding="5px", ())>
+                    <div style={padding:"5px"}>
                         <PaginationCmp
                             numOfPages=paginationData.numOfPages
                             pageIdx=paginationData.pageIdx
@@ -264,7 +264,7 @@ let make = (
     let rndEditorState = () => {
         switch curEditorState {
             | Error(msg) => {
-                <pre style=ReactDOM.Style.make(~color="red", ())>
+                <pre style={color:"red"}>
                     {React.string(`Error reading editor history: ${msg}`)}
                 </pre>
             }
@@ -281,7 +281,7 @@ let make = (
         }
     }
 
-    <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+    <Paper style={padding:"10px"} >
         <AppBar position=#sticky color="white">
             {rndButtons()}
         </AppBar>

@@ -64,7 +64,7 @@ let make = (
 
     let frmExprToStr = (asrtLabel,expr) => {
         switch wrkCtx->getFrame(asrtLabel) {
-            | None => raise(MmException({msg:`Cannot find an assertion by label '${asrtLabel}'`}))
+            | None => throw(MmException({msg:`Cannot find an assertion by label '${asrtLabel}'`}))
             | Some(frame) => wrkCtx->frmIntsToStrExn(frame, expr)
         }
     }
@@ -107,7 +107,7 @@ let make = (
                     />
                 }
                 label="Show unproved only"
-                style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+                style={paddingRight:"10px", marginTop:"-2px", marginLeft:"2px"}
             />
         </Row>
     }

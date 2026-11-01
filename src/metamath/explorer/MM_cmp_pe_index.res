@@ -194,7 +194,7 @@ let make = React.memoCustomCompareProps(({
             }
             None
         })->ignore
-        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
+        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Expln_utils_common.sortInPlaceWith(String.compare)
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
         //make sure the selected type is still present in the context
@@ -228,7 +228,7 @@ let make = React.memoCustomCompareProps(({
                                 ~allFramesInDeclarationOrder,
                                 ~isAxiom=isAxiomFilter,
                                 ~typ=stmtTypeFilter->Option.map(typ => {
-                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
+                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getOrThrow(
                                         ~message=`Cannot convert symbol '${typ}' to int ` 
                                             ++ `in MM_cmp_pe_index.actApplyFilters[1].`
                                     )
@@ -259,7 +259,7 @@ let make = React.memoCustomCompareProps(({
                                 ~preCtx=preCtxData.ctxV.val.min,
                                 ~isAxiom=isAxiomFilter,
                                 ~typ=stmtTypeFilter->Option.map(typ => {
-                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getExn(
+                                    preCtxData.ctxV.val.full->ctxSymToInt(typ)->Option.getOrThrow(
                                         ~message=`Cannot convert symbol '${typ}' to int ` 
                                             ++ `in MM_cmp_pe_index.actApplyFilters[2].`
                                     )
@@ -285,7 +285,7 @@ let make = React.memoCustomCompareProps(({
                                             (
                                                 frame, 
                                                 labelToIdxs->Belt_HashMapString.get(frame.label)
-                                                    ->Option.getExn(~message="Error MM_cmp_pe_index.actApplyFilters[3]")
+                                                    ->Option.getOrThrow(~message="Error MM_cmp_pe_index.actApplyFilters[3]")
                                             )
                                         })
                                         ->filterByNonWrk
@@ -546,7 +546,7 @@ let make = React.memoCustomCompareProps(({
         <TextField 
             label="Label"
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style={width:"200px"}
             autoFocus=true
             value=labelFilter
             onChange=evt2str(actLabelFilterUpdated)
@@ -555,11 +555,11 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndDependsOnFilter = () => {
-            <Row style=ReactDOM.Style.make(~border="1px solid lightgray", ~borderRadius="5px", ())>
+            <Row style={border:"1px solid lightgray", borderRadius:"5px"}>
                 <TextField 
                     label="Depends on"
                     size=#small
-                    style=ReactDOM.Style.make(~width="200px", ())
+                    style={width:"200px"}
                     value=dependsOnFilter
                     onChange=evt2str(actDependsOnFilterUpdated)
                     onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
@@ -579,11 +579,11 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndReferencedByFilter = () => {
-            <Row style=ReactDOM.Style.make(~border="1px solid lightgray", ~borderRadius="5px", ~marginLeft="10px", ())>
+            <Row style={border:"1px solid lightgray", borderRadius:"5px", marginLeft:"10px"}>
                 <TextField 
                     label="Referenced by"
                     size=#small
-                    style=ReactDOM.Style.make(~width="200px", ())
+                    style={width:"200px"}
                     value=referencedByFilter
                     onChange=evt2str(actReferencedByFilterUpdated)
                     onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
@@ -638,7 +638,7 @@ let make = React.memoCustomCompareProps(({
         <TextField 
             label={getPatternFieldTitle()}
             size=#small
-            style=ReactDOM.Style.make(~width="300px", ())
+            style={width:"300px"}
             value=patternFilterStr
             onChange=evt2str(actPatternFilterStrUpdated)
             onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
@@ -649,7 +649,7 @@ let make = React.memoCustomCompareProps(({
         <TextField 
             label="Description"
             size=#small
-            style=ReactDOM.Style.make(~width="300px", ())
+            style={width:"300px"}
             value=descrFilterStr
             onChange=evt2str(actDescrFilterStrUpdated)
             onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
@@ -681,7 +681,7 @@ let make = React.memoCustomCompareProps(({
     let rndDiscFilter = () => {
         rnd3StateCheckbox(
             ~label="Discouraged", 
-            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~style={paddingRight:"10px", marginTop:"-2px", marginLeft:"2px"}, 
             ~checked=discFilter, 
             ~onChange=actDiscFilterUpdated
         )
@@ -690,7 +690,7 @@ let make = React.memoCustomCompareProps(({
     let rndDeprFilter = () => {
         rnd3StateCheckbox(
             ~label="Deprecated", 
-            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~style={paddingRight:"10px", marginTop:"-2px", marginLeft:"2px"}, 
             ~checked=deprFilter, 
             ~onChange=actDeprFilterUpdated
         )
@@ -699,7 +699,7 @@ let make = React.memoCustomCompareProps(({
     let rndTranDeprFilter = () => {
         rnd3StateCheckbox(
             ~label="Transitively deprecated", 
-            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~style={paddingRight:"10px", marginTop:"-2px", marginLeft:"2px"}, 
             ~checked=tranDeprFilter, 
             ~onChange=actTranDeprFilterUpdated
         )
@@ -830,7 +830,7 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    <Col style=ReactDOM.Style.make(~margin="15px", ())>
+    <Col style={margin:"15px"}>
         {rndFilters()}
         {rndMainMenu()}
         {
@@ -841,7 +841,7 @@ let make = React.memoCustomCompareProps(({
             } else {
                 switch patternFilterErr {
                     | Some(msg) => {
-                        <pre style=ReactDOM.Style.make(~color="red", ())>
+                        <pre style={color:"red"}>
                             {React.string("Malformed pattern text: " ++ msg)}
                         </pre>
                     }

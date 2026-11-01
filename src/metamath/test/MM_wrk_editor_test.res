@@ -1539,7 +1539,7 @@ describe("readEditorStateFromJsonStr", _ => {
             {"label":"1","typ":"p","isGoal":false,"cont":"|- y < w","jstfText":""}]}`
 
         //when
-        let state = MM_wrk_editor_json.readEditorStateFromJsonStr(stateJson)->Result.getExn
+        let state = MM_wrk_editor_json.readEditorStateFromJsonStr(stateJson)->Result.getOrThrow
 
         //then
         assertEq(state.disjText, "w y\na x")

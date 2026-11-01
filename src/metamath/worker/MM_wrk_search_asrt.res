@@ -151,7 +151,7 @@ let doSearchAssertions = (
     let framesProcessed = ref(0.)
     let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat
     let pattern = switch parsePattern(~patternStr=pattern, ~patternVersion, ~ctx) {
-        | Error(msg) => Exn.raiseError(`Cannot parse the search pattern in doSearchAssertions: ${msg}`)
+        | Error(msg) => JsError.throwWithMessage(`Cannot parse the search pattern in doSearchAssertions: ${msg}`)
         | Ok(pattern) => pattern
     }
 
@@ -181,7 +181,7 @@ let doSearchAssertions = (
             None
         }
     })->Array.filter(res => res->Option.isSome)
-        ->Array.map(Option.getExn(_))
+        ->Array.map(Option.getOrThrow(_))
 }
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {

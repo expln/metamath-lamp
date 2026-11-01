@@ -143,7 +143,7 @@ let userStmtTypeFromStr = str => {
     switch str {
         | "e" => E
         | "p" => P
-        | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtType`}))
+        | _ => throw(MmException({msg:`Cannot convert '${str}' to userStmtType`}))
     }
 }
 
@@ -159,7 +159,7 @@ let userStmtTypeExtendedFromStrExn = (str:string):userStmtTypeExtended => {
         | "h" => H
         | "p" => P
         | "g" => G
-        | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtTypeExtended. Possible values are h, p, g.`}))
+        | _ => throw(MmException({msg:`Cannot convert '${str}' to userStmtTypeExtended. Possible values are h, p, g.`}))
     }
 }
 
@@ -184,7 +184,7 @@ let readInstrFromStr = str => {
         | "ReadAll" => ReadAll
         | "StopBefore" => StopBefore
         | "StopAfter" => StopAfter
-        | _ => raise(MmException({msg:`Cannot convert string '${str}' to a readInstr.`}))
+        | _ => throw(MmException({msg:`Cannot convert string '${str}' to a readInstr.`}))
     }
 }
 
@@ -199,7 +199,7 @@ let mmFileSourceTypeFromStr = (str:string):mmFileSourceType => {
     switch str {
         | "Local" => Local
         | "Web" => Web
-        | _ => raise(MmException({msg:`Cannot convert string '${str}' to an mmFileSourceType.`}))
+        | _ => throw(MmException({msg:`Cannot convert string '${str}' to an mmFileSourceType.`}))
     }
 }
 
@@ -326,7 +326,7 @@ let userStmtToRootStmt = (stmt:userStmt):rootStmt => {
         label:stmt.label,
         expr:
             switch stmt.expr {
-                | None => raise(MmException({msg:`Expr must be set for a userStmt before converting to rootStmt.`}))
+                | None => throw(MmException({msg:`Expr must be set for a userStmt before converting to rootStmt.`}))
                 | Some(expr) => expr
             },
         jstf: stmt.jstf,
@@ -357,7 +357,7 @@ let editorGetStmtByLabel = (st:editorState,label:string):option<userStmt> => {
 
 let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
     switch editorGetStmtById(st,id) {
-        | None => raise(MmException({msg:`editorGetStmtByIdExn: Cannot find a step by id.`}))
+        | None => throw(MmException({msg:`editorGetStmtByIdExn: Cannot find a step by id.`}))
         | Some(stmt) => stmt
     }
 }
@@ -1163,7 +1163,7 @@ let validateStmtJstf = (
                             {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' doesn't refer to any assertion.`})}
                         } else {
                             switch frms->frmsGetByLabel(label) {
-                                | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
+                                | None => throw(MmException({msg:`Could not get frame by label '${label}'`}))
                                 | Some(frm) => {
                                     if (frm.frame.ord > maxFrmOrd) {
                                         {...stmt, stmtErr:Some({
@@ -1254,7 +1254,7 @@ let validateStmtExpr = (
         stmt
     } else {
         switch stmt.expr {
-            | None => raise(MmException({msg:`Cannot validateStmtExpr without expr.`}))
+            | None => throw(MmException({msg:`Cannot validateStmtExpr without expr.`}))
             | Some(expr) => {
                 switch wrkCtx->getHypByExpr(expr) {
                     | Some(hyp) => {
@@ -1309,7 +1309,7 @@ let validateStmtIsGoal = (
 
 let prepareUserStmtsForUnification = (st:editorState):editorState => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot prepareUserStmtsForUnification without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot prepareUserStmtsForUnification without wrkCtx.`}))
         | Some(wrkCtx) => {
             let stmtsLen = st.stmts->Array.length
             let definedUserLabels = Belt_HashSetString.make(~hintSize=stmtsLen)
@@ -1343,7 +1343,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                         definedUserLabels->Belt_HashSetString.add(stmt.label)
                         if (!userStmtHasCriticalErrors(stmt)) {
                             switch stmt.expr {
-                                | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
+                                | None => throw(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
                                 | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
                             }
                             if (stmt.isGoal) {
@@ -1391,7 +1391,7 @@ let createNewVars = (
     ~dontAddVariablesToContext:bool=false
 ):(editorState,array<int>) => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot create new variables without wrkCtx.`}))
         | Some(wrkCtx) => {
             let numOfVars = varTypes->Array.length
             if (numOfVars == 0) {
@@ -1401,7 +1401,7 @@ let createNewVars = (
                     switch varNames {
                         | Some(varNames) => {
                             if (varTypes->Array.length != varNames->Array.length) {
-                                raise(MmException({msg:`varTypes->Array.length != varNames->Array.length`}))
+                                throw(MmException({msg:`varTypes->Array.length != varNames->Array.length`}))
                             }
                             varNames
                         }
@@ -1445,7 +1445,7 @@ let createNewVars = (
 
 let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot create new disjoints without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot create new disjoints without wrkCtx.`}))
         | Some(wrkCtx) => {
             let newDisjTextLines = []
             newDisj->disjForEachArr(varInts => {
@@ -1468,7 +1468,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
 
 let stmtsHaveSameExpr = ( stmt:userStmt, stmtDto:stmtDto ):bool => {
     switch stmt.expr {
-        | None => raise(MmException({msg:`Cannot compare steps without expr.`}))
+        | None => throw(MmException({msg:`Cannot compare steps without expr.`}))
         | Some(expr) => expr->exprEq(stmtDto.expr)
     }
 }
@@ -1476,7 +1476,7 @@ let stmtsHaveSameExpr = ( stmt:userStmt, stmtDto:stmtDto ):bool => {
 let getUserStmtByExpr = (st, expr):option<userStmt> => {
     st.stmts->Array.find(stmt => {
         switch stmt.expr {
-            | None => raise(MmException({msg:`Cannot getUserStmtByExpr without stmt.expr.`}))
+            | None => throw(MmException({msg:`Cannot getUserStmtByExpr without stmt.expr.`}))
             | Some(stmtExpr) => stmtExpr->exprEq(expr)
         }
     })
@@ -1491,7 +1491,7 @@ let insertStmt = (
     ~isBkm:bool,
 ):(editorState,string) => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot insertStmt without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot insertStmt without wrkCtx.`}))
         | Some(wrkCtx) => {
             switch wrkCtx->getHypByExpr(expr) {
                 | Some(hyp) => (st,hyp.label)
@@ -1680,7 +1680,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
 
 let removeUnusedVars = (st:editorState):editorState => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot remove unused variables without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot remove unused variables without wrkCtx.`}))
         | Some(wrkCtx) => {
             let usedSymbols = st.stmts
                 ->Expln_utils_common.arrFlatMap(stmt=>stmt.cont->contToArrStr)
@@ -1739,14 +1739,14 @@ let srcToJstf = (
     switch exprSrc {
         | Assertion({args, label}) => {
             switch wrkCtx->getFrame(label) {
-                | None => raise(MmException({msg:`Cannot find an assertion '${label}' in srcToJstf.`}))
+                | None => throw(MmException({msg:`Cannot find an assertion '${label}' in srcToJstf.`}))
                 | Some(frame) => {
                     let argLabels = []
                     let argLabelsValid = ref(true)
                     frame.hyps->Array.forEachWithIndex((hyp,i) => {
                         if (hyp.typ == E && argLabelsValid.contents) {
                             switch args->Belt_Array.get(i) {
-                                | None => raise(MmException({msg:`Too few arguments for '${label}' in srcToJstf.`}))
+                                | None => throw(MmException({msg:`Too few arguments for '${label}' in srcToJstf.`}))
                                 | Some(nodeIdx) => {
                                     switch exprToUserStmt->Belt_HashMap.get((proofTree.nodes->Array.getUnsafe(nodeIdx)).expr) {
                                         | None => argLabelsValid.contents = false //todo: return a meaningful error from here
@@ -1988,7 +1988,7 @@ let stmtSetSyntaxTree = (
 
 let applyUnifyAllResults = (st,proofTreeDto) => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot applyUnifyAllResults without wrkCtx.`}))
+        | None => throw(MmException({msg:`Cannot applyUnifyAllResults without wrkCtx.`}))
         | Some(wrkCtx) => {
             let exprToNode = proofTreeDto.nodes
                 ->Array.map(node => (node.expr,node))
@@ -1997,7 +1997,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                 ->Array.map(stmt => {
                     switch stmt.expr {
                         | None => 
-                            raise(MmException({
+                            throw(MmException({
                                 msg:`Cannot applyUnifyAllResults without stmt.expr [1].`
                             }))
                         | Some(expr) => (expr, stmt)
@@ -2011,7 +2011,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}
                     st->updateStmt(stmt.id, stmt => {
                         switch stmt.expr {
-                            | None => raise(MmException({ msg:`Cannot applyUnifyAllResults without stmt.expr [2].`}))
+                            | None => throw(MmException({ msg:`Cannot applyUnifyAllResults without stmt.expr [2].`}))
                             | Some(expr) => {
                                 let stmt = stmtSetSyntaxTree(
                                     ~st,
@@ -2023,7 +2023,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                                 )
                                 let stmt = if (stmt.typ == P) {
                                     switch exprToNode->Belt_HashMap.get(expr) {
-                                        | None => raise(MmException({ msg:`exprToNode->Belt_HashMap.get(expr) is None`}))
+                                        | None => throw(MmException({ msg:`exprToNode->Belt_HashMap.get(expr) is None`}))
                                         | Some(node) => {
                                             let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
                                             let stmt = userStmtSetProofStatus(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
@@ -2052,7 +2052,7 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
         let numberOfChunks = Math.Int.ceil(len->Belt_Int.toFloat /. chunkMaxSize->Belt_Int.toFloat)
         for i in 1 to numberOfChunks {
             let begin = (i-1)*chunkMaxSize
-            res->Array.push(str->Js_string2.substrAtMost(~from=begin, ~length=chunkMaxSize))
+            res->Array.push(str->String.substring(~start=begin, ~end=begin+chunkMaxSize))
         }
         res
     }
@@ -2203,7 +2203,7 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                                         ~proof,
                                         ~isDisjInCtx = (n,m) => {
                                             if (!(wrkCtx->isDisj(n,m))) {
-                                                raise(MmException({msg:`!(wrkCtx->isDisj(n,m))`}))
+                                                throw(MmException({msg:`!(wrkCtx->isDisj(n,m))`}))
                                             } else {
                                                 if (!(preCtx->isDisj(n,m))) {
                                                     newDisj->disjAddPair(n,m)
@@ -2334,11 +2334,11 @@ let mergeStmts = (st:editorState,idToUse:stmtId,idToDelete:stmtId):result<editor
 
 let onlyDigitsPattern = %re("/^\d+$/")
 
-let containsOnlyDigits = (label:string):bool => label->Js_string2.match_(onlyDigitsPattern)->Belt_Option.isSome
+let containsOnlyDigits = (label:string):bool => label->String.match(onlyDigitsPattern)->Belt_Option.isSome
 
 let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):editorState => {
     if (oldStmt.id != newStmt.id) {
-        raise(MmException({msg:`renameHypToMatchGoal: oldStmt.id != newStmt.id`}))
+        throw(MmException({msg:`renameHypToMatchGoal: oldStmt.id != newStmt.id`}))
     }
     let stmtId = oldStmt.id
     if (oldStmt.typ == P && newStmt.typ == E && newStmt.label->containsOnlyDigits) {

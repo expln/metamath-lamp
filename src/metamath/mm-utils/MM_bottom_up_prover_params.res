@@ -104,7 +104,7 @@ let lengthRestrictFromStr = (str:string):option<lengthRestrict> => {
 let lengthRestrictFromStrExn = (str:string):lengthRestrict => {
     switch lengthRestrictFromStr(str) {
         | Some(v) => v
-        | None => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
+        | None => throw(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
     }
 }
 

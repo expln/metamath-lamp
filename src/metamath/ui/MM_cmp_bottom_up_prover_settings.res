@@ -107,7 +107,7 @@ let make = (
                 <TextField 
                     label="Search depth"
                     size=#small
-                    style=ReactDOM.Style.make(~width="100px", ())
+                    style={width:"100px"}
                     autoFocus=true
                     value={searchDepthStr}
                     onChange=evt2str(setSearchDepthStr)
@@ -123,14 +123,13 @@ let make = (
                         />
                     }
                     label="Allow new disjoints"
-                    style=ReactDOM.Style.make(
-                        ~border="solid 1px lightgrey", 
-                        ~borderRadius="7px", 
-                        ~paddingRight="10px",
-                        ~marginTop="-2px",
-                        ~marginLeft="2px",
-                        ()
-                    )
+                    style={
+                        border:"solid 1px lightgrey", 
+                        borderRadius:"7px", 
+                        paddingRight:"10px",
+                        marginTop:"-2px",
+                        marginLeft:"2px",
+                    }
                 />
                 <FormControlLabel
                     control={
@@ -140,14 +139,13 @@ let make = (
                         />
                     }
                     label="Allow new steps"
-                    style=ReactDOM.Style.make(
-                        ~border="solid 1px lightgrey", 
-                        ~borderRadius="7px", 
-                        ~paddingRight="10px",
-                        ~marginTop="-2px",
-                        ~marginLeft="2px",
-                        ()
-                    )
+                    style={
+                        border:"solid 1px lightgrey", 
+                        borderRadius:"7px", 
+                        paddingRight:"10px",
+                        marginTop:"-2px",
+                        marginLeft:"2px",
+                    }
                 />
                 <FormControlLabel
                     control={
@@ -158,13 +156,12 @@ let make = (
                     }
                     label="Allow new variables"
                     disabled={!settings.allowNewStmts}
-                    style=ReactDOM.Style.make(
-                        ~border="solid 1px lightgrey", 
-                        ~borderRadius="7px", 
-                        ~paddingRight="10px",
-                        ~marginTop="-2px",
-                        ()
-                    )
+                    style={
+                        border:"solid 1px lightgrey", 
+                        borderRadius:"7px", 
+                        paddingRight:"10px",
+                        marginTop:"-2px",
+                    }
                 />
             </Row>
             <Row>

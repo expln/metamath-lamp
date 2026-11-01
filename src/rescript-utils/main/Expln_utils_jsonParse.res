@@ -20,9 +20,9 @@ let pathToStr = path => {
 }
 
 let jsonToAny = (json:JSON.t, path:path):jsonAny => {
-    switch json->JSON.Classify.classify {
+    switch json {
         | Null => JsonNull(path)
-        | Bool(b) => JsonBool(b,path)
+        | Boolean(b) => JsonBool(b,path)
         | Number(num) => JsonNum(num,path)
         | String(str) => JsonStr(str,path)
         | Array(arr) => JsonArr(arr,path)
@@ -323,8 +323,8 @@ let fromJson = (
                 | Some(default) => Ok(default())
                 | None => {
                     let msg = ex 
-                        -> Exn.asJsExn
-                        -> Belt.Option.flatMap(Exn.message)
+                        -> JsExn.fromException
+                        -> Belt.Option.flatMap(JsExn.message)
                         -> Belt.Option.getWithDefault("no message was provided.")
                     Error("Parse error: " ++ msg)
                 }
@@ -340,15 +340,15 @@ let parseJson = (
     ~default:option<default<'a>>=?
 ):result<'a,string> => {
     try {
-        fromJson(jsonStr->JSON.parseExn, mapper, ~validator?, ~default?)
+        fromJson(jsonStr->JSON.parseOrThrow, mapper, ~validator?, ~default?)
     } catch {
         | ex => {
             switch default {
                 | Some(default) => Ok(default())
                 | None => {
                     let msg = ex 
-                        -> Exn.asJsExn
-                        -> Belt.Option.flatMap(Exn.message)
+                        -> JsExn.fromException
+                        -> Belt.Option.flatMap(JsExn.message)
                         -> Belt.Option.getWithDefault("no message was provided.")
                     Error("Parse error: " ++ msg)
                 }

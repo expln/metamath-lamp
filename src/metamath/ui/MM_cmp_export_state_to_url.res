@@ -30,10 +30,10 @@ let make = (
         })->ignore
     }
 
-    <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+    <Paper style={padding:"10px"} >
         <Col>
             <Row alignItems=#center>
-                <Button onClick={_=>actCopyToClipboard()} variant=#contained style=ReactDOM.Style.make(~width="90px", ()) > 
+                <Button onClick={_=>actCopyToClipboard()} variant=#contained style={width:"90px"} > 
                     {
                         if (copiedToClipboard->Belt.Option.isSome) {
                             React.string("Copied")
@@ -44,7 +44,7 @@ let make = (
                 </Button>
                 <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             </Row>
-            <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(url)}</pre>
+            <pre style={overflow:"auto"}>{React.string(url)}</pre>
         </Col>
     </Paper>
 }

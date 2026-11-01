@@ -77,7 +77,7 @@ let strToRegexOpt = (str:string):option<RegExp.t> => {
         None
     } else {
         switch str->strToRegex {
-            | Error(msg) => raise(MmException({msg:`Could not parse a regex: ${msg}`}))
+            | Error(msg) => throw(MmException({msg:`Could not parse a regex: ${msg}`}))
             | Ok(re) => Some(re)
         }
     }
@@ -120,8 +120,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 | MmException({msg}) => {
                     sendToClient(MmContextLoaded({ctx:Error(msg)}))
                 }
-                | Exn.Error(exn) => {
-                    sendToClient(MmContextLoaded({ctx:Error(exn->Exn.message->Belt_Option.getWithDefault("Internal error."))}))
+                | JsExn(exn) => {
+                    sendToClient(MmContextLoaded({ctx:Error(exn->JsExn.message->Belt_Option.getWithDefault("Internal error."))}))
                 }
             }
         }
@@ -166,7 +166,7 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
         }
     let ast = switch src.ast {
         | Some(ast) => ast
-        | _ => raise(MmException({msg:`Cannot create MM context for a frame without ast.`}))
+        | _ => throw(MmException({msg:`Cannot create MM context for a frame without ast.`}))
     }
     let mmScope = {
         ast,

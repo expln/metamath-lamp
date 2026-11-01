@@ -43,7 +43,7 @@ let make = (
 
     let actAliasSelected = alias => {
         switch availableWebSrcs->Array.find(src => src.alias == alias) {
-            | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
+            | None => throw(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
             | Some(webSrc) => {
                 FileLoader.loadFileWithProgress(
                     ~modalRef,
@@ -147,7 +147,7 @@ let make = (
         let selectedFile:ref<string> = ref(fileNames->Array.getUnsafe(0))
         let rec updateDialogContent = (modalRef:modalRef, modalId:modalId):unit => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                <Paper style={padding:"10px"}>
                     <Col spacing=1.>
                         <Row>
                             <Button 
@@ -169,7 +169,7 @@ let make = (
                                 {React.string("Cancel")} 
                             </Button>
                         </Row>
-                        <span style=ReactDOM.Style.make(~fontWeight="bolder", ())>
+                        <span style={fontWeight:"bolder"}>
                             { React.string("Select file to load") }
                         </span>
                         <RadioGroup 
@@ -184,7 +184,7 @@ let make = (
                                 fileNames->Array.map(fileName => {
                                     <FormControlLabel 
                                         key=fileName value=fileName label=fileName control={ <Radio/> } 
-                                        style=ReactDOM.Style.make(~marginRight="30px", ())
+                                        style={marginRight:"30px"}
                                     />
                                 })->React.array
                             }
@@ -233,7 +233,7 @@ let make = (
                                         onFileChange(
                                             Local({fileName:fileName}),
                                             fileNameToText->Belt_HashMapString.get(fileName)
-                                                ->Option.getExn(
+                                                ->Option.getOrThrow(
                                                     ~message=`Internal error: cannot get file by name ${fileName}`
                                                 ),
                                             fileNameToText
@@ -284,7 +284,7 @@ let make = (
     let rndReadInstr = () => {
         switch parseError {
             | Some(msg) => {
-                <pre style=ReactDOM.Style.make(~color="red", ())>
+                <pre style={color:"red"}>
                     {React.string("Error: " ++ msg)}
                 </pre>
             }

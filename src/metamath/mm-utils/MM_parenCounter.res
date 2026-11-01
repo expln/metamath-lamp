@@ -31,7 +31,7 @@ let parenCntMake = (
     ~canBeLastMax:int,
 ):parenCnt => {
     if (mod(parenMin, 2)  != 0) {
-        raise(MmException({msg:`mod(parenMin, 2)  != 0 in parenCntMake`}))
+        throw(MmException({msg:`mod(parenMin, 2)  != 0 in parenCntMake`}))
     } else {
         {
             stack: Expln_utils_common.createArray(1000),

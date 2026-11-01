@@ -31,7 +31,7 @@ let make = (
     <Col spacing=1.>
         <TextField
             size=#small
-            style=ReactDOM.Style.make(~width="800px", ())
+            style={width:"800px"}
             autoFocus=true
             multiline=true
             maxRows=10

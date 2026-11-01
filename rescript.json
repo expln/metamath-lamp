@@ -9,13 +9,11 @@
     "in-source": true
   },
   "suffix": ".res.js",
-  "jsx": { "version": 4, "mode": "classic" },
-  "bs-dependencies": [
-    "@rescript/core",
+  "jsx": { "version": 4 },
+  "dependencies": [
     "@rescript/react"
   ],
-  "bsc-flags": [
-    "-open RescriptCore"
+  "compiler-flags": [
   ],
   "warnings": {
     "number": "-45",

@@ -285,7 +285,7 @@ let make = (
     let rndError = msgOpt => {
         switch msgOpt {
             | None => React.null
-            | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
+            | Some(msg) => <pre style={color:"red"}>{React.string(msg)}</pre>
         }
     }
     
@@ -295,7 +295,7 @@ let make = (
             inputRef=ReactDOM.Ref.domRef(ref)
             label
             size=#small
-            style=ReactDOM.Style.make(~width="700px", ())
+            style={width:"700px"}
             autoFocus
             value
             onChange=evt2str(onChange)
@@ -333,7 +333,7 @@ let make = (
                         </td>
                         <td>
                             {rndIconButton(
-                                ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                ~icon=<MM_Icons.Logout style={transform:"rotate(90deg)"} />, 
                                 ~onClick={_=>actCopyExpr1ToExpr2()}, ~active=true, 
                                 ~title=`Copy this statement to the below text field`)}
                         </td>
@@ -355,7 +355,7 @@ let make = (
                         </td>
                         <td>
                             {rndIconButton(
-                                ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
+                                ~icon=<MM_Icons.Logout style={transform:"rotate(-90deg)"} />, 
                                 ~onClick={_=>actCopyExpr2ToExpr1()}, ~active=true, 
                                 ~title=`Copy this statement to the above text field`)}
                         </td>
@@ -461,7 +461,7 @@ let make = (
                     }
                 }
                 <div>
-                    <span style=ReactDOM.Style.make(~color="red", ())>
+                    <span style={color:"red"}>
                         {React.string("Error: ")}
                     </span>
                     {React.string(errDescr)}
@@ -485,8 +485,8 @@ let make = (
             | Some(invalidResults) => {
                 openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        <Col spacing=1. style=ReactDOM.Style.make(~margin="10px", ())>
-                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                        <Col spacing=1. style={margin:"10px"}>
+                            <span style={fontWeight:"bold"}>
                                 {React.string("Invalid substitutions:")}
                             </span>
                             {
@@ -540,7 +540,7 @@ let make = (
                                     } else {
                                         <span
                                             onClick={_=> actShowInvalidSubs() }
-                                            style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+                                            style={cursor:"pointer", color:"blue"}
                                         >
                                             {React.string( numOfInvalidResults->Belt_Int.toString ++ ` invalid.` )}
                                         </span>
@@ -585,7 +585,7 @@ let make = (
         }
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.>
             {rndInput()}
             {rndResults()}

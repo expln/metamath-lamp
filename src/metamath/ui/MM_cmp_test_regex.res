@@ -41,7 +41,7 @@ let make = (
         <TextField
             label="Text to test regex on"
             size=#small
-            style=ReactDOM.Style.make(~width="800px", ())
+            style={width:"800px"}
             autoFocus=true
             multiline=true
             maxRows=10
@@ -56,7 +56,7 @@ let make = (
             <TextField
                 label="Regex"
                 size=#small
-                style=ReactDOM.Style.make(~width="722px", ())
+                style={width:"722px"}
                 value=regex
                 onChange=evt2str(actRegexUpdated)
                 onKeyDown=kbrdHnd2(
@@ -81,14 +81,14 @@ let make = (
             | Some(Ok(res)) => {
                 if (res) {
                     <span>
-                        <span style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())>
+                        <span style={color:"green", fontWeight:"bold"}>
                             {React.string(checkMarkSymbol)}
                         </span>
                         {React.string(` the regex matches the text.`)}
                     </span>
                 } else {
                     <span>
-                        <span style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())>
+                        <span style={color:"red", fontWeight:"bold"}>
                             {React.string(crossSymbol)}
                         </span>
                         {React.string(` the regex doesn't match the text.`)}
@@ -97,7 +97,7 @@ let make = (
             }
             | Some(Error(msg)) => {
                 <span>
-                    <span style=ReactDOM.Style.make(~color="red", ())>
+                    <span style={color:"red"}>
                         {React.string("Error: ")}
                     </span>
                     {React.string(msg)}
@@ -116,7 +116,7 @@ let make = (
     }
 
     
-    <Paper style=ReactDOM.Style.make(~padding="15px", ())>
+    <Paper style={padding:"15px"}>
         <Col spacing=2.>
             {rndText()}
             {rndRegex()}

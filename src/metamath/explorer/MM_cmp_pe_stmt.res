@@ -243,11 +243,10 @@ let make = React.memoCustomCompareProps( ({
         }
         let elems = [
             <span 
-                style=ReactDOM.Style.make(
-                    ~fontFamily="monospace",
-                    ~fontSize="1.3em",
-                    ()
-                )
+                style={
+                    fontFamily:"monospace",
+                    fontSize:"1.3em",
+                }
             >
                 {
                     rndContText(

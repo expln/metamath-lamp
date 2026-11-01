@@ -81,7 +81,7 @@ let loadFileWithProgress = (
                         | Some(transformErrorMsg) => {
                             openModal(modalRef, _ => React.null)->Promise.thenResolve(modalId => {
                                 updateModal(modalRef, modalId, () => {
-                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                    <Paper style={padding:"10px"}>
                                         <Col spacing=1.>
                                             { React.string(transformErrorMsg(msg)) }
                                             <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
@@ -110,9 +110,9 @@ let loadFileWithProgress = (
     let actShowWarning = () => {
         let rec updateWarningDialogContent = (modalRef:modalRef, modalId:modalId):unit => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                <Paper style={padding:"10px"}>
                     <Col spacing=1.>
-                        <span style=ReactDOM.Style.make(~fontWeight="bolder", ())>
+                        <span style={fontWeight:"bolder"}>
                             { React.string("Do you confirm downloading data from the below URL?") }
                         </span>
                         <span>
@@ -142,7 +142,7 @@ let loadFileWithProgress = (
                                     }
                                     <FormControlLabel 
                                         key=value value label control={ <Radio/> } 
-                                        style=ReactDOM.Style.make(~marginRight="30px", ())
+                                        style={marginRight:"30px"}
                                     />
                                 })->React.array
                             }

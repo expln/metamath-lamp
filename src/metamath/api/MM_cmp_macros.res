@@ -268,7 +268,7 @@ let readStateFromLocStor = ():promise<state> => {
         let allLoadedMacroModules = macroModules->Belt_HashMapString.keysToArray
         let st:state = {
             selectedMacroModuleName: allLoadedMacroModules->Array.find(n => n == stateLocStor.selectedMacroModuleName)
-                ->Option.getOr(allLoadedMacroModules[0]->Option.getExn(~message="MM_cmp_macros.readStateFromLocStor.1")),
+                ->Option.getOr(allLoadedMacroModules[0]->Option.getOrThrow(~message="MM_cmp_macros.readStateFromLocStor.1")),
             macroModules: macroModules->Belt_HashMapString.toArray->Belt_MapString.fromArray,
         }
         st
@@ -435,18 +435,17 @@ let setSelectedMacroModuleName = (st:state, newSelectedMacroModuleName:string):p
     }
 }
 
-let expBtnBaseStyle = ReactDOM.Style.make(
-    ~display="block",
-    ~color="grey", 
-    ~border="1px solid",
-    ~marginRight="3px",
-    ~marginTop="13px",
-    ~padding="1px 3px 0px 2px",
-    ~fontFamily="courier",
-    ~fontSize="10px",
-    ~cursor="pointer",
-    ()
-)
+let expBtnBaseStyle:ReactDOM.Style.t = {
+    display:"block",
+    color:"grey", 
+    border:"1px solid",
+    marginRight:"3px",
+    marginTop:"13px",
+    padding:"1px 3px 0px 2px",
+    fontFamily:"courier",
+    fontSize:"10px",
+    cursor:"pointer",
+}
 
 let warningText = `
     Please be careful with what JavaScript code you use for macros. 
@@ -608,7 +607,7 @@ let useStateRenderer = (
         <TextField
             key={modName}
             size=#small
-            style=ReactDOM.Style.make(~width=if(selectedMacroModuleIsReadOnly) {"350px"} else {"300px"}, ())
+            style={width:if(selectedMacroModuleIsReadOnly) {"350px"} else {"300px"}}
             label="Script"
             autoFocus=true
             multiline=true
@@ -633,7 +632,7 @@ let useStateRenderer = (
                     <Col>
                         <TextField
                             size=#small
-                            style=ReactDOM.Style.make(~width="350px", ())
+                            style={width:"350px"}
                             label="Module name" 
                             value=selectedMacroModule.nameEdit
                             onChange=evt2str(actSetNameEdit)
@@ -666,7 +665,7 @@ let useStateRenderer = (
                                                     <MM_Icons.Warning/>
                                                 </IconButton>
                                             </td>
-                                            <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                                            <td style={paddingLeft:"5px"}>
                                                 {
                                                     rndScriptTextField(
                                                         ~modName=state.selectedMacroModuleName, 
@@ -730,7 +729,7 @@ let useStateRenderer = (
                                                     MM_api_macros.runMacro(
                                                         ~moduleName=state.selectedMacroModuleName, 
                                                         ~macroName
-                                                    )->Promise.done
+                                                    )->Promise.ignore
                                                 }}
                                             >
                                                 <ListItemText>
@@ -749,7 +748,7 @@ let useStateRenderer = (
     }
 
     () => {
-        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+        <Paper style={padding:"10px"}>
             <Col>
                 {rndMacrosDropdown()}
                 {rndEditControls()}
@@ -768,7 +767,7 @@ let make = (
     let (state, setState) = React.useState(() => None)
 
     React.useEffect0(() => {
-        readStateFromLocStor()->Promise.thenResolve(st => setState(_ => Some(st)))->Promise.done
+        readStateFromLocStor()->Promise.thenResolve(st => setState(_ => Some(st)))->Promise.ignore
         None
     })
 
@@ -811,7 +810,7 @@ let make = (
                             }
                             | Ok(st) => setState(_ => Some(st))
                         }
-                    })->Promise.done
+                    })->Promise.ignore
                     None
                 }
             }

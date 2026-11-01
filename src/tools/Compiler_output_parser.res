@@ -70,8 +70,8 @@ let getWarningDescr = (code:int):string => {
 }
 
 let parseMatch = (~match:string, ~ord:int):warning => {
-    switch match->Js.String2.match_(%re("/Warning number (\d+)\s+(C:[^:]+:\d+)/")) {
-        | None => Exn.raiseError(`Could not parse a match: ${match}`)
+    switch match->String.match(%re("/Warning number (\d+)\s+(C:[^:]+:\d+)/")) {
+        | None => JsError.throwWithMessage(`Could not parse a match: ${match}`)
         | Some(groups) => {
             {
                 ord,
@@ -105,7 +105,7 @@ let printToStr = (groups:Belt_HashMapInt.t<array<warning>>):string => {
 
 let parseCompilerOutput = (~compilerOutputFilePath:string):unit => {
     let compilerOutputText = readStringFromFile(compilerOutputFilePath)
-    switch compilerOutputText->Js.String2.match_(%re("/Warning number \d+\s+C:[^:]+:\d+/g")) {
+    switch compilerOutputText->String.match(%re("/Warning number \d+\s+C:[^:]+:\d+/g")) {
         | None => Console.log(`Could not find warnings`)
         | Some(matches) => {
             let matches = matches

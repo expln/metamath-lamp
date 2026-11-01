@@ -153,7 +153,7 @@ let make = (
                 {rndButtons()}
             </Row>
         } else {
-            let style = ReactDOM.Style.make(~padding="0px 4px", ())
+            let style:ReactDOM.Style.t = {padding:"0px 4px"}
             let title = "<left-click> to change"
             <Paper
                 variant=#outlined 

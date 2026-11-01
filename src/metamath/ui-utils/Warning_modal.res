@@ -17,20 +17,20 @@ let make = (
         onHideChange(newHide)
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper style={padding:"10px"}>
         <Col spacing=1.>
-            <span style=ReactDOM.Style.make( ~fontWeight="bold", ~color="#FF7900", () ) >
+            <span style={fontWeight:"bold", color:"#FF7900"} >
                 {title->React.string}
             </span>
             <table>
                 <tbody>
                     <tr>
                         <td>
-                            <span style=ReactDOM.Style.make(~color="#FF7900", () ) >
+                            <span style={color:"#FF7900"} >
                                 <MM_Icons.Warning/>
                             </span>
                         </td>
-                        <td style=ReactDOM.Style.make(~padding="10px", () )>
+                        <td style={padding:"10px"}>
                             {warningText->React.string}
                         </td>
                     </tr>

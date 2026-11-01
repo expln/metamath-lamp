@@ -48,7 +48,7 @@ let make = (
                 </Select>
             </FormControl>
         </Row>
-        <span style=ReactDOM.Style.make(~color="grey", ~fontSize="12px", ())>
+        <span style={color:"grey", fontSize:"12px"}>
             {"On some keyboards 'Alt' is labelled as 'Opt'"->React.string}
         </span>
     </Col>

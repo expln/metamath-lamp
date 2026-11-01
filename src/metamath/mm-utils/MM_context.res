@@ -38,12 +38,12 @@ let exprCmp = (e1:expr, e2:expr):Ordering.t => {
     }
 }
 
-module ExprCmp = Belt.Id.MakeComparableU({
+module ExprCmp = Belt.Id.MakeComparable({
     type t = expr
     let cmp = exprCmp->Expln_utils_common.toIntCmp
 })
 
-module ExprHash = Belt.Id.MakeHashableU({
+module ExprHash = Belt.Id.MakeHashable({
     type t = expr
     let hash = Expln_utils_common.hashArrInt
     let eq = exprEq
@@ -249,7 +249,7 @@ let disjForEachOrdered = (disjMutable, consumer) => {
     let ns = disjMutable->Belt_HashMapInt.keysToArray
     ns->Array.sort(Int.compare)
     ns->Array.forEach(n => {
-        let ms = disjMutable->Belt_HashMapInt.get(n)->Option.getExn->Belt_HashSetInt.toArray
+        let ms = disjMutable->Belt_HashMapInt.get(n)->Option.getOrThrow->Belt_HashSetInt.toArray
         ms->Array.sort(Int.compare)
         ms->Array.forEach(m => consumer(n,m))
     })
@@ -299,10 +299,11 @@ let disjToArr = (
     }
 
     let merge = (d1:array<int>,d2:array<int>):unit => {
-        res->Js_array2.removeCountInPlace(
-            ~pos=res->Array.findIndex(d => d->exprEq(d2)),
-            ~count=1
-        )->ignore
+        res->Array.splice(
+            ~start=res->Array.findIndex(d => d->exprEq(d2)),
+            ~remove=1,
+            ~insert=[]
+        )
         d2->Array.forEach(v2 => {
             if (!(d1->Array.includes(v2))) {
                 d1->Array.push(v2)  
@@ -481,7 +482,7 @@ let getFrame = (ctx:mmContext,label):option<frame> => {
 
 let getFrameExn = (ctx:mmContext,label):frame => {
     switch ctx->getFrame(label) {
-        | None => raise(MmException({msg: `Could not find a frame by the label '${label}'`}))
+        | None => throw(MmException({msg: `Could not find a frame by the label '${label}'`}))
         | Some(frame) => frame
     }
 }
@@ -519,7 +520,7 @@ let ctxSymToInt = (ctx:mmContext, sym:string):option<int> => {
 let ctxSymToIntExn = (ctx:mmContext,sym) => {
     switch ctxSymToInt(ctx,sym) {
         | Some(i) => i
-        | None => raise(MmException({msg:`The symbol '${sym}' is not declared.`}))
+        | None => throw(MmException({msg:`The symbol '${sym}' is not declared.`}))
     }
 }
 
@@ -546,7 +547,7 @@ let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
 let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
     switch ctxIntToSym(ctx,i) {
         | Some(str) => str
-        | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
+        | None => throw(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
     }
 }
 
@@ -559,7 +560,7 @@ let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
 let disjToStrDbg = (disj:disjMutable, ctx:mmContext):string => {
     let res = []
     disj->Belt_HashMapInt.keysToArray->Array.toSorted(Int.compare)->Array.forEach(n=>{
-        let ms = disj->Belt_HashMapInt.get(n)->Option.getExn
+        let ms = disj->Belt_HashMapInt.get(n)->Option.getOrThrow
         res->Array.push(
             ctx->ctxIntToSymExn(n) 
             ++ " -> " 
@@ -575,7 +576,7 @@ let frmIntToSym = (ctx:mmContext, frame:frame, i:int):option<string> => {
 
 let frmIntToSymExn = (ctx:mmContext, frame:frame, i:int):string => {
     switch frmIntToSym(ctx, frame, i) {
-        | None => raise(MmException({msg:`Could not convert from int ${i->Belt.Int.toString} to a symbol.`}))
+        | None => throw(MmException({msg:`Could not convert from int ${i->Belt.Int.toString} to a symbol.`}))
         | Some(sym) => sym
     }
 }
@@ -598,7 +599,7 @@ let frmGetPatternSearchData = (frm:frame):patternSearchData => {
                 allHypsAsrt: allHyps->Array.concat(frm.asrt),
                 numOfHyps: eHyps->Array.length,
                 stmtBnds: eHyps->Array.reduce([0], (bnds,eHyp) => {
-                    bnds->Array.push(bnds->Array.last->Option.getExn + eHyp->Array.length)
+                    bnds->Array.push(bnds->Array.last->Option.getOrThrow + eHyp->Array.length)
                     bnds
                 }),
             }
@@ -621,7 +622,7 @@ let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
                 | None => varInt->Belt_Int.toString
                 | Some(sym) => `'${sym}'`
             }
-            raise(MmException({msg:`Cannot determine type of the variable ${varName}`}))
+            throw(MmException({msg:`Cannot determine type of the variable ${varName}`}))
         }
         | Some(typ) => typ
     }
@@ -704,7 +705,7 @@ let extractMandatoryHypotheses = (
 }
 
 let getAllConsts = (ctx:mmContext):array<string> => {
-    Belt_Option.getExn(ctx.contents.root).consts->Array.sliceToEnd(~start=1)
+    Belt_Option.getExn(ctx.contents.root).consts->Array.slice(~start=1)
 }
 
 let getMandHyps = (
@@ -924,13 +925,13 @@ let openChildContext = (ctx:mmContext):unit => {
 let closeChildContext = (ctx:mmContext):unit => {
     let childCtx = ctx.contents
     ctx.contents = switch childCtx.parent {
-        | None => raise(MmException({msg:`Cannot close the root context.`}))
+        | None => throw(MmException({msg:`Cannot close the root context.`}))
         | Some(parent) => {
             parent.lastComment = None
             parent.totalNumOfFrames = parent.totalNumOfFrames + childCtx.frames->Belt_HashMapString.size
             parent.addInfoComments->Array.pushMany(childCtx.addInfoComments)
             childCtx.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
-            childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(parent.deprOrTranDeprFrms->Belt_HashSetString.add)
+            childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(Belt_HashSetString.add(parent.deprOrTranDeprFrms, _))
             parent
         }
     }
@@ -938,7 +939,7 @@ let closeChildContext = (ctx:mmContext):unit => {
 
 let resetToParentContext = (ctx:mmContext):unit => {
     ctx.contents = switch ctx.contents.parent {
-        | None => raise(MmException({msg:`Cannot reset the root context.`}))
+        | None => throw(MmException({msg:`Cannot reset the root context.`}))
         | Some(parent) => {
             parent.lastComment = None
             parent
@@ -956,22 +957,22 @@ let addComment = (ctx:mmContext,str:string):unit => {
         || strTrim->String.startsWith("$j\t")
         || strTrim->String.startsWith("$j\f")
     ) {
-        ctx.contents.addInfoComments->Array.push(strTrim->String.substringToEnd(~start=3))
+        ctx.contents.addInfoComments->Array.push(strTrim->String.substring(~start=3))
     }
 }
 
 let assertNameIsUnique = (ctx:mmContext,name:string,tokenType:string):unit => {
     let name = name->String.trim
     if (name == "") {
-        raise(MmException({msg:`Cannot use an empty string as a name of ${tokenType}.`}))
+        throw(MmException({msg:`Cannot use an empty string as a name of ${tokenType}.`}))
     } else {
         switch getTokenType(ctx,name) {
-            | Some(C) => raise(MmException({msg:`An attempt to re-declare the constant '${name}' as ${tokenType}.`}))
-            | Some(V) => raise(MmException({msg:`An attempt to re-declare the variable '${name}' as ${tokenType}.`}))
-            | Some(F) => raise(MmException({msg:`An attempt to re-declare a floating label '${name}' as ${tokenType}.`}))
-            | Some(E) => raise(MmException({msg:`An attempt to re-declare an essential label '${name}' as ${tokenType}.`}))
-            | Some(A) => raise(MmException({msg:`An attempt to re-declare an axiom label '${name}' as ${tokenType}.`}))
-            | Some(P) => raise(MmException({msg:`An attempt to re-declare a provable label '${name}' as ${tokenType}.`}))
+            | Some(C) => throw(MmException({msg:`An attempt to re-declare the constant '${name}' as ${tokenType}.`}))
+            | Some(V) => throw(MmException({msg:`An attempt to re-declare the variable '${name}' as ${tokenType}.`}))
+            | Some(F) => throw(MmException({msg:`An attempt to re-declare a floating label '${name}' as ${tokenType}.`}))
+            | Some(E) => throw(MmException({msg:`An attempt to re-declare an essential label '${name}' as ${tokenType}.`}))
+            | Some(A) => throw(MmException({msg:`An attempt to re-declare an axiom label '${name}' as ${tokenType}.`}))
+            | Some(P) => throw(MmException({msg:`An attempt to re-declare a provable label '${name}' as ${tokenType}.`}))
             | None => ()
         }
     }
@@ -979,7 +980,7 @@ let assertNameIsUnique = (ctx:mmContext,name:string,tokenType:string):unit => {
 
 let addConst = (ctx:mmContext,name:string):unit => {
     if (ctx.contents.parent->Belt_Option.isSome) {
-        raise(MmException({msg:`An attempt to declare a constant '${name}' in an inner block.`}))
+        throw(MmException({msg:`An attempt to declare a constant '${name}' in an inner block.`}))
     } else {
         assertNameIsUnique(ctx,name,"a constant")
         let ctx = ctx.contents
@@ -998,7 +999,7 @@ let addVar = (ctx:mmContext,name:string):unit => {
 let addDisj = (ctx:mmContext, vars:array<string>):unit => {
     switch vars->Array.find(sym => !(ctx->isVar(sym))) {
         | Some(sym) => 
-            raise(MmException({msg:`The symbol '${sym}' is not a variable but it is used in a disjoint statement.`}))
+            throw(MmException({msg:`The symbol '${sym}' is not a variable but it is used in a disjoint statement.`}))
         | None => {
             let varInts = vars->Array.map(ctxSymToIntExn(ctx, _))
             let maxIdx = varInts->Array.length - 1
@@ -1013,19 +1014,19 @@ let addDisj = (ctx:mmContext, vars:array<string>):unit => {
 
 let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit => {
     if (exprStr->Array.length != 2) {
-        raise(MmException({msg:`Length of a floating expression must be 2.`}))
+        throw(MmException({msg:`Length of a floating expression must be 2.`}))
     } else {
         assertNameIsUnique(ctx,label,"a floating label")
         let typName = exprStr->Array.getUnsafe(0)
         let varName = exprStr->Array.getUnsafe(1)
         if (!(ctx->isConst(typName))) {
-            raise(MmException({msg:`The first symbol in the floating '${typName}' must be a constant.`}))
+            throw(MmException({msg:`The first symbol in the floating '${typName}' must be a constant.`}))
         } else if (!(ctx->isVar(varName))) {
-            raise(MmException({msg:`The second symbol in the floating '${varName}' must be a variable.`}))
+            throw(MmException({msg:`The second symbol in the floating '${varName}' must be a variable.`}))
         } else {
             let varInt = ctx->ctxSymToIntExn(varName)
             if (ctx->getTypeOfVar(varInt)->Belt_Option.isSome) {
-                raise(MmException({msg:`Cannot redefine typecode for the variable '${varName}'`}))
+                throw(MmException({msg:`Cannot redefine typecode for the variable '${varName}'`}))
             } else {
                 let typInt = ctx->ctxSymToIntExn(typName)
                 let expr = [typInt, varInt]
@@ -1042,9 +1043,9 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
 
 let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit => {
     if (exprStr->Array.length < 1) {
-        raise(MmException({msg:`Length of an essential expression must be at least 1.`}))
+        throw(MmException({msg:`Length of an essential expression must be at least 1.`}))
     } else if (!(ctx->isConst(exprStr->Array.getUnsafe(0)))) {
-        raise(MmException({msg:`The first symbol in an essential expression must be a constant.`}))
+        throw(MmException({msg:`The first symbol in an essential expression must be a constant.`}))
     } else {
         let expr = ctx->ctxSymsToIntsExn(exprStr)
         let hyp = {typ:E, label, expr}
@@ -1061,7 +1062,7 @@ let ctxIntToFrameInt = (ctxToFrameRenum: Belt_HashMapInt.t<int>, ctxInt:int):int
     } else {
         switch ctxToFrameRenum->Belt_HashMapInt.get(ctxInt) {
             | None => 
-                raise(MmException({
+                throw(MmException({
                     msg:`Cannot determine frame variable for the context variable ${ctxInt->Belt_Int.toString}.`
                 }))
             | Some(frameInt) => frameInt
@@ -1145,20 +1146,20 @@ let getAsrtVarHyps = (numOfVars:int, asrtHyps:array<hypothesis>):array<int> => {
         if (hyp.typ == F) {
             let asrtVarNum = hyp.expr->Array.getUnsafe(1)
             if (asrtVarNum >= numOfVars) {
-                raise(MmException({msg:`Internal error: hyp.expr[1] >= numOfVars`}))
+                throw(MmException({msg:`Internal error: hyp.expr[1] >= numOfVars`}))
             } else {
                 varHyps[asrtVarNum] = i
             }
         }
     })
     if (varHyps->Array.some(idx => idx < 0)) {
-        raise(MmException({msg:`Internal error: varHyps->Array.some(idx => idx < 0)`}))
+        throw(MmException({msg:`Internal error: varHyps->Array.some(idx => idx < 0)`}))
     } else {
         varHyps
     }
 }
 
-let normalizeDescrRegex = RegExp.fromStringWithFlags("\\s+", ~flags="g")
+let normalizeDescrRegex = RegExp.fromString("\\s+", ~flags="g")
 let normalizeDescr = (descr:string):string => {
     descr->String.trim->String.toLowerCase->String.replaceAllRegExp(normalizeDescrRegex, " ")
 }
@@ -1182,12 +1183,12 @@ let createFrame = (
 ):frame => {
     assertNameIsUnique(ctx,label,tokenType)
     if (exprStr->Array.length < 1) {
-        raise(MmException({msg:`Length of an assertion expression must be at least 1.`}))
+        throw(MmException({msg:`Length of an assertion expression must be at least 1.`}))
     } else if (!skipFirstSymCheck && !(ctx->isConst(exprStr->Array.getUnsafe(0)))) {
-        raise(MmException({msg:`The first symbol in an assertion expression must be a constant.`}))
+        throw(MmException({msg:`The first symbol in an assertion expression must be a constant.`}))
     } else {
         switch exprStr->Array.find(sym => ctx->ctxSymToInt(sym)->Belt_Option.isNone) {
-            | Some(sym) => raise(MmException({msg:`The symbol '${sym}' must be either a constant or a variable.`}))
+            | Some(sym) => throw(MmException({msg:`The symbol '${sym}' must be either a constant or a variable.`}))
             | None => {
                 let asrt = exprStr->Array.map(ctxSymToIntExn(ctx, _))
                 let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ~overrideHyps?)
@@ -1290,7 +1291,7 @@ let applySingleStmt = (
             isComment := true
         }
         | Const({symbols}) => symbols->Array.forEach(addConst(ctx, _))
-        | Block(_) => raise(MmException({msg:`Block statements are not accepted by applySingleStmt().`}))
+        | Block(_) => throw(MmException({msg:`Block statements are not accepted by applySingleStmt().`}))
         | Var({symbols}) => symbols->Array.forEach(addVar(ctx, _))
         | Disj({vars}) => addDisj(ctx, vars)
         | Floating({label, expr}) => addFloating(ctx, ~label, ~exprStr=expr)
@@ -1577,7 +1578,7 @@ let rec ctxUpdate = (
 }
 
 let sortBySym = (ctx:mmContext, expr:array<int>):array<int> => {
-    ctx->ctxIntsToSymsExn(expr)->Js.Array2.sortInPlace->ctxSymsToIntsExn(ctx, _)
+    ctx->ctxIntsToSymsExn(expr)->Expln_utils_common.sortInPlaceWith(String.compare)->ctxSymsToIntsExn(ctx, _)
 }
 
 let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConstsOrder => {
@@ -1600,8 +1601,8 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
     let canBeFirstAndLast = canBeFirst->Belt_HashSetInt.toArray
         ->Array.filter(Belt_HashSetInt.has(canBeLast, _))
         ->Belt_HashSetInt.fromArray
-    canBeFirstAndLast->Belt_HashSetInt.forEach(canBeFirst->Belt_HashSetInt.remove)
-    canBeFirstAndLast->Belt_HashSetInt.forEach(canBeLast->Belt_HashSetInt.remove)
+    canBeFirstAndLast->Belt_HashSetInt.forEach(Belt_HashSetInt.remove(canBeFirst,_))
+    canBeFirstAndLast->Belt_HashSetInt.forEach(Belt_HashSetInt.remove(canBeLast,_))
 
     let parenInts = parens->getSpaceSeparatedValuesAsArray
         ->Array.map(ctxSymToInt(ctx, _))

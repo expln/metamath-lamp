@@ -152,13 +152,12 @@ let rndDisjGrp = (grp:array<(string,option<string>)>):React.element => {
             res->Array.push(
                 <span
                     key={"s-" ++ i->Belt_Int.toString}
-                    style=ReactDOM.Style.make(
-                        ~color="black",
-                        ~fontFamily="monospace",
-                        ~fontSize="1.3em",
-                        ~fontWeight="normal",
-                        ()
-                    )
+                    style={
+                        color:"black",
+                        fontFamily:"monospace",
+                        fontSize:"1.3em",
+                        fontWeight:"normal",
+                    }
                 >
                     {" "->React.string}
                 </span>
@@ -168,13 +167,12 @@ let rndDisjGrp = (grp:array<(string,option<string>)>):React.element => {
         res->Array.push(
             <span
                 key={"v-" ++ i->Belt_Int.toString}
-                style=ReactDOM.Style.make(
-                    ~color=?colorOpt,
-                    ~fontFamily="monospace",
-                    ~fontSize="1.3em",
-                    ~fontWeight="bold",
-                    ()
-                )
+                style={
+                    color:?colorOpt,
+                    fontFamily:"monospace",
+                    fontSize:"1.3em",
+                    fontWeight:"bold",
+                }
             >
                 {sym->React.string}
             </span>
@@ -193,19 +191,18 @@ let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
             disjGrpArr->Array.push(
                 <span 
                     key={"s-" ++ i->Belt_Int.toString} 
-                    style=ReactDOM.Style.make(~minWidth="20px", ~display="inline-block", ()) 
+                    style={minWidth:"20px", display:"inline-block"} 
                 />
             )
         }
         disjGrpArr->Array.push(
             <span 
                 key={"g-" ++ i->Belt_Int.toString} 
-                style=ReactDOM.Style.make(
-                    ~border="1px solid grey",
-                    ~borderRadius="5px",
-                    ~paddingLeft="3px", ~paddingRight="3px",
-                    ()
-                )
+                style={
+                    border:"1px solid grey",
+                    borderRadius:"5px",
+                    paddingLeft:"3px", paddingRight:"3px",
+                }
             >
                 {rndDisjGrp(grp)}
             </span>

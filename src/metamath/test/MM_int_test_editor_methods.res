@@ -155,7 +155,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     let st = st->toggleStmtChecked(stmtId)
     let st = st->duplicateCheckedStmt(false)
     if (st.checkedStmtIds->Array.length != 1) {
-        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Array.length != 1`}))
+        throw(MmException({msg:`duplicateStmt: st.checkedStmtIds->Array.length != 1`}))
     } else {
         let (newStmtId,_) = st.checkedStmtIds->Array.getUnsafe(0)
         let st = st->uncheckAllStmts
@@ -178,7 +178,7 @@ let updateStmt = (
         | Some(label) => {
             let oldLabel = (st->editorGetStmtById(stmtId)->Belt_Option.getExn).label
             switch st->renameStmt(stmtId, label(oldLabel)) {
-                | Error(msg) => raise(MmException({msg:msg}))
+                | Error(msg) => throw(MmException({msg:msg}))
                 | Ok(st) => st
             }
         }
@@ -227,7 +227,7 @@ let addStmtsBySearch = (
     ~chooseLabel:string
 ):editorState => {
     let st = switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot addStmtsBySearch when wrkCtx is None.`}))
+        | None => throw(MmException({msg:`Cannot addStmtsBySearch when wrkCtx is None.`}))
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = switch addBefore {
@@ -251,7 +251,7 @@ let addStmtsBySearch = (
             )->Array.map(((frame,_)) => frameToStmtsDto(~wrkCtx, ~frame))
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
-                    raise(MmException({
+                    throw(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
                             ++ `Available: ${searchResults->Array.map(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label)->Array.joinUnsafe(", ")} `
                     }))
@@ -298,7 +298,7 @@ let getStmt = (
 
     let found = st.stmts->Array.filter(predicate)
     if (found->Array.length != 1) {
-        raise(MmException({msg:`getStmt:  found.length = ${found->Array.length->Belt_Int.toString}`}))
+        throw(MmException({msg:`getStmt:  found.length = ${found->Array.length->Belt_Int.toString}`}))
     } else {
         found->Array.getUnsafe(0)
     }
@@ -326,7 +326,7 @@ let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
 let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatching:bool):editorState => {
     assertNoErrors(st)
     let st = switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot applySubstitution when wrkCtx is None.`}))
+        | None => throw(MmException({msg:`Cannot applySubstitution when wrkCtx is None.`}))
         | Some(wrkCtx) => {
             let wrkSubs = findPossibleSubs(
                 st, 
@@ -335,7 +335,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
                 useMatching
             )->Belt.Result.getExn->Array.filter(subs => subs.err->Belt_Option.isNone)
             if (wrkSubs->Array.length != 1) {
-                raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
+                throw(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {
                 st->applySubstitutionForEditor(wrkSubs->Array.getUnsafe(0))
             }
@@ -347,7 +347,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
 let unifyAll = (st):editorState => {
     assertNoErrors(st)
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
+        | None => throw(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
             let rootStmts = st->getRootStmtsForUnification->Array.map(userStmtToRootStmt)
             let proofTree = unifyAll(
@@ -397,7 +397,7 @@ let unifyBottomUp = (
 ):(editorState, array<stmtsDto>) => {
     assertNoErrors(st)
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
+        | None => throw(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
@@ -459,7 +459,7 @@ let unifyBottomUp = (
                         let lastStmt = newStmtsDto.stmts->Array.getUnsafe(newStmtsDto.stmts->Array.length - 1)
                         switch lastStmt.jstf {
                             | Some({label}) => label == chooseLabel
-                            | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
+                            | _ => throw(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
                         }
                     })
                 }
@@ -475,9 +475,9 @@ let unifyBottomUp = (
 
 let getSingleStmtsDto = (stmtsDtoArr:array<stmtsDto>):stmtsDto => {
     if (stmtsDtoArr->Array.length > 1) {
-        raise(MmException({msg:`There are more than 1 element in stmtsDtoArr.`}))
+        throw(MmException({msg:`There are more than 1 element in stmtsDtoArr.`}))
     } else if (stmtsDtoArr->Array.length == 0) {
-        raise(MmException({msg:`stmtsDtoArr is empty.`}))
+        throw(MmException({msg:`stmtsDtoArr is empty.`}))
     } else {
         stmtsDtoArr->Array.getUnsafe(0)
     }
@@ -517,13 +517,13 @@ let mergeStmt = (st:editorState, stmtId):editorState => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)
     switch st->findStmtsToMerge {
-        | Error(msg) => raise(MmException({msg:msg}))
+        | Error(msg) => throw(MmException({msg:msg}))
         | Ok((stmt1,stmt2)) => {
             let stmtIdToUse = if (stmt1.id == stmtId) {stmt1.id} else {stmt2.id}
             let stmtIdToRemove = if (stmt1.id == stmtId) {stmt2.id} else {stmt1.id}
             let st = switch st->mergeStmts(stmtIdToUse, stmtIdToRemove) {
                 | Ok(st) => st->uncheckAllStmts
-                | Error(msg) => raise(MmException({msg:msg}))
+                | Error(msg) => throw(MmException({msg:msg}))
             }
             let st = st->uncheckAllStmts
             st->verifyEditorState

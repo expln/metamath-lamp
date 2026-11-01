@@ -217,7 +217,7 @@ let useLongClick = (
     {
         onClick: evt => {
             if (!longClickEnabled && onClick->Belt_Option.isSome) {
-                onClick->Belt_Option.getExn(evt)
+                (onClick->Belt_Option.getExn)(evt)
             }
         },
 

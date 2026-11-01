@@ -1,5 +1,3 @@
-open Expln_React_common
-
 type size = [#small | #medium]
 
 @module("./AutocompleteVirtualized.js") @react.component

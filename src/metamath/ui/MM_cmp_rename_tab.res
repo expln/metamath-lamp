@@ -22,7 +22,7 @@ let make = (
         <TextField
             label="Tab title"
             size=#small
-            style=ReactDOM.Style.make(~width="500px", ())
+            style={width:"500px"}
             autoFocus=true
             value=newName
             onChange=evt2str(str => setNewName(_ => str))
@@ -34,13 +34,13 @@ let make = (
     }
 
     let rndButtons = () => {
-        <Row alignItems=#center style=ReactDOM.Style.make(~padding="4px", ())>
+        <Row alignItems=#center style={padding:"4px"}>
             <Button onClick={_=>actOk()} variant=#contained > {React.string("Save")} </Button>
             <Button onClick={_=>actCancel()} > {React.string("Cancel")} </Button>
         </Row>
     }
 
-    <Col spacing=1. /* style=ReactDOM.Style.make(~padding="10px", ()) */>
+    <Col spacing=1. /* style={padding:"10px"} */>
         {rndTextField()}
         {rndButtons()}
     </Col>

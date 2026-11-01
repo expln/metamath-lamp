@@ -14,15 +14,15 @@ type exnData = {
 }
 
 let panic = (msg:string):'a => {
-    raise(MmException({msg:msg}))
+    throw(MmException({msg:msg}))
 }
 
 let jsErrorToExnData = (exn:exn):exnData => {
-    let jsExn = Error.fromException(exn)
+    let jsExn = JsExn.fromException(exn)
     {
         exn:Some(exn),
-        msg: jsExn->Option.flatMap(Error.message)->Option.getOr("Unknown error."),
-        stack: jsExn->Option.flatMap(Error.stack)->Option.getOr(""),
+        msg: jsExn->Option.flatMap(JsExn.message)->Option.getOr("Unknown error."),
+        stack: jsExn->Option.flatMap(JsExn.stack)->Option.getOr(""),
     }
 }
 
@@ -92,7 +92,7 @@ let strToRegex = (str:string):result<RegExp.t,string> => {
     } catch {
         | exn => {
             Error(
-                exn->Exn.asJsExn->Belt_Option.flatMap(Exn.message)
+                exn->JsExn.fromException->Belt_Option.flatMap(JsExn.message)
                     ->Belt.Option.getWithDefault(`could not create a regular expression from string '${str}'`)
             )
         }

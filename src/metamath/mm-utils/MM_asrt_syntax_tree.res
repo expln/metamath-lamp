@@ -51,7 +51,7 @@ let rec buildSyntaxTreeInner = (
         | Some(VarType) => {
             // VarType is used only for new variables, but syntax proofs don't introduce new variables.
             // So, this case should not happen in this method
-            Exn.raiseError("buildSyntaxTreeInner.VarType")
+            JsError.throwWithMessage("buildSyntaxTreeInner.VarType")
         }
         | Some(Assertion({args, frame})) => {
             let this:MM_syntax_tree.syntaxTreeNode = {
@@ -152,7 +152,7 @@ let symToInt = (sym:sym):int => {
     }
 }
 
-module SymHash = Belt.Id.MakeHashableU({
+module SymHash = Belt.Id.MakeHashable({
     type t = sym
     let hash = var => {
         switch var {

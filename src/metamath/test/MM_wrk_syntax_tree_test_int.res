@@ -103,10 +103,10 @@ describe("doBuildSyntaxTreesForAllAssertions", _ => {
             ~maxFrmOrd=frms->frmsSize-1,
             ~parenCnt,
         ) {
-            | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+            | Error(msg) => JsError.throwWithMessage(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
             | Ok(arr) => {
                 switch arr->Array.getUnsafe(0) {
-                    | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+                    | Error(msg) => JsError.throwWithMessage(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
                     | Ok(ctxSyntaxTree) => {
                         // Console.log(`--- ${ctxExprStr} ------------------------------------------------`)
                         // Subtree(ctxSyntaxTree)->printSyntaxTree

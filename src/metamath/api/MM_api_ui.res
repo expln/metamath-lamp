@@ -17,7 +17,7 @@ let apiShowErrMsg = (modalRef:modalRef, params:apiInput):promise<result<unit,str
     Promise.make((resolve,_) => {
         openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, ~onOk=()=>resolve(Ok(())), 
             ~icon=
-                <span style=ReactDOM.Style.make(~color="red", () ) >
+                <span style={color:"red"} >
                     <MM_Icons.PriorityHigh/>
                 </span>
         )

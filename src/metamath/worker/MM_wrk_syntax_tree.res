@@ -82,7 +82,7 @@ let doBuildSyntaxTreesForAllAssertions = (
         let [varName] = generateNewVarNames( ~ctx=ctx, ~types=[typ] )
         ctx->applySingleStmt( Var({symbols:[varName]}) )
         ctx->applySingleStmt( Floating({label, expr:[ctx->ctxIntToSymExn(typ), varName]}) )
-        tmpCtxHyps->Belt_HashMapString.set(label, ctx->getHypothesis(label)->Option.getExn(~message="tmpCtxHyps"))
+        tmpCtxHyps->Belt_HashMapString.set(label, ctx->getHypothesis(label)->Option.getOrThrow(~message="tmpCtxHyps"))
         ctx->ctxSymToIntExn(varName)
     }
 
@@ -140,7 +140,7 @@ let doBuildSyntaxTreesForAllAssertions = (
                     let errMsg = `makeCtxIntToAsrtInt: asrtExpr=${asrtExpr->Expln_utils_common.stringify}`
                         ++ `, ctxInt=${ctxInt->Int.toString}`
                     Console.error(errMsg)
-                    Exn.raiseError(errMsg)
+                    JsError.throwWithMessage(errMsg)
                 } else {
                     asrtExpr->Array.getUnsafe(curIdx.contents)
                 }

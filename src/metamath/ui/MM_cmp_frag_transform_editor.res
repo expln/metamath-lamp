@@ -117,11 +117,11 @@ let make = (
                             </td>
                         }
                     }
-                    <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                    <td style={paddingLeft:"5px"}>
                         <TextField
                             label=title
                             size=#small
-                            style=ReactDOM.Style.make(~width="800px", ())
+                            style={width:"800px"}
                             autoFocus=true
                             multiline=true
                             maxRows=10
@@ -137,7 +137,7 @@ let make = (
     }
 
     let rndButtons = () => {
-        <Row alignItems=#center style=ReactDOM.Style.make(~padding="4px", ())>
+        <Row alignItems=#center style={padding:"4px"}>
             {
                 if (readOnly) {
                     React.null
@@ -233,7 +233,7 @@ let make = (
     let rndError = (msgOpt,color) => {
         switch msgOpt {
             | None => <></>
-            | Some(msg) => <pre style=ReactDOM.Style.make(~color, ())>{React.string(msg)}</pre>
+            | Some(msg) => <pre style={color:color}>{React.string(msg)}</pre>
         }
     }
 
@@ -241,7 +241,7 @@ let make = (
         if (stmt.stmtErr->Belt_Option.isSome 
             || stmt.syntaxErr->Belt_Option.isSome 
             || stmt.unifErr->Belt_Option.isSome) {
-            <Col style=ReactDOM.Style.make(~marginLeft="10px", ())>
+            <Col style={marginLeft:"10px"}>
                 {rndError(stmt.stmtErr->Belt.Option.map(err => err.msg),"red")}
                 {
                     rndError(
@@ -276,12 +276,12 @@ let make = (
     }
 
     let rndEditorState = () => {
-        <Col spacing=0. style=ReactDOM.Style.make(~marginBottom="10px", ())>
+        <Col spacing=0. style={marginBottom:"10px"}>
             {rndStmts(editorState)}
         </Col>
     }
 
-    <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+    <Paper style={padding:"10px"} >
         <Col>
             {React.string("Test statement:")}
             {rndEditorState()}

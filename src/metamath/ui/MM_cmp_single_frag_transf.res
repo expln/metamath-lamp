@@ -46,7 +46,7 @@ let make = (
 
     let rec rndCustomElem = (elem:{..}):reElem => {
         if (!isObject(elem)) {
-            Exn.raiseError("Each component must be an object")
+            JsError.throwWithMessage("Each component must be an object")
         }
         let componentName = reqStrExn(elem["cmp"], 
             "Each component must have a string attribute 'cmp' which specifies component name"
@@ -61,7 +61,7 @@ let make = (
             | "span" => rndSpan(objToObj(elem))
             | "ApplyButtons" => rndApplyButtons(objToObj(elem))
             | "Divider" => rndDivider()
-            | _ => Exn.raiseError(`Unrecognized component '${componentName}'`)
+            | _ => JsError.throwWithMessage(`Unrecognized component '${componentName}'`)
         }
     }
     and childrenToArray = (children:array<Nullable.t<{..}>>, msg:string):reElem => {
@@ -122,7 +122,7 @@ let make = (
                         let label = option->Array.getUnsafe(1)
                         <FormControlLabel 
                             key=value value label control={ <Radio/> } 
-                            style=ReactDOM.Style.make(~marginRight="30px", ())
+                            style={marginRight:"30px"}
                             ?disabled
                         />
                     })
@@ -135,10 +135,9 @@ let make = (
         <TextField
             label=reqStrExn(elem["label"], "Each TextField must have a string attribute 'label'")
             size=#small
-            style=ReactDOM.Style.make(
-                ~width=?optStrExn(elem["width"], "optional 'width' attribute of a TextField must be a string"), 
-                ()
-            )
+            style={
+                width:?optStrExn(elem["width"], "optional 'width' attribute of a TextField must be a string"),
+            }
             value=reqStrExn(elem["value"], "Each TextField must have a string attribute 'value'")
             autoFocus=?optBoolExn(elem["autoFocus"], "optional 'autoFocus' attribute of a TextField must be a boolean")
             onChange=evt2str(str => onChange(. str))
@@ -146,11 +145,10 @@ let make = (
     }
     and rndText = (elem:{..}):reElem => {
         <span 
-            style=ReactDOM.Style.make(
-                ~backgroundColor=?optStrExn(elem["backgroundColor"], "optional 'backgroundColor' attribute of a 'Text' component must be a string"), 
-                ~fontWeight=?optStrExn(elem["fontWeight"], "optional 'fontWeight' attribute of a 'Text' component must be a string"), 
-                ()
-            )
+            style={
+                backgroundColor:?optStrExn(elem["backgroundColor"], "optional 'backgroundColor' attribute of a 'Text' component must be a string"), 
+                fontWeight:?optStrExn(elem["fontWeight"], "optional 'fontWeight' attribute of a 'Text' component must be a string"),
+            }
         >
             {React.string(reqStrExn(elem["value"], "Each Text component must have a string attribute 'value'"))}
         </span>
@@ -183,12 +181,12 @@ let make = (
                 <IconButton title="Add new step above" 
                     onClick={_=>onInsertAbove(replaceSelection, result)} color="primary" 
                 >
-                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
+                    <MM_Icons.Logout style={transform:"rotate(-90deg)"} />
                 </IconButton>
                 <IconButton title="Add new step below" 
                     onClick={_=>onInsertBelow(replaceSelection, result)} color="primary"
                 >
-                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
+                    <MM_Icons.Logout style={transform:"rotate(90deg)"} />
                 </IconButton>
                 <IconButton title="Update current step" 
                     onClick={_=>onUpdateCurrent(replaceSelection, result)} color="primary" 

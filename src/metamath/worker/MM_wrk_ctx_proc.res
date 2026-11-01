@@ -55,42 +55,42 @@ let wrkPrecalcData = ref(None)
 
 let getSettingsExn = ():settings => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`settings are not created in the worker thread.`}))
+        | None => throw(MmException({msg:`settings are not created in the worker thread.`}))
         | Some({settings}) => settings
     }
 }
 
 let getWrkCtxExn = () => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`wrkCtx is not created in the worker thread.`}))
+        | None => throw(MmException({msg:`wrkCtx is not created in the worker thread.`}))
         | Some({wrkCtx}) => wrkCtx
     }
 }
 
 let getWrkParenCntExn = () => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`wrkParenCnt is not created in the worker thread.`}))
+        | None => throw(MmException({msg:`wrkParenCnt is not created in the worker thread.`}))
         | Some({wrkParenCnt}) => wrkParenCnt
     }
 }
 
 let getWrkFrmsExn = () => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`wrkFrms is not created in the worker thread.`}))
+        | None => throw(MmException({msg:`wrkFrms is not created in the worker thread.`}))
         | Some({wrkFrms}) => wrkFrms
     }
 }
 
 let getAllFramesInDeclarationOrderExn = () => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`wrkFrms is not created in the worker thread.`}))
+        | None => throw(MmException({msg:`wrkFrms is not created in the worker thread.`}))
         | Some({allFramesInDeclarationOrder}) => allFramesInDeclarationOrder
     }
 }
 
 let getStmtTypeToSyntaxTypeExn = ():Belt_HashMapInt.t<array<int>> => {
     switch wrkPrecalcData.contents {
-        | None => raise(MmException({msg:`stmtTypeToSyntaxType are not created in the worker thread.`}))
+        | None => throw(MmException({msg:`stmtTypeToSyntaxType are not created in the worker thread.`}))
         | Some({stmtTypeToSyntaxType}) => stmtTypeToSyntaxType
     }
 }
@@ -145,7 +145,7 @@ let makeWrkPrecalcData = (
                 | None => Error(GetPreCtx({ preCtxVer:preCtxVer }))
                 | Some(preCtx) => {
                     switch createWrkCtx( ~preCtx, ~varsText, ~disjText, ) {
-                        | Error(_) => raise(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
+                        | Error(_) => throw(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
                         | Ok(wrkCtx) => {
                             let wrkFrms = frmsCache->cacheGet(preCtxVer, preCtx)
                             Ok({

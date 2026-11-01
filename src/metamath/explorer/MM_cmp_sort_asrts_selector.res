@@ -18,7 +18,7 @@ let renderSortBys = (
     ->Array.join(", ")
     <span>
         <span 
-            style=ReactDOM.Style.make(~cursor="pointer", ~borderRadius="4px", ())
+            style={cursor:"pointer", borderRadius:"4px"}
             className="dark-grey-bkg-on-hover"
             onClick={_=>onClick()}
         >
@@ -26,7 +26,7 @@ let renderSortBys = (
         </span>
         <span> {React.string(nbsp)} </span>
         <span 
-            style=ReactDOM.Style.make(~cursor="pointer", ())
+            style={cursor:"pointer"}
             className="red-on-hover" 
             onClick={_=>onCancel()}
         >

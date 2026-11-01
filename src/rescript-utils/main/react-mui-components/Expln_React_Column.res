@@ -14,7 +14,7 @@ let make = (
         {switch children {
             | Some(children) => 
                 children->React.Children.mapWithIndex((child,i) => {
-                    let style = switch reElem2Obj(child)->Nullable.toOption {
+                    let style:option<ReactDOM.Style.t> = switch reElem2Obj(child)->Nullable.toOption {
                         | None => None
                         | Some(childObj) => {
                             switch childObj["props"]->Nullable.toOption {
@@ -27,7 +27,7 @@ let make = (
                                                 | None => None
                                                 | Some(childDisplay) => {
                                                     if (childDisplay === "none") {
-                                                        Some(ReactDOM.Style.make(~display="none", ()))
+                                                        Some({display:"none"})
                                                     } else {
                                                         None
                                                     }

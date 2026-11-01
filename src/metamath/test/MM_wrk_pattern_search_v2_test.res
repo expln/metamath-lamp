@@ -12,7 +12,7 @@ let makeArrayOfSymbols = (seq:array<int>, symMap:Belt_HashMapInt.t<constOrVar>):
     seq->Array.map(i => {
         {
             constOrVar: symMap->Belt_HashMapInt.get(i)
-                ->Option.getExn(~message=`makeSeq: unexpected sym ${i->Int.toString}`),
+                ->Option.getOrThrow(~message=`makeSeq: unexpected sym ${i->Int.toString}`),
             matchedIdx: -1
         }
     })
@@ -75,7 +75,7 @@ let makeSymMap = (
                 (i, Const(i))
             } else {
                 let var = Var({
-                    typ: varTypes[i]->Option.getExn(~message=`No type is defined for var ${i->Int.toString}`),
+                    typ: varTypes[i]->Option.getOrThrow(~message=`No type is defined for var ${i->Int.toString}`),
                     capVars,
                     capVar: -1,
                     capVarIdx: -1,
@@ -1123,7 +1123,7 @@ describe("frameMatchesPatterns", () => {
         assertEq( 
             frameMatchesPatterns(
                 ctx->MM_context.getFrameExn("a1"),
-                parsePattern("$+ t = r $* -> $* t = s $* -> $* r = s", ~ctx)->Result.getExn
+                parsePattern("$+ t = r $* -> $* t = s $* -> $* r = s", ~ctx)->Result.getOrThrow
             ), 
             Matched(Some([[2,3,4,5,7,8,9,10,11,12,13]])) 
         )
@@ -1132,7 +1132,7 @@ describe("frameMatchesPatterns", () => {
         assertEq( 
             frameMatchesPatterns(
                 ctx->MM_context.getFrameExn("mp"),
-                parsePattern("$H P -> Q $a Q", ~ctx)->Result.getExn
+                parsePattern("$H P -> Q $a Q", ~ctx)->Result.getOrThrow
             ), 
             Matched(Some([[1],[3,4],[1]])) 
         )

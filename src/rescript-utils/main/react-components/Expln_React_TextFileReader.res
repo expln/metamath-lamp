@@ -26,7 +26,7 @@ let make = (~onChange:option<array<(string,string)>>=>unit) => {
                     ->Array.map(readFileContent)
                     ->Promise.all
                     ->Promise.thenResolve(fileContents => onChange(Some(fileContents)))
-                    ->Promise.done
+                    ->Promise.ignore
             }
         }}
     />

@@ -42,7 +42,7 @@ let make = (
         <TextField 
             label="Label"
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style={width:"200px"}
             value=filter
             onChange=evt2str(actSetFilter)
             onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel)
@@ -70,14 +70,14 @@ let make = (
     }
 
     <Col>
-        <span style=ReactDOM.Style.make(~fontWeight="bold", ~fontSize="1.1em", ())>
+        <span style={fontWeight:"bold", fontSize:"1.1em"}>
             { React.string("Select theorems to inline:") }
         </span>
         {rndFilter()}
         {rndCheckboxes()}
         <Row>
             <Button 
-                onClick={_=>actOk()->Promise.done} 
+                onClick={_=>actOk()->Promise.ignore} 
                 variant=#contained
                 disabled={selectedLabels->Belt_SetString.size==0}
             > 

@@ -1,7 +1,7 @@
 @val external describePriv: (string, (. unit)=>unit) => unit = "describe"
-@val external describe_skipPriv: (string, (. unit)=>unit) => unit = "describe.skip"
+@scope("describe") @val external describe_skipPriv: (string, (. unit)=>unit) => unit = "skip"
 @val external itPriv: (string, (. unit)=>unit) => unit = "it"
-@val external it_skipPriv: (string, (. unit)=>unit) => unit = "it.skip"
+@scope("it") @val external it_skipPriv: (string, (. unit)=>unit) => unit = "skip"
 
 let describe: (string, unit=>unit) => unit = (name, test) => {
     describePriv(name, (.) => {
@@ -24,7 +24,7 @@ let it: (string, unit=>unit) => unit = (name, test) => {
                 Console.log("##############################################################")
                 Console.log2("error in test", exn)
                 Console.log("##############################################################")
-                raise(exn)
+                throw(exn)
             }
         }
     })->ignore

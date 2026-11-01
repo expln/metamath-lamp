@@ -98,7 +98,7 @@ let make = React.memoCustomCompareProps( ({
                             )
                         ))
                     })
-                })->Promise.done
+                })->Promise.ignore
             }
         }
     }
@@ -109,27 +109,25 @@ let make = React.memoCustomCompareProps( ({
                 {React.string(nbsp ++ nbsp)}
                 <span 
                     onClick=clickHnd(~act=actToggleDescrIsExpanded)
-                    style=ReactDOM.Style.make(
-                        ~fontFamily="monospace",
-                        ~color="grey",
-                        ~cursor="pointer",
-                        ()
-                    )
+                    style={
+                        fontFamily:"monospace",
+                        color:"grey",
+                        cursor:"pointer",
+                    }
                 >
                     { React.string( "descr" ) }
                 </span>
                 <span 
                     onClick=clickHnd(~act=actToggleDescrIsExpanded)
-                    style=ReactDOM.Style.make(
-                        ~display="inline-block", 
-                        ~transform=state.descrIsExpanded 
+                    style={
+                        display:"inline-block", 
+                        transform:state.descrIsExpanded 
                             ? {"rotate(90deg) translate(1px, -2px)"} 
                             : {"none"},
-                        ~fontFamily="monospace",
-                        ~color="grey",
-                        ~cursor="pointer",
-                        ()
-                    )
+                        fontFamily:"monospace",
+                        color:"grey",
+                        cursor:"pointer",
+                    }
                 >
                     { React.string( ">" ) }
                 </span>
@@ -147,12 +145,11 @@ let make = React.memoCustomCompareProps( ({
                     {React.string(nbsp ++ nbsp)}
                     <span 
                         onClick=clickHnd(~act=() => actAddAsrtToEditor(frame.label))
-                        style=ReactDOM.Style.make(
-                            ~fontFamily="monospace",
-                            ~color="grey",
-                            ~cursor="pointer",
-                            ()
-                        )
+                        style={
+                            fontFamily:"monospace",
+                            color:"grey",
+                            cursor:"pointer",
+                        }
                     >
                         { React.string( "use" ) }
                     </span>
@@ -160,12 +157,12 @@ let make = React.memoCustomCompareProps( ({
                         switch asrtWasAddedToEditor {
                             | None => React.null
                             | Some((Ok(_), _)) => {
-                                <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="black", () ) >
+                                <span style={fontFamily:"monospace", color:"black"} >
                                     { React.string( nbsp ++ "Added to the editor" ) }
                                 </span>
                             }
                             | Some((Error(msg), _)) => {
-                                <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="red", () ) >
+                                <span style={fontFamily:"monospace", color:"red"} >
                                     { React.string( nbsp ++ "Error: " ++ msg ) }
                                 </span>
                             }
@@ -178,29 +175,28 @@ let make = React.memoCustomCompareProps( ({
 
     let rndLabel = ():reElem => {
         let asrtType = if (frame.isAxiom) {
-            <span style=ReactDOM.Style.make(~color="red", ())>
+            <span style={color:"red"}>
                 {"Axiom"->React.string}
             </span>
         } else {
-            <span style=ReactDOM.Style.make(~color="green", ())>
+            <span style={color:"green"}>
                 {"Theorem"->React.string}
             </span>
         }
-        <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ()) >
+        <span style={paddingLeft, paddingRight} >
             <span
-                style=ReactDOM.Style.make(~cursor=openFrameExplorer->Option.isSome?"pointer":"default", ())
+                style={cursor:openFrameExplorer->Option.isSome?"pointer":"default"}
                 onClick=clickHnd(~act=()=>openFrameExplorer->Option.forEach(fn => fn(frame.label)))
             >
                 { React.string( order->Option.mapOr("", Belt_Int.toString(_)) ++ " ") }
                 asrtType
                 { React.string( " ") }
                 <span 
-                    style=ReactDOM.Style.make(
-                        ~fontWeight="bold", 
-                        ~backgroundColor=?getFrmLabelBkgColor(frame, settings), 
-                        ~borderRadius="3px",
-                        ()
-                    )
+                    style={
+                        fontWeight:"bold", 
+                        backgroundColor:?getFrmLabelBkgColor(frame, settings), 
+                        borderRadius:"3px",
+                    }
                 >
                     { (frame.label)->React.string }
                 </span>
@@ -214,7 +210,7 @@ let make = React.memoCustomCompareProps( ({
         if (frame.descr->Belt.Option.isSome && state.descrIsExpanded) {
             <>
                 <Divider/>
-                <div style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                <div style={paddingLeft, paddingRight}>
                     <MM_cmp_pe_frame_descr
                         settings
                         ctx=preCtx
@@ -237,13 +233,13 @@ let make = React.memoCustomCompareProps( ({
         if (state.descrIsExpanded) {
             <>
                 <Divider/>
-                <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                <span style={paddingLeft, paddingRight}>
                     { React.string("Referenced by: ") }
                     <a 
                         onClick={_=>openExplorer->Option.forEach(fn=>{
                             fn(~title="Dependents of " ++ frame.label, ~initDependsOnFilter=frame.label)
                         })} 
-                        style=ReactDOM.Style.make(~color="blue", ~textDecoration="underline", ~cursor="pointer", ())
+                        style={color:"blue", textDecoration:"underline", cursor:"pointer"}
                     >
                         {React.string(frame.usageCnt->Int.toString)}
                     </a>
@@ -256,11 +252,11 @@ let make = React.memoCustomCompareProps( ({
 
     let rndDisj = () => {
         switch state.disj {
-            | None => <span style=ReactDOM.Style.make(~display="none", ()) />
+            | None => <span style={display:"none"} />
             | Some(disj) => {
                 <>
                     <Divider/>
-                    <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                    <span style={paddingLeft, paddingRight}>
                         { (`Disj:` ++ disjGrpDelim)->React.string }
                         {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
                     </span>
@@ -276,11 +272,11 @@ let make = React.memoCustomCompareProps( ({
             state.eHyps->Array.mapWithIndex((hyp,i) => {
                 <React.Fragment key={i->Belt.Int.toString}>
                     <Divider/>
-                    <table style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                    <table style={paddingLeft, paddingRight}>
                         <tbody>
                             <tr>
-                                <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                                    <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
+                                <td style={verticalAlign:"top"}>
+                                    <span style={marginLeft:"10px"}>
                                         {circleChar->React.string}
                                     </span>
                                 </td>
@@ -310,7 +306,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndAsrt = () => {
-        <div style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+        <div style={paddingLeft, paddingRight}>
             <MM_cmp_pe_stmt
                 modalRef
                 ctx=state.frmCtx
@@ -333,7 +329,7 @@ let make = React.memoCustomCompareProps( ({
         <tbody>
             <tr>
                 <td>
-                    <Paper elevation=3 style=ReactDOM.Style.make(~backgroundColor="rgb(255,255,235)", ())>
+                    <Paper elevation=3 style={backgroundColor:"rgb(255,255,235)"}>
                         {rndLabel()}
                         {rndDescr()}
                         {rndUsageCnt()}
