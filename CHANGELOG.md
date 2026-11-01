@@ -1,4 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### [Version 33](https://expln.github.io/lamp/v33/index.html)
 * Support file inclusions `$[ file $]` https://github.com/expln/metamath-lamp/issues/268
 * Bug fix: Bottom-up prover places new subgoals at top of proof instead of near the selected step.
   https://github.com/expln/metamath-lamp/issues/264
