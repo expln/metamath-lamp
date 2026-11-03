@@ -41,8 +41,10 @@ type pattern = {
     capVars:ref<array<bool>>, //captured variables
 }
 
-// The compiled form of a pattern. The nodes are linked by explicit "next" references, so the node id tells
-// what remains to be matched. This is what gives a search state an identity which can be stored in a cache.
+// The compiled form of a pattern.
+// The nodes are linked by explicit "next" references,
+// so the node id tells what remains to be matched.
+// This is what gives a search state an identity which can be stored in a cache.
 type node =
     | NAccept
     | NAdj({syms:array<sym>, next:int})
@@ -477,7 +479,7 @@ let runProgram = (
     let stop = ref(false)
     let makeCacheKey = ():string => {
         let key = regs->Array.map(reg => reg->Int.toString)->Array.join(",")
-        vars->Array.reduce(key, (key,var) => key ++ "," ++ var.capVar->Int.toString)
+        vars->Array.reduce(key, (key,var) => key + "," + var.capVar->Int.toString)
     }
     let rec run = (nodeId:int, startIdx:int):unit => {
         switch nodes->Array.getUnsafe(nodeId) {
