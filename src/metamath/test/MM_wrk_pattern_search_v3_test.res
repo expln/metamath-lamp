@@ -634,6 +634,42 @@ describe("exprIncludesSeq", _ => {
             ~expectedIndices=[3,4,5,6,7,8]
         )
     })
+
+    it("finds an unordered group followed by another group when the first tried order ends too late", _ => {
+        // pattern: $[ a $/ b $] $* c
+        // expr:    b a c x b
+        // The constant check tries the order "a b" first: a@1, b@4. It ends at 4, so "c" is not found after it.
+        // The order "b a" ends earlier (b@0, a@1) and "c" matches after it (c@2).
+        // The constant check must not reject the expression only because the first tried order ended too late.
+        let a = -1
+        let b = -2
+        let c = -3
+        let x = -4
+        assertMatches(
+            ~expr=[b, a, c, x, b],
+            ~seq=Ord([Unord([Adj([a]), Adj([b])]), Adj([c])]),
+            ~varTypes=[],
+            ~expectedIndices=[0,1,2]
+        )
+    })
+
+    it("finds a one-of group followed by another group when the first matching alternative ends too late", _ => {
+        // pattern: $[ a $| b $] $* c
+        // expr:    b c a
+        // The constant check takes the first alternative which matches: a@2. It ends at 2, so "c" is not found after it.
+        // The second alternative ends earlier (b@0) and "c" matches after it (c@1).
+        // The constant check must not reject the expression
+        // only because the first matching alternative ended too late.
+        let a = -1
+        let b = -2
+        let c = -3
+        assertMatches(
+            ~expr=[b, c, a],
+            ~seq=Ord([OneOf([Adj([a]), Adj([b])]), Adj([c])]),
+            ~varTypes=[],
+            ~expectedIndices=[0,1]
+        )
+    })
 })
 
 describe("exprIncludesSeq with scopes", _ => {
