@@ -423,7 +423,7 @@ let compileSeq = (seq:symSeq):program => {
         if (!parentSingleStmt && (seq.singleStmt || seq.target != parentTarget)) {
             let savedMaxIdxReg = makeReg()
             let body = compileElems(
-                ~seq, ~next=addNode(NExitScope({savedMaxIdxReg, next})), 
+                ~seq, ~next=addNode(NExitScope({savedMaxIdxReg, next})),
                 ~target=seq.target, ~singleStmt=seq.singleStmt
             )
             addNode(NEnterScope({target:seq.target, singleStmt:seq.singleStmt, savedMaxIdxReg, body}))
@@ -497,6 +497,7 @@ let runProgram = (
                 regs[maxIdxReg] = regs->Array.getUnsafe(savedMaxIdxReg)
                 regs[savedMaxIdxReg] = -1
                 run(next, startIdx)
+                //todo: is it required to restore the state for the NExitScope?
                 regs[savedMaxIdxReg] = regs->Array.getUnsafe(maxIdxReg)
                 regs[maxIdxReg] = scopeMaxIdx
             }
@@ -529,6 +530,7 @@ let runProgram = (
             }
             | NUnord({doneRegs, entries, next}) => {
                 if (doneRegs->Array.every(reg => regs->Array.getUnsafe(reg) == 1)) {
+                    //todo: why do we need to set doneRegs to -1 before running next node?
                     doneRegs->Array.forEach(reg => regs[reg] = -1)
                     run(next, startIdx)
                     doneRegs->Array.forEach(reg => regs[reg] = 1)
@@ -601,6 +603,7 @@ let exprIncludesSeq = (
     let maxIdx = expr->Array.length-1
     let stmtI = getStmtIForNonSingleStmt(~target=Frm, ~frmData)
     if ( 0 <= exprIncludesConstSeqWithTarget(~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes, ~frmData, ~stmtI) ) {
+        //todo: why do we compile program for each expr? Can we conmpile it just once in the beginning of the search?
         runProgram(
             ~prog=compileSeq(seq), ~expr, ~varTypes, ~frmData,
             ~onMatch = () => {
