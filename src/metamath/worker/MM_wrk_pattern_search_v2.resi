@@ -31,11 +31,14 @@ and seqGrp =
     | Unordered(array<symSeq>)
     | OneOf(array<symSeq>)
 
+type program
+
 type pattern = {
     neg: bool,
     symSeq: symSeq,
     allSeq: array<symSeq>,
     capVars:ref<array<bool>>, //captured variables
+    program: program, //symSeq compiled into a program
 }
 
 let parsePattern: (
@@ -53,8 +56,11 @@ let validatePattern: (~text:string, ~ctx:MM_context.mmContext) => option<string>
 let countMinLen: array<symSeq> => int
 
 let exprIncludesSeq: (
-    ~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>, ~frmData:MM_context.patternSearchData
+    ~expr: array<int>, ~seq: symSeq, ~varTypes: array<int>, ~frmData:MM_context.patternSearchData,
+    ~program:program
 ) => option<array<int>>
+
+let compileSeq: symSeq => program
 
 let convertMatchedIndices: (MM_context.frame, array<int>) => array<array<int>>
 
