@@ -529,7 +529,14 @@ let runProgram = (
             }
             | NUnord({doneRegs, entries, next}) => {
                 if (doneRegs->Array.every(reg => regs->Array.getUnsafe(reg) == 1)) {
-                    //todo: why do we need to set doneRegs to -1 before running next node?
+                    //Resetting doneRegs to -1 here (and setting them back to 1 after the call) is not required
+                    //for correctness. The compiled nodes form a graph without cycles, so a finished unordered
+                    //group is never entered again and nothing reads its registers after this point.
+                    //It keeps the rule that registers of inactive constructs are -1, as for scopes.
+                    //This may become useful if the search algorithm evolves in such a way
+                    //that the same node can be reached in multiple ways:
+                    //with -1 for inactive constructs, equivalent states get equal cache keys,
+                    //so failures cached on one way will be reused on the other ways, and the caching will work better.
                     doneRegs->Array.forEach(reg => regs[reg] = -1)
                     run(next, startIdx)
                     doneRegs->Array.forEach(reg => regs[reg] = 1)
