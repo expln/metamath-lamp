@@ -497,7 +497,6 @@ let runProgram = (
                 regs[maxIdxReg] = regs->Array.getUnsafe(savedMaxIdxReg)
                 regs[savedMaxIdxReg] = -1
                 run(next, startIdx)
-                //todo: is it required to restore the state for the NExitScope?
                 regs[savedMaxIdxReg] = regs->Array.getUnsafe(maxIdxReg)
                 regs[maxIdxReg] = scopeMaxIdx
             }

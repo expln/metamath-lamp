@@ -634,6 +634,51 @@ describe("exprIncludesSeq", _ => {
     })
 })
 
+describe("exprIncludesSeq with scopes", _ => {
+    it("restores the scope when the search backtracks into it", _ => {
+        // pattern: $[h c1 X $| c2 X $] $* $[+ c3 X $]
+        // hyp:     c1 v0 c2 v1
+        // asrt:    c3 v1
+        // The first alternative matches X=v0 in the hypothesis, then "c3 X" fails because the assertion has v1.
+        // The search has to return into the hypothesis scope and try the second alternative, which gives X=v1.
+        // If NExitScope doesn't restore the registers on return, the scope range is lost
+        // and "c3 X" cannot match after the second alternative either.
+        let c1 = -1
+        let c2 = -2
+        let c3 = -3
+        let typ = -10
+        let v0 = 0
+        let v1 = 1
+        let varTypes = [typ, typ, typ]
+        let expr = [c1, v0, c2, v1, c3, v1]
+        let frmData:MM_context.patternSearchData = {
+            allHypsAsrt:expr,
+            numOfHyps:1,
+            stmtBnds:[0,4]
+        }
+        let x = Var({typ, capVars:ref(Array.make(~length=varTypes->Array.length, false)), capVar: -1, capVarIdx: -1})
+        let sym = (constOrVar:constOrVar):sym => {constOrVar, matchedIdx: -1}
+        let makeSeq = (elems:seqGrp, ~minLen:int, ~target:patternTarget, ~singleStmt:bool):symSeq => {
+            elems, minLen, target, singleStmt,
+            minConstMismatchIdx:Array.make(~length=frmData.numOfHyps+3, expr->Array.length),
+        }
+        let inHyp = (syms:array<sym>):symSeq => {
+            makeSeq(Adjacent(syms), ~minLen=syms->Array.length, ~target=Hyps, ~singleStmt=true)
+        }
+        let seq = makeSeq(
+            Ordered([
+                makeSeq(
+                    OneOf([ inHyp([sym(Const(c1)), sym(x)]), inHyp([sym(Const(c2)), sym(x)]) ]),
+                    ~minLen=2, ~target=Hyps, ~singleStmt=true
+                ),
+                makeSeq(Adjacent([sym(Const(c3)), sym(x)]), ~minLen=2, ~target=Frm, ~singleStmt=false),
+            ]),
+            ~minLen=4, ~target=Frm, ~singleStmt=false
+        )
+        assertEq(exprIncludesSeq(~expr, ~seq, ~varTypes, ~frmData), Some([2,3,4,5]))
+    })
+})
+
 describe("parsePattern", _ => {
     let a = {constOrVar:Const(-1), matchedIdx:-1}
     let b = {constOrVar:Const(-2), matchedIdx:-1}
