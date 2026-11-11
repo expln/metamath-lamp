@@ -286,10 +286,12 @@ and let exprIncludesConstUnorderedSeq = (
     if (passedSeqIdxs->Array.length == childElems->Array.length) {
         startIdx-1
     } else {
+        //Different orders of the children may end at different indices. All orders are checked
+        //to find the earliest end, because the elements following this group need as much space as possible.
         let res = ref(-1)
         let i = ref(0)
         let maxI = childElems->Array.length - 1
-        while (res.contents < 0 && i.contents <= maxI) {
+        while (i.contents <= maxI) {
             if !(passedSeqIdxs->Array.includes(i.contents)) {
                 let curSeq = childElems->Array.getUnsafe(i.contents)
                 if (startIdx < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)) {
@@ -298,10 +300,13 @@ and let exprIncludesConstUnorderedSeq = (
                     )
                     if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
                         passedSeqIdxs->Array.push(i.contents)
-                        res := exprIncludesConstUnorderedSeq(
+                        let curRes = exprIncludesConstUnorderedSeq(
                             ~expr, ~startIdx=lastMatchedIdx+1, ~maxIdx, ~childElems, ~varTypes, ~passedSeqIdxs, 
                             ~frmData, ~stmtI
                         )
+                        if (0 <= curRes && (res.contents < 0 || curRes < res.contents)) {
+                            res := curRes
+                        }
                         passedSeqIdxs->Array.pop->ignore
                     }
                 }
@@ -316,16 +321,21 @@ and let exprIncludesConstOneOfSeq = (
     ~expr:array<int>, ~startIdx:int, ~maxIdx:int, ~childElems:array<symSeq>, ~varTypes: array<int>, 
     ~frmData:MC.patternSearchData, ~stmtI:int
 ):int => {
+    //All alternatives are checked to find the earliest end,
+    //because the elements following this group need as much space as possible.
     let res = ref(-1)
     let i = ref(0)
     let maxI = childElems->Array.length - 1
-    while (res.contents < 0 && i.contents <= maxI) {
+    while (i.contents <= maxI) {
         let curSeq = childElems->Array.getUnsafe(i.contents)
         if (startIdx < curSeq.minConstMismatchIdx->Array.getUnsafe(stmtI)) {
             let lastMatchedIdx = exprIncludesConstSeqWithTarget(
                 ~expr, ~startIdx, ~maxIdx, ~seq=curSeq, ~varTypes, ~frmData, ~stmtI
             )
-            if (0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx) {
+            if (
+                0 <= lastMatchedIdx && lastMatchedIdx <= maxIdx
+                && (res.contents < 0 || lastMatchedIdx < res.contents)
+            ) {
                 res := lastMatchedIdx
             }
         }
