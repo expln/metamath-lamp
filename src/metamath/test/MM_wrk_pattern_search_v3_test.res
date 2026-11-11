@@ -96,7 +96,7 @@ let assertMatches = (
         numOfHyps:0,
         stmtBnds:[0]
     }
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData ), Some(expectedIndices))
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData, ~program=compileSeq(seq) ), Some(expectedIndices))
 }
 
 let assertDoesntMatch = (
@@ -109,7 +109,7 @@ let assertDoesntMatch = (
         numOfHyps:0,
         stmtBnds:[0]
     }
-    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData ), None)
+    assertEq(exprIncludesSeq( ~expr, ~seq, ~varTypes, ~frmData, ~program=compileSeq(seq) ), None)
 }
 
 let baseSymSeq = { 
@@ -128,7 +128,9 @@ let oneOf = (seq:array<symSeq>, ~target:patternTarget=Frm, ~singleStmt:bool=fals
     ...baseSymSeq, 
     elems: OneOf(seq), minLen:seq->Array.reduce(100, (min,{minLen}) => Math.Int.min(min, minLen)), target, singleStmt 
 }
-let pat = (symSeq:symSeq, ~neg:bool=false):pattern => { symSeq, neg, allSeq:[], capVars:ref([]) }
+let pat = (symSeq:symSeq, ~neg:bool=false):pattern => {
+    symSeq, neg, allSeq:[], capVars:ref([]), program:compileSeq(symSeq)
+}
 
 let assertParsePattern = (
     ~pattern:string, ~syms:Belt_HashMapString.t<constOrVar>, ~expectedResult:result<array<pattern>,string>
@@ -675,7 +677,7 @@ describe("exprIncludesSeq with scopes", _ => {
             ]),
             ~minLen=4, ~target=Frm, ~singleStmt=false
         )
-        assertEq(exprIncludesSeq(~expr, ~seq, ~varTypes, ~frmData), Some([2,3,4,5]))
+        assertEq(exprIncludesSeq(~expr, ~seq, ~varTypes, ~frmData, ~program=compileSeq(seq)), Some([2,3,4,5]))
     })
 })
 

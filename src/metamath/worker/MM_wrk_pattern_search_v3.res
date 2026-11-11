@@ -34,13 +34,6 @@ and seqGrp =
     | Unordered(array<symSeq>)
     | OneOf(array<symSeq>)
 
-type pattern = {
-    neg: bool,
-    symSeq: symSeq,
-    allSeq: array<symSeq>,
-    capVars:ref<array<bool>>, //captured variables
-}
-
 // The compiled form of a pattern.
 // The nodes are linked by explicit "next" references,
 // so the node id tells what remains to be matched.
@@ -59,6 +52,14 @@ type program = {
     entry:int,
     vars:array<variable>, //all distinct variables of the pattern
     numOfRegs:int,
+}
+
+type pattern = {
+    neg: bool,
+    symSeq: symSeq,
+    allSeq: array<symSeq>,
+    capVars:ref<array<bool>>, //captured variables
+    program: program, //symSeq compiled into a program
 }
 
 let getVarType = (varTypes: array<int>, var:int):int => {
@@ -603,15 +604,15 @@ let getMatchedIndices = (seq:symSeq):array<int> => {
 }
 
 let exprIncludesSeq = (
-    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>, ~frmData:MC.patternSearchData
+    ~expr:array<int>, ~seq:symSeq, ~varTypes:array<int>, ~frmData:MC.patternSearchData,
+    ~program:program, //seq compiled into a program
 ):option<array<int>> => {
     let res = ref(None)
     let maxIdx = expr->Array.length-1
     let stmtI = getStmtIForNonSingleStmt(~target=Frm, ~frmData)
     if ( 0 <= exprIncludesConstSeqWithTarget(~expr, ~startIdx=0, ~maxIdx, ~seq, ~varTypes, ~frmData, ~stmtI) ) {
-        //todo: why do we compile program for each expr? Can we conmpile it just once in the beginning of the search?
         runProgram(
-            ~prog=compileSeq(seq), ~expr, ~varTypes, ~frmData,
+            ~prog=program, ~expr, ~varTypes, ~frmData,
             ~onMatch = () => {
                 switch res.contents {
                     | None => res := Some(getMatchedIndices(seq))
@@ -720,11 +721,13 @@ let collectAllSeq = (seq:symSeq, allSeq:array<symSeq>):unit => {
 }
 
 let astToPattern = (ast:P.pattern, symMap:Belt_HashMapString.t<constOrVar>, capVars:ref<array<bool>>):pattern => {
+    let symSeq = astToSymSeq(ast.symSeq, ast.flags, symMap)
     let res = {
-        symSeq: astToSymSeq(ast.symSeq, ast.flags, symMap),
+        symSeq,
         neg: ast.neg,
         allSeq: [],
         capVars,
+        program: compileSeq(symSeq),
     }
     collectAllSeq(res.symSeq, res.allSeq)
     res
@@ -1001,8 +1004,10 @@ let frameMatchesPattern = (frm:MC.frame, pattern:pattern):option<array<array<int
         pattern.capVars := Array.make(~length=frm.varTypes->Array.length, false)
     }
     switch (
-        exprIncludesSeq(~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData)
-            ->Option.map(convertMatchedIndices(frm, _))
+        exprIncludesSeq(
+            ~expr, ~seq=pattern.symSeq, ~varTypes=frm.varTypes, ~frmData,
+            ~program=pattern.program
+        )->Option.map(convertMatchedIndices(frm, _))
     ) {
         | None => if (pattern.neg) {Some(convertMatchedIndices(frm, []))} else {None}
         | Some(idxs) => if (pattern.neg) {None} else {Some(idxs)}
