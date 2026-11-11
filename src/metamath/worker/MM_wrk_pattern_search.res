@@ -1,5 +1,5 @@
 module PS1 = MM_wrk_pattern_search_v1
-module PS2 = MM_wrk_pattern_search_v2
+module PS2 = MM_wrk_pattern_search_v3
 
 type pattern =
     | V1({pattern:array<PS1.stmtPattern>, mapping:Belt_HashMapInt.t<int>})

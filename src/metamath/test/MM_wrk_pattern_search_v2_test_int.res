@@ -1,5 +1,5 @@
 open Expln_test
-open MM_wrk_pattern_search_v2
+open MM_wrk_pattern_search_v3
 
 let frameMatchesPatternTest = (
     ~ctx:MM_context.mmContext, ~pattern:string, ~label:string
