@@ -120,7 +120,7 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.preCtxData.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
+        srcs: state.preCtxData.srcs->Array.map(src => {...src, ast:None, allLabels:[], fileToLabels:[]}),
         tabTitle:state.tabTitle,
         loc: { place: locationToPlaceStr(state.loc), label: locationToLabel(state.loc) },
         descr:state.descr,
@@ -181,6 +181,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     resetNestingLevel: d->bool("resetNestingLevel", ~default=()=>true),
                     ast: None,
                     allLabels: [],
+                    fileToLabels: [],
                 }
             }), ~default=()=>[]),
             tabTitle: d->str("tabTitle", ~default=()=>""),

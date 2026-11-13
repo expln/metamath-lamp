@@ -17,6 +17,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -46,6 +47,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "E",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -75,6 +77,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "D",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -104,6 +107,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "F",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -133,6 +137,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "E",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -163,6 +168,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
             {
@@ -173,6 +179,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast2),
                 allLabels: ["X", "Y"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -203,6 +210,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "E",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
             {
@@ -213,6 +221,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast2),
                 allLabels: ["X", "Y", "Z"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -243,6 +252,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "D",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
             {
@@ -253,6 +263,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast2),
                 allLabels: ["X", "Y", "Z"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -283,6 +294,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "D",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
             {
@@ -293,6 +305,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast2),
                 allLabels: ["X", "Y", "Z"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
@@ -329,6 +342,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "D",
                 ast: Some(ast1),
                 allLabels: ["A", "B", "C", "D", "E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
             {
@@ -339,6 +353,7 @@ describe("createMmScopesForFrame", _ => {
                 label: "",
                 ast: Some(ast2),
                 allLabels: ["E", "F"],
+                fileToLabels: [],
                 resetNestingLevel:true,
             },
         ]
