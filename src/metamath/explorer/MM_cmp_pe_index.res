@@ -68,9 +68,11 @@ let make = React.memoCustomCompareProps(({
     let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
+    let (allFiles, setAllFiles) = React.useState(() => [])
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => initIsAxiomFilter)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
+    let (fileFilter, setFileFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (dependsOnFilter, setDependsOnFilter) = React.useState(() => initDependsOnFilter)
     let (dependsOnTranFilter, setDependsOnTranFilter) = React.useState(() => false)
@@ -102,6 +104,7 @@ let make = React.memoCustomCompareProps(({
     let actClearFilters = (~applyFilters:bool) => {
         setIsAxiomFilter(_ => None)
         setStmtTypeFilter(_ => None)
+        setFileFilter(_ => None)
         setLabelFilter(_ => "")
         setDependsOnFilter(_ => "")
         setDependsOnTranFilter(_ => false)
@@ -115,6 +118,23 @@ let make = React.memoCustomCompareProps(({
         setTranDeprFilter(_ => None)
         if (applyFilters) {
             setApplyFiltersRequested(_ => true)
+        }
+    }
+
+    let filterByFile = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
+        switch fileFilter {
+            | None => frames
+            | Some(selectedFile) => {
+                let labelsInFile = Belt_HashSetString.make(~hintSize=1000)
+                preCtxData.srcs->Array.forEach(src => {
+                    src.fileToLabels->Array.forEach(((fileName, labels)) => {
+                        if (fileName == selectedFile) {
+                            labels->Array.forEach(label => labelsInFile->Belt_HashSetString.add(label))
+                        }
+                    })
+                })
+                frames->Array.filter(((frame,_)) => labelsInFile->Belt_HashSetString.has(frame.label))
+            }
         }
     }
 
@@ -160,7 +180,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let filterByNonWrk = (frames:array<(frame,option<matchedIndices>)>):array<(frame,option<matchedIndices>)> => {
-        frames->filterByDescr->filterByDependsOn->filterByReferencedBy
+        frames->filterByFile->filterByDescr->filterByDependsOn->filterByReferencedBy
     }
 
     let mapToLabel = (frames:array<(frame,option<matchedIndices>)>):array<(string,option<matchedIndices>)> => {
@@ -199,6 +219,22 @@ let make = React.memoCustomCompareProps(({
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
         //make sure the selected type is still present in the context
         setStmtTypeFilter(typ => typ->Option.flatMap(ctxSymToInt(preCtx, _))->Option.flatMap(ctxIntToSym(preCtx, _)))
+
+        //only files which contributed at least one assertion to the loaded context
+        let allFiles = []
+        preCtxData.srcs->Array.forEach(src => {
+            src.fileToLabels->Array.forEach(((fileName, labels)) => {
+                if (
+                    !(allFiles->Array.includes(fileName))
+                    && labels->Array.some(label => preCtx->getFrame(label)->Option.isSome)
+                ) {
+                    allFiles->Array.push(fileName)
+                }
+            })
+        })
+        setAllFiles(_ => allFiles)
+        //make sure the selected file is still present in the context
+        setFileFilter(file => file->Option.flatMap(file => allFiles->Array.includes(file) ? Some(file) : None))
 
         setApplyFiltersRequested(_ => true)
     }
@@ -380,6 +416,10 @@ let make = React.memoCustomCompareProps(({
         setStmtTypeFilter(_ => ctx->ctxSymToInt(stmtTypeStr)->Option.flatMap(ctxIntToSym(ctx, _)))
     }
 
+    let actFileFilterUpdated = (newFileFilter:option<string>) => {
+        setFileFilter(_ => newFileFilter)
+    }
+
     let actLabelFilterUpdated = newLabelFilter => {
         setLabelFilter(_ => newLabelFilter)
     }
@@ -421,7 +461,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let (isFirstRender, setIsFirstRender) = React.useState(() => true)
-    useEffect8(
+    useEffect9(
         () => {
             setIsFirstRender(_ => false)
             if (!isFirstRender) {
@@ -430,7 +470,7 @@ let make = React.memoCustomCompareProps(({
             None
         }, 
         (
-            isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter, 
+            isAxiomFilter, stmtTypeFilter, fileFilter, discFilter, deprFilter, tranDeprFilter, 
             dependsOnTranFilter, referencedByTranFilter, sorting
         )
     )
@@ -540,6 +580,12 @@ let make = React.memoCustomCompareProps(({
                 }
             </Select>
         </FormControl>
+    }
+
+    let rndFileFilter = () => {
+        <AutocompleteVirtualized
+            value=fileFilter options=allFiles size=#small width=250 onChange=actFileFilterUpdated label="File" 
+        />
     }
 
     let rndLabelFilter = () => {
@@ -751,6 +797,7 @@ let make = React.memoCustomCompareProps(({
             </Row>
             <Row>
                 {rndStmtTypeFilter()}
+                {rndFileFilter()}
                 {rndDiscFilter()}
                 {rndDeprFilter()}
                 {rndTranDeprFilter()}
