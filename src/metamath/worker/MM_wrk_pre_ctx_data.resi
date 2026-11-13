@@ -14,6 +14,8 @@ type mmCtxSrcDto = {
     resetNestingLevel:bool,
     ast: option<mmAstNode>,
     allLabels: array<string>,
+    // (file name, labels of assertions defined in that file); included files are listed separately from the root file
+    fileToLabels: array<(string, array<string>)>,
 }
 
 type preCtx = {

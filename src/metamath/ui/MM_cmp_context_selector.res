@@ -22,6 +22,8 @@ type mmSingleScope = {
     fileText: option<fileText>,
     ast: option<result<mmAstNode,string>>,
     allLabels: array<string>,
+    // (file name, labels of assertions defined in that file); included files are listed separately from the root file
+    fileToLabels: array<(string, array<string>)>,
     readInstr: readInstr,
     label: option<string>,
     resetNestingLevel:bool,
@@ -48,6 +50,7 @@ let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
         fileText:None,
         ast:None,
         allLabels:[],
+        fileToLabels:[],
         readInstr:ReadAll,
         label:None,
         resetNestingLevel:true,
@@ -68,6 +71,7 @@ let setFileSrc = (ss:mmSingleScope, fileSrc:option<mmFileSource>) => {...ss, fil
 let setFileText = (ss:mmSingleScope, fileText) => {...ss, fileText}
 let setAst = (ss:mmSingleScope, ast) => {...ss, ast}
 let setAllLabels = (ss:mmSingleScope, allLabels) => {...ss, allLabels}
+let setFileToLabels = (ss:mmSingleScope, fileToLabels) => {...ss, fileToLabels}
 let setReadInstr = (ss:mmSingleScope, readInstr) => {...ss, readInstr}
 let setLabel = (ss:mmSingleScope, label) => {...ss, label}
 let setResetNestingLevel = (ss:mmSingleScope, resetNestingLevel) => {...ss, resetNestingLevel}
@@ -240,11 +244,16 @@ let parseSingleScope = (ss:mmSingleScope, ~modalRef:modalRef):promise<mmSingleSc
                                                 ->Option.getOr("")
                                             let ss = ss->setAst(Some(Error(fileId ++ msg)))
                                             let ss = ss->setAllLabels([])
+                                            let ss = ss->setFileToLabels([])
                                             ss
                                         }
                                         | Ok((ast,allLabels)) => {
                                             let ss = ss->setAst(Some(Ok(ast)))
                                             let ss = ss->setAllLabels(allLabels)
+                                            let ss = ss->setFileToLabels([(
+                                                getFileNameFromFileSrc(ss.fileSrc)->Option.getOr(""),
+                                                allLabels
+                                            )])
                                             ss
                                         }
                                     }
@@ -459,6 +468,7 @@ let makeMmScopeFromSrcDtos = (
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
             let mmScope = mmScope->updateSingleScope( ssId,setAst(_,src.ast->Belt_Option.map(ast => Ok(ast))))
             let mmScope = mmScope->updateSingleScope( ssId,setAllLabels(_,src.allLabels))
+            let mmScope = mmScope->updateSingleScope( ssId,setFileToLabels(_,src.fileToLabels))
             let mmScope = mmScope->updateSingleScope( ssId,setReadInstr(_,src.readInstr->readInstrFromStr))
             let mmScope = mmScope->updateSingleScope( ssId,setLabel(_,Some(src.label)))
             let mmScope = mmScope->updateSingleScope( ssId,setResetNestingLevel(_,src.resetNestingLevel))
@@ -588,7 +598,10 @@ let make = (
     }
 
     let rec replaceIncludesInAst = (
-        ast:mmAstNode, ~pathToAst: Belt_HashMapString.t<mmAstNode>, ~replacedPaths:Belt_HashSetString.t
+        ast:mmAstNode, 
+        ~pathToAst: Belt_HashMapString.t<mmAstNode>, 
+        ~replacedPaths:Belt_HashSetString.t,
+        ~includedPaths:array<string>,
     ):option<mmAstNode> => {
         switch ast.stmt {
             | Include({path}) => {
@@ -596,9 +609,10 @@ let make = (
                     None
                 } else {
                     replacedPaths->Belt_HashSetString.add(path)
+                    includedPaths->Array.push(path)
                     switch pathToAst->Belt_HashMapString.get(path) {
                         | None => panic(`Internal error: no AST is available for path '${path}'.`)
-                        | Some(ast) => replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths)
+                        | Some(ast) => replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths, ~includedPaths)
                     }
                 }
             }
@@ -608,7 +622,7 @@ let make = (
                     ...ast, 
                     stmt:Block({
                         level, 
-                        statements: statements->Array.map(replaceIncludesInAst(_, ~pathToAst, ~replacedPaths))
+                        statements: statements->Array.map(replaceIncludesInAst(_, ~pathToAst, ~replacedPaths, ~includedPaths))
                             ->Array.filter(Option.isSome)
                             ->Array.map(Option.getOrThrow(_))
                             ->Array.flatMap(childAst => {
@@ -683,6 +697,7 @@ let make = (
                 fileText:Some(Text(text->Option.getOrThrow(~message="Intenal error: expected to have text loaded"))),
                 ast:None,
                 allLabels:[],
+                fileToLabels:[],
                 readInstr:ReadAll,
                 label:None,
                 resetNestingLevel:true,
@@ -749,9 +764,28 @@ let make = (
                             pathToUrl->Belt_HashMapString.keysToArray, pathToAst->Belt_HashMapString.keysToArray
                         )
                     }
-                    switch replaceIncludesInAst(ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.fromArray([rootFileName])) {
+                    let includedPaths = []
+                    switch replaceIncludesInAst(
+                        ast, ~pathToAst, ~replacedPaths=Belt_HashSetString.fromArray([rootFileName]), ~includedPaths
+                    ) {
                         | None => Ok(ss)
-                        | Some(ast) => Ok(ss->setAst(Some(Ok(ast)))->setAllLabels(getAllAstrLabels(ast)))
+                        | Some(newAst) => {
+                            // getAllAstrLabels() skips Include statements,
+                            // so it returns only the labels defined directly in the given file.
+                            let fileToLabels = [(rootFileName, getAllAstrLabels(ast))]->Array.concat(
+                                includedPaths->Array.map(path => {
+                                    let includedAst = pathToAst->Belt_HashMapString.get(path)->Option.getOrThrow(
+                                        ~message=`Internal error: no AST is available for path '${path}'.`
+                                    )
+                                    (path, getAllAstrLabels(includedAst))
+                                })
+                            )
+                            Ok(
+                                ss->setAst(Some(Ok(newAst)))
+                                    ->setAllLabels(getAllAstrLabels(newAst))
+                                    ->setFileToLabels(fileToLabels)
+                            )
+                        }
                     }
                 } catch {
                     | Common.MmException({msg}) => Error(msg)
@@ -908,6 +942,7 @@ let make = (
                                                 label: ss.label->Belt.Option.getWithDefault(""),
                                                 ast,
                                                 allLabels: ss.allLabels,
+                                                fileToLabels: ss.fileToLabels,
                                                 resetNestingLevel: ss.resetNestingLevel,
                                             }
                                         }
@@ -920,6 +955,7 @@ let make = (
                                                 label: ss.label->Belt.Option.getWithDefault(""),
                                                 ast,
                                                 allLabels: ss.allLabels,
+                                                fileToLabels: ss.fileToLabels,
                                                 resetNestingLevel: ss.resetNestingLevel,
                                             }
                                         }
