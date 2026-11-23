@@ -48,7 +48,7 @@ export class BrowserBridge {
     * and an idle copy must not take the port from the session which is actually used.
     * Resolves to undefined on success or to an error message. If the port is busy, the next call tries again.
     * */
-    ensureListening() {
+    _ensureListening() {
         if (this.wss !== null) {
             return Promise.resolve(undefined)
         }
@@ -68,7 +68,7 @@ export class BrowserBridge {
                     this.wss = wss
                     this.listeningPromise = null
                     wss.on('error', err => log(`WebSocket server error: ${err.message}`))
-                    setInterval(() => this.checkHeartbeat(), HEARTBEAT_INTERVAL_MS).unref()
+                    setInterval(() => this._checkHeartbeat(), HEARTBEAT_INTERVAL_MS).unref()
                     log(`Waiting for a metamath-lamp tab on ws://127.0.0.1:${this.port}`)
                     resolve(undefined)
                 })
@@ -91,7 +91,7 @@ export class BrowserBridge {
                     log(errMsg)
                     resolve(errMsg)
                 })
-                wss.on('connection', (ws, req) => this.onConnection(ws, req))
+                wss.on('connection', (ws, req) => this._onConnection(ws, req))
             })
         }
         return this.listeningPromise
@@ -102,7 +102,7 @@ export class BrowserBridge {
     * Resolves to undefined if a tab is connected, otherwise to an error message.
     * */
     async ensureConnected(waitMs) {
-        const listenErr = await this.ensureListening()
+        const listenErr = await this._ensureListening()
         if (listenErr !== undefined) {
             return listenErr
         }
@@ -119,10 +119,10 @@ export class BrowserBridge {
                 this.tabWaiters.push(waiter)
             })
         }
-        return this.getNotConnectedError()
+        return this._getNotConnectedError()
     }
 
-    isOriginAllowed(origin) {
+    _isOriginAllowed(origin) {
         if (origin === undefined) {
             // Non-browser clients don't send Origin. Browsers always do, so web pages cannot get here.
             return true
@@ -130,9 +130,9 @@ export class BrowserBridge {
         return isLocalhostOrigin(origin) || this.allowedOrigins.includes(origin)
     }
 
-    onConnection(ws, req) {
+    _onConnection(ws, req) {
         const origin = req.headers.origin
-        if (!this.isOriginAllowed(origin)) {
+        if (!this._isOriginAllowed(origin)) {
             log(`Rejected a connection from origin ${origin}`)
             ws.close(CLOSE_CODE_ORIGIN_NOT_ALLOWED, 'Origin is not allowed')
             return
@@ -147,18 +147,18 @@ export class BrowserBridge {
         waiters.forEach(waiter => waiter())
         ws.isAlive = true
         ws.on('pong', () => { ws.isAlive = true })
-        ws.on('message', data => this.onMessage(ws, data))
+        ws.on('message', data => this._onMessage(ws, data))
         ws.on('close', () => {
             if (this.socket === ws) {
                 log('The metamath-lamp tab disconnected.')
                 this.socket = null
-                this.rejectAllPending('The metamath-lamp tab disconnected before responding.')
+                this._rejectAllPending('The metamath-lamp tab disconnected before responding.')
             }
         })
         ws.on('error', err => log(`WebSocket error: ${err.message}`))
     }
 
-    onMessage(ws, data) {
+    _onMessage(ws, data) {
         let msg
         try {
             msg = JSON.parse(data.toString())
@@ -186,7 +186,7 @@ export class BrowserBridge {
         }
     }
 
-    checkHeartbeat() {
+    _checkHeartbeat() {
         const ws = this.socket
         if (ws === null) {
             return
@@ -200,7 +200,7 @@ export class BrowserBridge {
         ws.ping()
     }
 
-    rejectAllPending(errMsg) {
+    _rejectAllPending(errMsg) {
         for (const pending of this.pendingCalls.values()) {
             clearTimeout(pending.timer)
             pending.resolve({isOk: false, err: errMsg})
@@ -211,7 +211,7 @@ export class BrowserBridge {
     /*
     * Returns an error message if no browser tab is connected, otherwise undefined.
     * */
-    getNotConnectedError() {
+    _getNotConnectedError() {
         if (this.socket !== null) {
             return undefined
         }
@@ -226,7 +226,7 @@ export class BrowserBridge {
     * Resolves to the API response {isOk, res, err}. Never rejects.
     * */
     call({path, params, editorId, timeoutMs}) {
-        const notConnectedErr = this.getNotConnectedError()
+        const notConnectedErr = this._getNotConnectedError()
         if (notConnectedErr !== undefined) {
             return Promise.resolve({isOk: false, err: notConnectedErr})
         }
