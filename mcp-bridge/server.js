@@ -46,6 +46,20 @@ function errorResult(text) {
     return {content: [{type: 'text', text}], isError: true}
 }
 
+/*
+* Wraps a tool handler, so it runs only when a metamath-lamp tab is connected.
+* Otherwise the tool returns an error explaining why there is no connection.
+* */
+function withConnectedTab(handler) {
+    return async (args, extra) => {
+        const notConnectedErr = await bridge.ensureConnected()
+        if (notConnectedErr !== undefined) {
+            return errorResult(notConnectedErr)
+        }
+        return handler(args, extra)
+    }
+}
+
 const server = new McpServer({name: 'metamath-lamp', version: '0.0.1'})
 
 server.registerTool(
@@ -93,11 +107,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
             openWorldHint: false,
         },
     },
-    async ({unifyFirst, onlyRelevantSteps, editorId}) => {
-        const notConnectedErr = await bridge.ensureConnected()
-        if (notConnectedErr !== undefined) {
-            return errorResult(notConnectedErr)
-        }
+    withConnectedTab(async ({unifyFirst, onlyRelevantSteps, editorId}) => {
         const notes = []
         if (unifyFirst) {
             const unifyResp = await bridge.call({path: 'editor.unifyAll', editorId, timeoutMs: UNIFY_ALL_TIMEOUT_MS})
@@ -113,7 +123,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
         }
         return textResult(editorStateToText({state: stateResp.res, onlyRelevantSteps, notes}))
-    }
+    })
 )
 
 await server.connect(new StdioServerTransport())
