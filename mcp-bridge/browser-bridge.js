@@ -14,7 +14,7 @@ const CLOSE_CODE_ANOTHER_TAB_CONNECTED = 4001
 const CLOSE_CODE_ORIGIN_NOT_ALLOWED = 4003
 const CLOSE_CODE_PROTOCOL_MISMATCH = 4004
 
-function log(msg) {
+export function log(msg) {
     // stdout is reserved for the MCP protocol, so all logging goes to stderr.
     console.error(`[mm-lamp-bridge] ${msg}`)
 }

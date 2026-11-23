@@ -10,7 +10,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { BrowserBridge } from './browser-bridge.js'
+import { BrowserBridge, log } from './browser-bridge.js'
 import { editorStateToText } from './editor-state-format.js'
 
 const DEFAULT_PORT = 8765
@@ -26,7 +26,7 @@ function parsePort(str) {
     }
     const port = Number(str)
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        console.error(`[mm-lamp-bridge] Invalid MM_LAMP_BRIDGE_PORT: '${str}'`)
+        log(`Invalid MM_LAMP_BRIDGE_PORT: '${str}'`)
         process.exit(1)
     }
     return port
