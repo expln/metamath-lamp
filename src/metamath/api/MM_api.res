@@ -134,6 +134,12 @@ type settingsApi = {
     "getMarkFirstProvableStepAsGoal": api,
 }
 
+type uiApi = {
+    "showInfoMsg": api,
+    "showErrMsg": api,
+    "multilineTextInput": api,
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
@@ -179,9 +185,11 @@ let makeSettingsApi = ():settingsApi => {
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
-    "showInfoMsg": makeApiFuncFromRef(showInfoMsgRef),
-    "showErrMsg": makeApiFuncFromRef(showErrMsgRef),
-    "multilineTextInput": makeApiFuncFromRef(multilineTextInputRef),
+    "ui": {
+        "showInfoMsg": makeApiFuncFromRef(showInfoMsgRef),
+        "showErrMsg": makeApiFuncFromRef(showErrMsgRef),
+        "multilineTextInput": makeApiFuncFromRef(multilineTextInputRef),
+    },
     "editor": (editorId:option<int>) => {
         switch editorRef.contents {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")

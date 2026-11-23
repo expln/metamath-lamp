@@ -12,11 +12,11 @@ function hasValue(value) {
 }
 
 async function showInfoMsg(msg) {
-    getResponse(await api.showInfoMsg({msg:String(msg)}))
+    getResponse(await api.ui.showInfoMsg({msg:String(msg)}))
 }
 
 async function showErrMsg(msg) {
-    getResponse(await api.showErrMsg({msg:String(msg)}))
+    getResponse(await api.ui.showErrMsg({msg:String(msg)}))
 }
 
 function panic(msg) {
@@ -354,7 +354,7 @@ const AVAILABLE_ACTIONS = {
 }
 
 async function runLlmSuggestedAction() {
-    const {okClicked, text:actionText} = getResponse(await api.multilineTextInput({
+    const {okClicked, text:actionText} = getResponse(await api.ui.multilineTextInput({
         prompt:'Enter an LLM suggested action in JSON format:'
     }))
     if (okClicked) {

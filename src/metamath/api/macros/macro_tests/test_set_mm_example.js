@@ -7,7 +7,7 @@ const setMmMacroModuleNameToTest = 'default set.mm macros'
 const ALL_TESTS = []
 
 async function showErrMsg(msg) {
-    getResponse(await api.showErrMsg({msg:String(msg)}))
+    getResponse(await api.ui.showErrMsg({msg:String(msg)}))
 }
 
 async function runAllTests() {

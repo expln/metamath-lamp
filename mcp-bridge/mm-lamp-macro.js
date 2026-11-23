@@ -120,7 +120,7 @@ function disconnect() {
 }
 
 async function showInfoMsg(msg) {
-    await api.showInfoMsg({msg})
+    await api.ui.showInfoMsg({msg})
 }
 
 async function connectMacro() {

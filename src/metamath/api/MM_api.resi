@@ -52,11 +52,15 @@ type settingsApi = {
     "getMarkFirstProvableStepAsGoal": api,
 }
 
-let api: {
-    "setLogApiCallsToConsole": api,
+type uiApi = {
     "showInfoMsg": api,
     "showErrMsg": api,
     "multilineTextInput": api,
+}
+
+let api: {
+    "setLogApiCallsToConsole": api,
+    "ui" : uiApi,
     "editor" : editorApi,
     "macro" : macroApi,
     "settings" : settingsApi,

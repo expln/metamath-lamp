@@ -1,7 +1,7 @@
 const moduleName = 'Add steps in bulk'
 
 async function showErrMsg(msg) {
-    getResponse(await api.showErrMsg({msg:String(msg)}))
+    getResponse(await api.ui.showErrMsg({msg:String(msg)}))
 }
 
 function panic(msg) {
@@ -37,7 +37,7 @@ async function addMultipleSteps() {
         panic(`At most one step can be selected, but got ${st.selectedSteps.length}: ${st.selectedSteps}`)
     }
     const atIdx = st.selectedSteps.length === 0 ? null : getIdxOfLabel(st, st.selectedSteps[0])
-    const {okClicked, text:stepsText} = getResponse(await api.multilineTextInput({
+    const {okClicked, text:stepsText} = getResponse(await api.ui.multilineTextInput({
         prompt:'Enter steps to add (one step per line)'
     }))
     if (okClicked) {
