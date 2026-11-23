@@ -18,6 +18,7 @@ const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
 const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
+const UPDATE_STEPS_TIMEOUT_MS = 30_000
 
 function parsePort(str) {
     if (str === undefined || str === '') {
@@ -86,6 +87,16 @@ function getEditorState({editorId}) {
 * */
 function addSteps({editorId, atIdx, vars, steps}) {
     return bridge.call({path: 'editor.addSteps', editorId, params: {atIdx, vars, steps}, timeoutMs: ADD_STEPS_TIMEOUT_MS})
+}
+
+/*
+* Updates existing steps of an editor tab (the last opened one if editorId is undefined).
+* steps - [{label, type?: 'h'|'p'|'g', stmt?, jstf?, isBkm?}]. label identifies the step and cannot be changed;
+* attributes which are undefined are not changed.
+* Resolves to the API response: res is true.
+* */
+function updateSteps({editorId, steps}) {
+    return bridge.call({path: 'editor.updateSteps', editorId, params: {steps}, timeoutMs: UPDATE_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -257,6 +268,71 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             unifyFirst: true,
             onlyRelevantSteps: true,
             notes: [`Added steps: ${addResp.res.join(' ')}`],
+        })
+    })
+)
+
+server.registerTool(
+    'update_steps',
+    {
+        title: 'Update steps',
+        description: `Changes existing steps of a metamath-lamp editor tab: statement, justification, type, \
+or bookmark.
+
+Each step is identified by its label, which cannot be changed by this tool. \
+Only the attributes you pass are changed, all others stay as they are.
+
+After updating, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
+(only relevant steps), so you can see the effect of the changes.`,
+        inputSchema: {
+            steps: z.array(z.object({
+                label: z.string().describe('Label of an existing step to update.'),
+                type: z.enum(['H', 'P', 'G']).optional().describe(
+                    'New type: H - hypothesis, P - provable step, G - the goal step.'
+                ),
+                statement: z.string().optional().describe(
+                    'New statement including its typecode, e.g. "|- ( ph -> ph )".'
+                ),
+                justification: z.string().optional().describe(
+                    'New justification in the form "<hypothesis labels separated by spaces> : <assertion label>", '
+                    + 'e.g. "1 2 : ax-mp". Pass an empty string to remove the justification. '
+                    + 'Ignored for hypotheses.'
+                ),
+                isBookmarked: z.boolean().optional().describe(
+                    'Bookmark or unbookmark the step. '
+                    + 'Proved steps which are not bookmarked are hidden in the returned editor state.'
+                ),
+            })).min(1).describe('Steps to update.'),
+            editorId: z.number().int().optional().describe(
+                'Id of the editor tab. Omit to use the last opened editor tab.'
+            ),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({steps, editorId}) => {
+        const updateResp = await updateSteps({
+            editorId,
+            steps: steps.map(step => ({
+                label: step.label,
+                type: step.type?.toLowerCase(),
+                stmt: step.statement,
+                jstf: step.justification,
+                isBkm: step.isBookmarked,
+            })),
+        })
+        if (!updateResp.isOk) {
+            return errorResult(`Could not update the steps: ${updateResp.err}`)
+        }
+        return editorStateResult({
+            editorId,
+            unifyFirst: true,
+            onlyRelevantSteps: true,
+            notes: [`Updated steps: ${steps.map(step => step.label).join(' ')}`],
         })
     })
 )

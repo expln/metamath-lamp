@@ -190,7 +190,7 @@ async function updateSteps({steps}) {
     getResponse(await api.editor().updateSteps({
         steps: steps.map(step => ({
             label: step.label,
-            typ: step.type,
+            type: step.type?.toLowerCase(),
             stmt: step.statement,
             jstf: step.justification,
             isBkm: step.isBookmarked,

@@ -18,6 +18,9 @@ The MCP server only forwards calls to the tab and formats the results for the ag
   or before the goal step by default.
   Added steps are bookmarked.
   Returns the editor state after "Unify All".
+* `update_steps` - changes the statement, justification, type, or bookmark of existing steps, identified by labels.
+  Only the passed attributes are changed.
+  Returns the editor state after "Unify All".
 
 ## Setup
 
