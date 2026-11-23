@@ -10,6 +10,10 @@ import { WebSocketServer } from 'ws'
 
 const PROTOCOL_VERSION = 1
 const HEARTBEAT_INTERVAL_MS = 15_000
+// How long a tool call waits for a tab to (re)connect.
+// The macro retries every 3 s (RECONNECT_DELAY_MS in mm-lamp-macro.js),
+// so this is enough for a tab to connect after the port is opened.
+const TAB_CONNECT_WAIT_MS = 5000
 const CLOSE_CODE_ANOTHER_TAB_CONNECTED = 4001
 const CLOSE_CODE_ORIGIN_NOT_ALLOWED = 4003
 const CLOSE_CODE_PROTOCOL_MISMATCH = 4004
@@ -98,10 +102,10 @@ export class BrowserBridge {
     }
 
     /*
-    * Makes sure a browser tab is connected, waiting up to waitMs for it to (re)connect.
+    * Makes sure a browser tab is connected, waiting up to TAB_CONNECT_WAIT_MS for it to (re)connect.
     * Resolves to undefined if a tab is connected, otherwise to an error message.
     * */
-    async ensureConnected(waitMs) {
+    async ensureConnected() {
         const listenErr = await this._ensureListening()
         if (listenErr !== undefined) {
             return listenErr
@@ -111,7 +115,7 @@ export class BrowserBridge {
                 const timer = setTimeout(() => {
                     this.tabWaiters = this.tabWaiters.filter(w => w !== waiter)
                     resolve()
-                }, waitMs)
+                }, TAB_CONNECT_WAIT_MS)
                 const waiter = () => {
                     clearTimeout(timer)
                     resolve()
