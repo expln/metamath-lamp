@@ -17,6 +17,8 @@ const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
 const UNIFY_ALL_TIMEOUT_MS = 5 * 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
+// The macro retries every 3 s, so this is enough for a tab to connect after the port is opened.
+const TAB_CONNECT_WAIT_MS = 5000
 
 function parsePort(str) {
     if (str === undefined || str === '') {
@@ -94,7 +96,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
         },
     },
     async ({unifyFirst, onlyRelevantSteps, editorId}) => {
-        const notConnectedErr = bridge.getNotConnectedError()
+        const notConnectedErr = await bridge.ensureConnected(TAB_CONNECT_WAIT_MS)
         if (notConnectedErr !== undefined) {
             return errorResult(notConnectedErr)
         }
@@ -116,7 +118,6 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
     }
 )
 
-bridge.start()
 await server.connect(new StdioServerTransport())
 
 // The WebSocket server keeps the process alive, so exit explicitly when the MCP client goes away.

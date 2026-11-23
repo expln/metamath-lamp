@@ -33,26 +33,93 @@ export class BrowserBridge {
     constructor({port, allowedOrigins}) {
         this.port = port
         this.allowedOrigins = allowedOrigins
+        this.listeningPromise = null
+        this.wss = null
+        this.tabWaiters = []
         this.socket = null
-        this.clientUrl = null
-        this.listenError = null
         this.nextCallId = 1
         this.pendingCalls = new Map()
     }
 
-    start() {
-        const wss = new WebSocketServer({host: '127.0.0.1', port: this.port})
-        wss.on('listening', () => log(`Waiting for a metamath-lamp tab on ws://127.0.0.1:${this.port}`))
-        wss.on('error', err => {
-            this.listenError = err.code === 'EADDRINUSE'
-                ? `Port ${this.port} is already in use (is another mm-lamp MCP server running?). `
-                    + `Set MM_LAMP_BRIDGE_PORT to use a different port.`
-                : `WebSocket server error: ${err.message}`
-            log(this.listenError)
-        })
-        wss.on('connection', (ws, req) => this.onConnection(ws, req))
-        this.heartbeat = setInterval(() => this.checkHeartbeat(), HEARTBEAT_INTERVAL_MS)
-        this.heartbeat.unref()
+    /*
+    * Starts listening on the port, unless already listening.
+    * This is done lazily (on the first tool call) rather than on startup,
+    * because agent clients may start idle copies of MCP servers (e.g. pre-warmed sessions),
+    * and an idle copy must not take the port from the session which is actually used.
+    * Resolves to undefined on success or to an error message. If the port is busy, the next call tries again.
+    * */
+    ensureListening() {
+        if (this.wss !== null) {
+            return Promise.resolve(undefined)
+        }
+        if (this.listeningPromise === null) {
+            this.listeningPromise = new Promise(resolve => {
+                const wss = new WebSocketServer({host: '127.0.0.1', port: this.port})
+                wss.once('listening', () => {
+                    // A bound server is never closed: it is supposed to work until the process exits.
+                    // The process exits only when the MCP client closes stdin, i.e. when the agent session ends
+                    // (see process.exit() at the end of server.js).
+                    // Errors after binding don't stop the server, they are only logged by the handler below.
+                    // That's why this.wss is never reset to null, and why the single heartbeat timer is never
+                    // stored or cleared.
+                    // If a bound server is ever closed (e.g. to free the port when the tab disconnects),
+                    // reset this.wss to null on its 'close' event, so the next tool call binds again,
+                    // and store the heartbeat timer to clear it, so timers don't accumulate on rebinding.
+                    this.wss = wss
+                    this.listeningPromise = null
+                    wss.on('error', err => log(`WebSocket server error: ${err.message}`))
+                    setInterval(() => this.checkHeartbeat(), HEARTBEAT_INTERVAL_MS).unref()
+                    log(`Waiting for a metamath-lamp tab on ws://127.0.0.1:${this.port}`)
+                    resolve(undefined)
+                })
+                wss.once('error', err => {
+                    // This handler is meant only for bind errors.
+                    // But 'once' removes it only after it fires, so after a successful bind it stays registered
+                    // and would also get the first error of the working server.
+                    // this.wss === wss means this server is bound: leave the error to the logger
+                    // added in the 'listening' handler, and don't close a working server.
+                    if (this.wss === wss) {
+                        return
+                    }
+                    this.listeningPromise = null
+                    wss.close()
+                    const errMsg = err.code === 'EADDRINUSE'
+                        ? `Port ${this.port} is already in use by another program `
+                            + `(probably the mm-lamp MCP server of another agent session). `
+                            + `Close that session, or set MM_LAMP_BRIDGE_PORT to use a different port.`
+                        : `Could not start the WebSocket server: ${err.message}`
+                    log(errMsg)
+                    resolve(errMsg)
+                })
+                wss.on('connection', (ws, req) => this.onConnection(ws, req))
+            })
+        }
+        return this.listeningPromise
+    }
+
+    /*
+    * Makes sure a browser tab is connected, waiting up to waitMs for it to (re)connect.
+    * Resolves to undefined if a tab is connected, otherwise to an error message.
+    * */
+    async ensureConnected(waitMs) {
+        const listenErr = await this.ensureListening()
+        if (listenErr !== undefined) {
+            return listenErr
+        }
+        if (this.socket === null) {
+            await new Promise(resolve => {
+                const timer = setTimeout(() => {
+                    this.tabWaiters = this.tabWaiters.filter(w => w !== waiter)
+                    resolve()
+                }, waitMs)
+                const waiter = () => {
+                    clearTimeout(timer)
+                    resolve()
+                }
+                this.tabWaiters.push(waiter)
+            })
+        }
+        return this.getNotConnectedError()
     }
 
     isOriginAllowed(origin) {
@@ -75,6 +142,9 @@ export class BrowserBridge {
             return
         }
         this.socket = ws
+        const waiters = this.tabWaiters
+        this.tabWaiters = []
+        waiters.forEach(waiter => waiter())
         ws.isAlive = true
         ws.on('pong', () => { ws.isAlive = true })
         ws.on('message', data => this.onMessage(ws, data))
@@ -82,7 +152,6 @@ export class BrowserBridge {
             if (this.socket === ws) {
                 log('The metamath-lamp tab disconnected.')
                 this.socket = null
-                this.clientUrl = null
                 this.rejectAllPending('The metamath-lamp tab disconnected before responding.')
             }
         })
@@ -105,7 +174,6 @@ export class BrowserBridge {
                 )
                 return
             }
-            this.clientUrl = msg.url
             log(`A metamath-lamp tab connected: ${msg.url}`)
         } else if (msg.type === 'result') {
             const pending = this.pendingCalls.get(msg.id)
@@ -147,7 +215,7 @@ export class BrowserBridge {
         if (this.socket !== null) {
             return undefined
         }
-        return this.listenError ?? 'No metamath-lamp tab is connected to the MCP server. '
+        return 'No metamath-lamp tab is connected to the MCP server. '
             + 'Ask the user to open metamath-lamp and run the "Connect to MCP server" macro.'
     }
 
