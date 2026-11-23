@@ -1,0 +1,20 @@
+{
+  "name": "metamath-lamp-mcp-bridge",
+  "version": "0.0.1",
+  "private": true,
+  "license": "MIT",
+  "description": "MCP server which lets AI agents work with metamath-lamp opened in a browser tab.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "ws": "8.23.0",
+    "zod": "4.6.7"
+  }
+}
