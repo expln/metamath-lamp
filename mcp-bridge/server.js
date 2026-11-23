@@ -60,6 +60,22 @@ function withConnectedTab(handler) {
     }
 }
 
+/*
+* Runs 'Unify All' in an editor tab (the last opened one if editorId is undefined).
+* Resolves to the API response: res is true if 'Unify All' ran, false if it could not start.
+* */
+function unifyAll({editorId}) {
+    return bridge.call({path: 'editor.unifyAll', editorId, timeoutMs: UNIFY_ALL_TIMEOUT_MS})
+}
+
+/*
+* Reads the state of an editor tab (the last opened one if editorId is undefined).
+* Resolves to the API response: res is the editor state as returned by api.editor().getState().
+* */
+function getEditorState({editorId}) {
+    return bridge.call({path: 'editor.getState', editorId, timeoutMs: GET_STATE_TIMEOUT_MS})
+}
+
 const server = new McpServer({name: 'metamath-lamp', version: '0.0.1'})
 
 server.registerTool(
@@ -110,7 +126,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
     withConnectedTab(async ({unifyFirst, onlyRelevantSteps, editorId}) => {
         const notes = []
         if (unifyFirst) {
-            const unifyResp = await bridge.call({path: 'editor.unifyAll', editorId, timeoutMs: UNIFY_ALL_TIMEOUT_MS})
+            const unifyResp = await unifyAll({editorId})
             if (!unifyResp.isOk) {
                 return errorResult(`'Unify All' failed: ${unifyResp.err}`)
             }
@@ -118,7 +134,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
                 notes.push("'Unify All' could not start (another action may be running), statuses may be outdated.")
             }
         }
-        const stateResp = await bridge.call({path: 'editor.getState', editorId, timeoutMs: GET_STATE_TIMEOUT_MS})
+        const stateResp = await getEditorState({editorId})
         if (!stateResp.isOk) {
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
         }
