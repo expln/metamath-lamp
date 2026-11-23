@@ -101,7 +101,7 @@ function connect() {
         }
         if (bridge.status.startsWith('connected')) {
             setStatus(`disconnected${event.reason ? ': ' + event.reason : ''}, will keep reconnecting`)
-        } else if (event.code === 4001) {
+        } else if (event.code === 4001 /*CLOSE_CODE_ANOTHER_TAB_CONNECTED*/) {
             bridge.status = `waiting: ${event.reason}`
         } else {
             bridge.status = 'waiting for the MCP server to start'
