@@ -21,6 +21,9 @@ The MCP server only forwards calls to the tab and formats the results for the ag
 * `update_steps` - changes the statement, justification, type, or bookmark of existing steps, identified by labels.
   Only the passed attributes are changed.
   Returns the editor state after "Unify All".
+* `delete_steps` - deletes steps by labels.
+  If any label doesn't exist, nothing is deleted.
+  Returns the editor state after "Unify All".
 
 ## Setup
 

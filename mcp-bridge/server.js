@@ -19,6 +19,7 @@ const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
+const DELETE_STEPS_TIMEOUT_MS = 30_000
 
 function parsePort(str) {
     if (str === undefined || str === '') {
@@ -97,6 +98,15 @@ function addSteps({editorId, atIdx, vars, steps}) {
 * */
 function updateSteps({editorId, steps}) {
     return bridge.call({path: 'editor.updateSteps', editorId, params: {steps}, timeoutMs: UPDATE_STEPS_TIMEOUT_MS})
+}
+
+/*
+* Deletes steps of an editor tab (the last opened one if editorId is undefined).
+* Labels of non-existing steps are silently ignored by the API.
+* Resolves to the API response: res is null.
+* */
+function deleteSteps({editorId, labels}) {
+    return bridge.call({path: 'editor.deleteSteps', editorId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -333,6 +343,55 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
             unifyFirst: true,
             onlyRelevantSteps: true,
             notes: [`Updated steps: ${steps.map(step => step.label).join(' ')}`],
+        })
+    })
+)
+
+server.registerTool(
+    'delete_steps',
+    {
+        title: 'Delete steps',
+        description: `Deletes steps from a metamath-lamp editor tab.
+
+If any of the labels doesn't exist, nothing is deleted and an error is returned.
+
+Justifications of other steps which reference deleted steps are not changed, \
+so such steps will show errors or become unproved.
+
+After deleting, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
+(only relevant steps).`,
+        inputSchema: {
+            labels: z.array(z.string()).min(1).describe('Labels of the steps to delete.'),
+            editorId: z.number().int().optional().describe(
+                'Id of the editor tab. Omit to use the last opened editor tab.'
+            ),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({labels, editorId}) => {
+        const stateResp = await getEditorState({editorId})
+        if (!stateResp.isOk) {
+            return errorResult(`Could not get the editor state: ${stateResp.err}`)
+        }
+        const existingLabels = new Set(stateResp.res.steps.map(step => step.label))
+        const unknownLabels = labels.filter(label => !existingLabels.has(label))
+        if (unknownLabels.length > 0) {
+            return errorResult(`Nothing was deleted, because these steps don't exist: ${unknownLabels.join(' ')}`)
+        }
+        const deleteResp = await deleteSteps({editorId, labels})
+        if (!deleteResp.isOk) {
+            return errorResult(`Could not delete the steps: ${deleteResp.err}`)
+        }
+        return editorStateResult({
+            editorId,
+            unifyFirst: true,
+            onlyRelevantSteps: true,
+            notes: [`Deleted steps: ${labels.join(' ')}`],
         })
     })
 )
