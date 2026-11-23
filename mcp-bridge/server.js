@@ -17,6 +17,7 @@ const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
 const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
+const ADD_STEPS_TIMEOUT_MS = 30_000
 
 function parsePort(str) {
     if (str === undefined || str === '') {
@@ -76,6 +77,58 @@ function getEditorState({editorId}) {
     return bridge.call({path: 'editor.getState', editorId, timeoutMs: GET_STATE_TIMEOUT_MS})
 }
 
+/*
+* Adds steps to an editor tab (the last opened one if editorId is undefined).
+* atIdx - index of the first new step; undefined means before the topmost selected step, or at the very end.
+* vars - new variables as [[type, name]].
+* steps - [{label?, type?: 'h'|'p'|'g', stmt, jstf?, isBkm?}].
+* Resolves to the API response: res is the array of labels of the added steps.
+* */
+function addSteps({editorId, atIdx, vars, steps}) {
+    return bridge.call({path: 'editor.addSteps', editorId, params: {atIdx, vars, steps}, timeoutMs: ADD_STEPS_TIMEOUT_MS})
+}
+
+/*
+* Optionally runs 'Unify All', then reads the editor state and returns it as a tool result in the text format.
+* notes - additional lines to show at the top of the state.
+* */
+async function editorStateResult({editorId, unifyFirst, onlyRelevantSteps, notes = []}) {
+    notes = [...notes]
+    if (unifyFirst) {
+        const unifyResp = await unifyAll({editorId})
+        if (!unifyResp.isOk) {
+            return errorResult(`'Unify All' failed: ${unifyResp.err}`)
+        }
+        if (unifyResp.res === false) {
+            notes.push("'Unify All' could not start (another action may be running), statuses may be outdated.")
+        }
+    }
+    const stateResp = await getEditorState({editorId})
+    if (!stateResp.isOk) {
+        return errorResult(`Could not get the editor state: ${stateResp.err}`)
+    }
+    return textResult(editorStateToText({state: stateResp.res, onlyRelevantSteps, notes}))
+}
+
+/*
+* Returns the index in the editor where new steps should be inserted, or an error message.
+* beforeLabel takes precedence over afterLabel.
+* If neither is given, new steps go before the goal step, or to the end if there is no goal step.
+* */
+function getInsertIdx({steps, beforeLabel, afterLabel}) {
+    const findIdx = label => steps.findIndex(step => step.label === label)
+    if (beforeLabel !== undefined) {
+        const idx = findIdx(beforeLabel)
+        return idx < 0 ? {err: `No step with label '${beforeLabel}' exists.`} : {idx}
+    }
+    if (afterLabel !== undefined) {
+        const idx = findIdx(afterLabel)
+        return idx < 0 ? {err: `No step with label '${afterLabel}' exists.`} : {idx: idx + 1}
+    }
+    const goalIdx = steps.findIndex(step => step.isGoal)
+    return {idx: goalIdx < 0 ? steps.length : goalIdx}
+}
+
 const server = new McpServer({name: 'metamath-lamp', version: '0.0.1'})
 
 server.registerTool(
@@ -124,21 +177,87 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
         },
     },
     withConnectedTab(async ({unifyFirst, onlyRelevantSteps, editorId}) => {
-        const notes = []
-        if (unifyFirst) {
-            const unifyResp = await unifyAll({editorId})
-            if (!unifyResp.isOk) {
-                return errorResult(`'Unify All' failed: ${unifyResp.err}`)
-            }
-            if (unifyResp.res === false) {
-                notes.push("'Unify All' could not start (another action may be running), statuses may be outdated.")
-            }
-        }
+        return editorStateResult({editorId, unifyFirst, onlyRelevantSteps})
+    })
+)
+
+server.registerTool(
+    'add_steps',
+    {
+        title: 'Add steps',
+        description: `Adds new steps (and optionally new variables) to a metamath-lamp editor tab.
+
+New steps are inserted before \`beforeLabel\`, or after \`afterLabel\` (\`beforeLabel\` wins if both are given). \
+If neither is given, they are inserted before the goal step, or at the end if there is no goal step. \
+A step can be derived only from steps above it, so the order matters.
+
+All added steps are bookmarked. \
+After adding, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
+(only relevant steps), so you can see the status of each new step.`,
+        inputSchema: {
+            beforeLabel: z.string().optional().describe('Label of an existing step to insert the new steps before.'),
+            afterLabel: z.string().optional().describe('Label of an existing step to insert the new steps after.'),
+            variables: z.array(z.tuple([z.string(), z.string()])).optional().describe(
+                'New variables to add, as [type, name] pairs, e.g. [["setvar","x1"],["class","A1"]]. '
+                + 'Only needed for variables that are not defined yet. Unused variables are removed automatically.'
+            ),
+            steps: z.array(z.object({
+                label: z.string().optional().describe(
+                    'Label of the step, without whitespace. Omit to generate a new unique label.'
+                ),
+                type: z.enum(['H', 'P', 'G']).default('P').describe(
+                    'H - hypothesis, P - provable step, G - the goal step.'
+                ),
+                statement: z.string().describe(
+                    'The statement including its typecode, e.g. "|- ( ph -> ph )".'
+                ),
+                justification: z.string().optional().describe(
+                    'Justification in the form "<hypothesis labels separated by spaces> : <assertion label>", '
+                    + 'e.g. "1 2 : ax-mp" or ": idi" when there are no hypotheses. '
+                    + 'Omit to leave the step without a justification. Ignored for hypotheses.'
+                ),
+            })).min(1).describe('Steps to add, in order.'),
+            editorId: z.number().int().optional().describe(
+                'Id of the editor tab. Omit to use the last opened editor tab.'
+            ),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({beforeLabel, afterLabel, variables, steps, editorId}) => {
         const stateResp = await getEditorState({editorId})
         if (!stateResp.isOk) {
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
         }
-        return textResult(editorStateToText({state: stateResp.res, onlyRelevantSteps, notes}))
+        const {idx, err} = getInsertIdx({steps: stateResp.res.steps, beforeLabel, afterLabel})
+        if (err !== undefined) {
+            return errorResult(err)
+        }
+        const addResp = await addSteps({
+            editorId,
+            atIdx: idx,
+            vars: variables,
+            steps: steps.map(step => ({
+                label: step.label,
+                type: step.type.toLowerCase(),
+                stmt: step.statement,
+                jstf: step.justification,
+                isBkm: true,
+            })),
+        })
+        if (!addResp.isOk) {
+            return errorResult(`Could not add the steps: ${addResp.err}`)
+        }
+        return editorStateResult({
+            editorId,
+            unifyFirst: true,
+            onlyRelevantSteps: true,
+            notes: [`Added steps: ${addResp.res.join(' ')}`],
+        })
     })
 )
 

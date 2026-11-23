@@ -14,6 +14,10 @@ The MCP server only forwards calls to the tab and formats the results for the ag
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.
+* `add_steps` - adds steps (and optionally new variables) before or after a given step,
+  or before the goal step by default.
+  Added steps are bookmarked.
+  Returns the editor state after "Unify All".
 
 ## Setup
 
