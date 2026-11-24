@@ -25,15 +25,15 @@ let editorHistRegLocStorKey = "hist-reg"
 let editorHistTmpLocStorKey = "hist-tmp"
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
-let getEditorLocStorKey = (editorId:int):string => {
-    editorStateLocStorKey ++ "-" ++ Int.toString(editorId)
+let getEditorLocStorKey = (editorId:string):string => {
+    editorStateLocStorKey ++ "-" ++ editorId
 }
 
-let getEditorHistLocStorKey = (editorId:int):string => {
-    editorHistLocStorKey ++ "-" ++ Int.toString(editorId)
+let getEditorHistLocStorKey = (editorId:string):string => {
+    editorHistLocStorKey ++ "-" ++ editorId
 }
 
-let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
+let editorSaveStateToLocStor = (state:editorState, ~editorId:string):unit => {
     // Console.log("------------- Editor ids info --------------------")
     // Console.log2("nextStmtId", state.nextStmtId)
     // let allIds = state.stmts
@@ -46,7 +46,7 @@ let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
     locStorWriteString(getEditorLocStorKey(editorId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
 }
 
-let histSaveToLocStor = (hist:editorHistory, ~editorId:int):unit => {
+let histSaveToLocStor = (hist:editorHistory, ~editorId:string):unit => {
     let histStr = hist->editorHistToString
     let locStorKey = getEditorHistLocStorKey(editorId)
     let histChanged = switch locStorReadString(locStorKey) {
@@ -59,7 +59,7 @@ let histSaveToLocStor = (hist:editorHistory, ~editorId:int):unit => {
     }
 }
 
-let histReadFromLocStor = (~editorId:int):option<editorHistory> => {
+let histReadFromLocStor = (~editorId:string):option<editorHistory> => {
     switch locStorReadString(getEditorHistLocStorKey(editorId)) {
         | None => None
         | Some(histStr) => {
@@ -115,7 +115,7 @@ let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorSt
 }
 
 let loadEditorInitialStateFromLocStor = (
-    ~editorId:int,
+    ~editorId:string,
     ~preCtxData:preCtxData,
     ~initialStateLocStor:option<editorStateLocStor>,
 ):editorState => {
@@ -155,7 +155,7 @@ let infoAboutInliningTheorems = `In order to inline theorems do the following: `
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~editorId:int,
+    ~editorId:string,
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,

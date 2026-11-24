@@ -13,11 +13,12 @@ let magnifyingGlassSymbol = <img className="magnifying-glass-img"></img>
 let turnstileSymbol = <img className="turnstile-img"></img>
 
 type editorTabDataLocStor = {
-    editorId:int, 
+    editorId:string, 
 }
 
+// editorId is always the same as the id of the tab which contains the editor.
 type editorTabData = {
-    editorId:int, 
+    editorId:string, 
     initialStateLocStor:MM_wrk_editor_json.editorStateLocStor,
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     updateTabTitle: ref<option<string=>unit>>,
@@ -108,7 +109,13 @@ let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
             open Expln_utils_jsonParse
             let parseRes = orderStr->parseJson(asArr(_, asObj(_, o => {
                 {
-                    editorId:o->int("editorId"),
+                    // Editor ids used to be integers. Such ids are read as strings ("0", "1", ...),
+                    // so the keys of editors' data in the local storage don't change.
+                    editorId:switch o->json("editorId") {
+                        | Number(num) => num->Float.toInt->Int.toString
+                        | String(str) => str
+                        | _ => Expln_utils_common.exn("editorId must be a string or a number.")
+                    },
                 }
             })), ~default=()=>[])
             switch parseRes {
@@ -123,13 +130,8 @@ let saveEditorsOrderToLocStor = (editorsOrder: array<editorTabDataLocStor>):unit
     Local_storage_utils.locStorWriteString(editorsOrderLocStorKey, Expln_utils_common.stringify(editorsOrder))
 }
 
-let getNewEditorIdFromEditorsOrder = (~editorsOrder: array<editorTabDataLocStor>):int => {
-    let existingIds = editorsOrder->Array.map(ord => ord.editorId)
-    let newId = ref(0)
-    while (existingIds->Array.includes(newId.contents)) {
-        newId := newId.contents + 1
-    }
-    newId.contents
+let getNewEditorIdFromEditorsOrder = (~editorsOrder: array<editorTabDataLocStor>):string => {
+    Expln_React_UseTabs.makeUniqueTabId(id => editorsOrder->Array.some(ord => ord.editorId == id))
 }
 
 let updateEditorsDataInLocStor = () => {
@@ -202,21 +204,6 @@ let editorInitialStateFromUrl:option<MM_wrk_editor_json.editorStateLocStor> =
         }
         | None => None
     }
-
-let getNewEditorId = (~existingTabs: array<Expln_React_UseTabs.tab<'a>>):int => {
-    let existingIds = []
-    existingTabs->Array.forEach(t => {
-        switch t.data {
-            | Editor({editorId}) => existingIds->Array.push(editorId)
-            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo | Mcp => ()
-        }
-    })
-    let newId = ref(0)
-    while (existingIds->Array.includes(newId.contents)) {
-        newId := newId.contents + 1
-    }
-    newId.contents
-}
 
 let makeNewTabTitle = (
     ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
@@ -579,8 +566,9 @@ let make = () => {
                     MM_wrk_editor_json.makeEmptyEditorStateLocStor(~tabTitle=newTabTitle)
                 }
             }
-            let newEditorId = getNewEditorId(~existingTabs=tabsSt->Expln_React_UseTabs.getTabs)
+            let newEditorId = tabsSt->Expln_React_UseTabs.makeNewTabId
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
+                ~id=newEditorId,
                 ~label=initialStateLocStor.tabTitle,
                 ~icon=pencilSymbol,
                 ~closable=true, 
@@ -617,6 +605,7 @@ let make = () => {
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId},idx) => {
                     switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {
                         | None => st
+                        | Some(_) if st->Expln_React_UseTabs.tabExists(editorId) => st
                         | Some(editorStateJsonStr) => {
                             switch readEditorStateFromJsonStr(editorStateJsonStr) {
                                 | None => st
@@ -626,6 +615,7 @@ let make = () => {
                                         ~existingTabs=st->Expln_React_UseTabs.getTabs,
                                     )
                                     let (st, _) = st->Expln_React_UseTabs.addTab(
+                                        ~id=editorId,
                                         ~label=editorStateLocStor.tabTitle, ~icon=pencilSymbol, ~closable=true, 
                                         ~doOpen= idx==0 && editorInitialStateFromUrl->Option.isNone,
                                         ~data=Editor({

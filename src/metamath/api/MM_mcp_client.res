@@ -38,7 +38,7 @@ type callMsg = {
     @as("type") type_: string,
     id: JSON.t,
     path: string,
-    editorId: Nullable.t<int>,
+    editorId: Nullable.t<string>,
     params: MM_api.apiInput,
 }
 
@@ -89,7 +89,7 @@ let errResp = (msg:string):JSON.t => {
 * Finds an API function by its path, e.g. "editor.getState" -> api.editor(editorId).getState
 * */
 let resolveApiFunc: (
-    {..}, string, Nullable.t<int>
+    {..}, string, Nullable.t<string>
 ) => Nullable.t<MM_api.apiInput => promise<MM_api.apiResp>> = %raw(`
     (api, path, editorId) => {
         const [namespace, ...rest] = path.split('.')

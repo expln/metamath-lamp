@@ -35,7 +35,7 @@ let defaultPageSize = 100
 type backend = {
     preCtxData:preCtxData,
     searchAssertions:(~pattern:string)=>promise<result<array<frame>,string>>,
-    getEditorScope:int=>result<(int,string),string>,
+    getEditorScope:string=>result<(int,string),string>,
 }
 
 type cachedSearchResult = {
@@ -84,13 +84,13 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
     open Expln_utils_jsonParse
     let positive = (name:string, i:int):result<int,string> =>
         if (i < 1) { Error(`'${name}' must be a positive integer.`) } else { Ok(i) }
-    let parseResult:result<{"pattern":string, "pageNum":int, "pageSize":int, "editorId":option<int>},string> =
+    let parseResult:result<{"pattern":string, "pageNum":int, "pageSize":int, "editorId":option<string>},string> =
         fromJson(params->apiInputToJson, asObj(_, d=>{
             {
                 "pattern": d->str("pattern"),
                 "pageNum": d->int("pageNum", ~default=()=>1, ~validator=positive("pageNum", _)),
                 "pageSize": d->int("pageSize", ~default=()=>defaultPageSize, ~validator=positive("pageSize", _)),
-                "editorId": d->intOpt("editorId"),
+                "editorId": d->strOpt("editorId"),
             }
         }))
     switch parseResult {
@@ -141,7 +141,7 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
 let updateExplorerApi = (
     ~preCtxData:preCtxData,
     ~searchAssertions:(~pattern:string)=>promise<result<array<frame>,string>>,
-    ~getEditorScope:int=>result<(int,string),string>,
+    ~getEditorScope:string=>result<(int,string),string>,
 ):unit => {
     let backend = {preCtxData, searchAssertions, getEditorScope}
     setExplorerApi({

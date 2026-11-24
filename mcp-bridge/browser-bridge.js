@@ -6,7 +6,7 @@
 //
 // Protocol (all messages are JSON):
 //   browser -> relay  {type:"hello", client:string, version:number, url:string}
-//   relay   -> browser {type:"call", id:number, path:string, editorId?:number, params?:any}
+//   relay   -> browser {type:"call", id:number, path:string, editorId?:string, params?:any}
 //   browser -> relay  {type:"result", id:number, resp:{isOk:boolean, res?:any, err?:string}}
 
 import { createServer } from 'node:http'
@@ -267,7 +267,8 @@ export class BrowserBridge {
     /*
     * Calls a metamath-lamp API function in the connected browser tab.
     * path - e.g. "editor.getState" or "editor.unifyAll".
-    * editorId - only for "editor.*" paths; undefined means the last opened editor tab.
+    * editorId - only for "editor.*" paths: the id of the editor tab (the same as the tab id).
+*            undefined means the last opened editor tab.
     * Resolves to the API response {isOk, res, err}. Never rejects.
     * */
     call({path, params, editorId, timeoutMs}) {

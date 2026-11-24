@@ -18,14 +18,15 @@ type tab<'a> = {
 }
 
 type state<'a> = {
-    nextId: int,
     tabs: array<tab<'a>>,
     activeTabId: tabId,
     tabHistory:array<tabId>,
 }
 
 type tabMethods<'a> = {
-    addTab: (~label:string, ~closable:bool, ~singleton:bool=?, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
+    addTab: (
+        ~id:tabId=?, ~label:string, ~closable:bool, ~singleton:bool=?, ~color:string=?, ~data:'a, ~doOpen:bool=?
+    ) => promise<tabId>,
     openTab: tabId => unit,
     moveTabLeft: tabId => unit,
     moveTabRight: tabId => unit,
@@ -40,24 +41,56 @@ type tabMethods<'a> = {
 
 let createEmptyState = () => {
     {
-        nextId: 0,
         tabs: [],
         activeTabId: "",
         tabHistory: [],
     }
 }
 
-let getNextId = st => {
-    ({...st, nextId: st.nextId+1}, st.nextId->Belt_Int.toString)
+// Returns a random string of the given length (at least 1) consisting of lowercase latin letters and digits.
+// The first character is always a letter, so the result never looks like a number.
+// crypto.getRandomValues() is used rather than crypto.randomUUID(),
+// because the latter is available only in secure contexts (https or localhost).
+let makeRandomId: int => string = %raw(`(len) => {
+    const letters = 'abcdefghijklmnopqrstuvwxyz'
+    const lettersAndDigits = letters + '0123456789'
+    const bytes = new Uint8Array(len)
+    crypto.getRandomValues(bytes)
+    return Array.from(bytes, (b, i) => i === 0 ? letters[b % letters.length] : lettersAndDigits[b % lettersAndDigits.length])
+        .join('')
+}`)
+
+let tabIdLength = 10
+
+// Returns a new random tab id for which isTaken returns false.
+let makeUniqueTabId = (isTaken:tabId=>bool):tabId => {
+    let newId = ref(makeRandomId(tabIdLength))
+    while (isTaken(newId.contents)) {
+        newId := makeRandomId(tabIdLength)
+    }
+    newId.contents
 }
 
 let getTabs = (st:state<'a>) => st.tabs
 
+let tabExists = (st:state<'a>, tabId:tabId):bool => st.tabs->Array.some(t => t.id == tabId)
+
+// Returns a new random id which is not used by any of the existing tabs.
+let makeNewTabId = (st:state<'a>):tabId => makeUniqueTabId(tabExists(st, _))
+
 let addNewTab = (
-    st, ~icon:option<React.element>, ~label:string, ~closable:bool, ~singleton:bool, ~color:option<string>, ~data:'a, 
-    ~doOpen:bool
+    st, ~id:option<tabId>, ~icon:option<React.element>, ~label:string, ~closable:bool, ~singleton:bool, 
+    ~color:option<string>, ~data:'a, ~doOpen:bool
 ) => {
-    let (st, newId) = st->getNextId
+    let newId = switch id {
+        | None => st->makeNewTabId
+        | Some(id) => {
+            if (st->tabExists(id)) {
+                JsError.throwWithMessage(`Expln_React_UseTabs.addNewTab: a tab with id '${id}' already exists.`)
+            }
+            id
+        }
+    }
     let newTabs = st.tabs->Array.concat([
         {id:newId, icon, label, closable, singleton, color, scrollX:0.0, scrollY:0.0, data}
     ])
@@ -115,8 +148,10 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
     }
 }
 
+// If id is not specified, a new random id is generated.
+// If a tab with the specified id already exists, an exception is thrown.
 let addTab = (
-    st:state<'a>, ~icon:option<React.element>=?, ~label:string, ~closable:bool, ~singleton:bool=false, 
+    st:state<'a>, ~id:option<tabId>=?, ~icon:option<React.element>=?, ~label:string, ~closable:bool, ~singleton:bool=false, 
     ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
 ):(state<'a>, tabId) => {
     let existingSingletonTab = if (singleton) {
@@ -126,7 +161,7 @@ let addTab = (
     }
     switch existingSingletonTab {
         | Some(tab) => (doOpen ? st->openTab(tab.id) : st, tab.id)
-        | None => addNewTab(st, ~icon, ~label, ~closable, ~singleton, ~color, ~data, ~doOpen)
+        | None => addNewTab(st, ~id, ~icon, ~label, ~closable, ~singleton, ~color, ~data, ~doOpen)
     }
 }
 
@@ -197,10 +232,11 @@ let useTabs = (
     }, [state.activeTabId])
 
     let addTab = (
-        ~label:string, ~closable:bool, ~singleton:bool=false, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+        ~id:option<tabId>=?, ~label:string, ~closable:bool, ~singleton:bool=false, ~color:option<string>=?, ~data:'a, 
+        ~doOpen:bool=false
     ):promise<tabId> => Promise.make((rlv,_) => {
         setState(prev => {
-            let (st, tabId) = prev->addTab(~label, ~closable, ~singleton, ~color?, ~data, ~doOpen)
+            let (st, tabId) = prev->addTab(~id?, ~label, ~closable, ~singleton, ~color?, ~data, ~doOpen)
             rlv(tabId)
             st
         })

@@ -94,7 +94,7 @@ type singleEditorApi = {
     "addAsrtByLabel": api,
 }
 
-type editorApi = option<int> => singleEditorApi
+type editorApi = option<string> => singleEditorApi
 
 let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
     {
@@ -236,13 +236,17 @@ let makeContextApi = ():contextApi => {
     }
 }
 
+// Editor ids used to be integers. Editors created before that keep their old ids as strings ("0", "1", ...).
+// This lets macros which pass an old integer id keep working.
+let normalizeEditorId: option<string> => option<string> = %raw(`id => typeof id === 'number' ? String(id) : id`)
+
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
     "ui": makeUiApi(),
-    "editor": (editorId:option<int>) => {
+    "editor": (editorId:option<string>) => {
         switch editorRef.contents {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")
-            | Some(func) => func(editorId)
+            | Some(func) => func(normalizeEditorId(editorId))
         }
     },
     "macro": makeMacroApi(),

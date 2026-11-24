@@ -36,7 +36,7 @@ type singleEditorApi = {
     "addAsrtByLabel": api,
 }
 
-type editorApi = option<int> => singleEditorApi
+type editorApi = option<string> => singleEditorApi
 
 type macroApi = {
     "registerMacroModule": api,

@@ -125,8 +125,8 @@ let getAllSteps = (~state:editorState):JSON.t => {
     state.stmts->Array.map(stmtToJson(_, ctxConstIntToSymExn))->JSON.Encode.array
 }
 
-let stateCached:Belt_HashMapInt.t<editorState> = Belt_HashMapInt.make(~hintSize=4)
-let stateJsonCached:Belt_HashMapInt.t<JSON.t> = Belt_HashMapInt.make(~hintSize=4)
+let stateCached:Belt_HashMapString.t<editorState> = Belt_HashMapString.make(~hintSize=4)
+let stateJsonCached:Belt_HashMapString.t<JSON.t> = Belt_HashMapString.make(~hintSize=4)
 let locationToScopeDescr = (loc:location):string => {
     switch loc {
         | Before(label) => `assertions before '${label}'`
@@ -135,12 +135,12 @@ let locationToScopeDescr = (loc:location):string => {
     }
 }
 
-let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,string>> => {
-    let cachedResult = switch stateCached->Belt_HashMapInt.get(editorId) {
+let getEditorState = (~editorId:string, ~state:editorState):promise<result<JSON.t,string>> => {
+    let cachedResult = switch stateCached->Belt_HashMapString.get(editorId) {
         | None => None
         | Some(stateCached) => {
             if (stateCached === state) {
-                stateJsonCached->Belt_HashMapInt.get(editorId)
+                stateJsonCached->Belt_HashMapString.get(editorId)
             } else {
                 None
             }
@@ -153,7 +153,7 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
                 state.stmts->Array.map(stmt => (stmt.id, stmt.label))
             )
             let stateJson = Dict.fromArray([
-                ("editorId", editorId->JSON.Encode.int),
+                ("editorId", editorId->JSON.Encode.string),
                 ("scope", state.loc->locationToScopeDescr->JSON.Encode.string),
                 ("scopeErr", state.locErr->Option.map(JSON.Encode.string)->Option.getOr(JSON.Encode.null)),
                 ("descr", state.descr->JSON.Encode.string),
@@ -188,8 +188,8 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
                         ->JSON.Encode.array
                 ),
             ])->JSON.Encode.object
-            stateCached->Belt_HashMapInt.set(editorId, state)
-            stateJsonCached->Belt_HashMapInt.set(editorId, stateJson)
+            stateCached->Belt_HashMapString.set(editorId, state)
+            stateJsonCached->Belt_HashMapString.set(editorId, stateJson)
             Promise.resolve(Ok(stateJson))
         }
     }
@@ -1250,7 +1250,7 @@ let apiFindAsrtsByUnif = (
 }
 
 type editorData = {
-    editorId:int,
+    editorId:string,
     preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     state:editorState,
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -1313,20 +1313,20 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     }
 }
 
-let editorsData: Belt_HashMapInt.t<editorData> = Belt_HashMapInt.make(~hintSize=1)
+let editorsData: Belt_HashMapString.t<editorData> = Belt_HashMapString.make(~hintSize=1)
 
-let lastOpenedEditorId:ref<option<int>> = ref(None)
+let lastOpenedEditorId:ref<option<string>> = ref(None)
 
-let setLastOpenedEditorId = (editorId:int):unit => {
+let setLastOpenedEditorId = (editorId:string):unit => {
     lastOpenedEditorId := Some(editorId)
 }
 
-let editorApi = (editorId:option<int>):singleEditorApi => {
+let editorApi = (editorId:option<string>):singleEditorApi => {
     switch editorId->Option.orElse(lastOpenedEditorId.contents) {
         | None => makeEmptySingleEditorApi("Cannot determine what editor tab to use.")
         | Some(editorId) => {
-            switch editorsData->Belt_HashMapInt.get(editorId) {
-                | None => makeEmptySingleEditorApi("Cannot find an editor with id=" ++ editorId->Int.toString)
+            switch editorsData->Belt_HashMapString.get(editorId) {
+                | None => makeEmptySingleEditorApi("Cannot find an editor with id=" ++ editorId)
                 | Some(editorData) => makeSingleEditorApi(editorData)
             }
         }
@@ -1335,29 +1335,29 @@ let editorApi = (editorId:option<int>):singleEditorApi => {
 
 setEditorApi(editorApi)
 
-let getEditorScope = (editorId:int):result<(int,string),string> => {
-    switch editorsData->Belt_HashMapInt.get(editorId) {
-        | None => Error("Cannot find an editor with id=" ++ editorId->Int.toString)
+let getEditorScope = (editorId:string):result<(int,string),string> => {
+    switch editorsData->Belt_HashMapString.get(editorId) {
+        | None => Error("Cannot find an editor with id=" ++ editorId)
         | Some({state}) => {
             switch state.locErr {
-                | Some(msg) => Error(`The scope of the editor with id=${editorId->Int.toString} is invalid: ${msg}`)
+                | Some(msg) => Error(`The scope of the editor with id=${editorId} is invalid: ${msg}`)
                 | None => Ok((state.maxFrmOrd, state.loc->locationToScopeDescr))
             }
         }
     }
 }
 
-let deleteEditor = (editorId:int):unit => {
+let deleteEditor = (editorId:string):unit => {
     if (lastOpenedEditorId.contents == Some(editorId)) {
         lastOpenedEditorId := None
     }
-    editorsData->Belt_HashMapInt.remove(editorId)
-    stateCached->Belt_HashMapInt.remove(editorId)
-    stateJsonCached->Belt_HashMapInt.remove(editorId)
+    editorsData->Belt_HashMapString.remove(editorId)
+    stateCached->Belt_HashMapString.remove(editorId)
+    stateJsonCached->Belt_HashMapString.remove(editorId)
 }
 
 let updateEditorData = (
-    ~editorId:int,
+    ~editorId:string,
     ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -1370,7 +1370,7 @@ let updateEditorData = (
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ):unit => {
-    editorsData->Belt_HashMapInt.set(editorId, {
+    editorsData->Belt_HashMapString.set(editorId, {
         editorId,
         preCtxData,
         state,
