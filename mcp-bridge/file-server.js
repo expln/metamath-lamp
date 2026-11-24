@@ -95,7 +95,7 @@ export class FileServer {
     * Symbolic links are resolved first, so a link cannot point outside the allowed directories.
     * Resolves to {realPath, size} or {err}.
     * */
-    async checkFile(absPath) {
+    async _checkFile(absPath) {
         if (this.allowedDirs.length === 0) {
             return {
                 err: 'Loading local files is disabled, because no allowed directories are configured. '
@@ -160,7 +160,7 @@ export class FileServer {
             }
         }
         absPath = path.resolve(absPath)
-        const {err} = await this.checkFile(absPath)
+        const {err} = await this._checkFile(absPath)
         if (err !== undefined) {
             return {err}
         }
@@ -213,7 +213,7 @@ export class FileServer {
             sendText(400, `Invalid file path in the URL: ${urlPath}`, corsHeaders)
             return true
         }
-        const {realPath, size, err} = await this.checkFile(absPath)
+        const {realPath, size, err} = await this._checkFile(absPath)
         if (err !== undefined) {
             sendText(err.startsWith('File not found') ? 404 : 403, err, corsHeaders)
             return true
