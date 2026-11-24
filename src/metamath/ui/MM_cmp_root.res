@@ -521,6 +521,7 @@ let make = () => {
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label="DB Info",
                 ~closable=true, 
+                ~singleton=true,
                 ~data=DbInfo, 
                 ~doOpen=true
             )
@@ -590,9 +591,11 @@ let make = () => {
         updateTabs(st => {
             let st = if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="", ~closable=false, ~data=Settings, ~icon=settingsSymbol,
+                    ~label="", ~closable=false, ~singleton=true, ~data=Settings, ~icon=settingsSymbol,
                 )
-                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
+                let (st, _) = st->Expln_React_UseTabs.addTab(
+                    ~label="Tabs", ~closable=false, ~singleton=true, ~data=TabsManager
+                )
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId},idx) => {
                     switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {
                         | None => st
@@ -690,6 +693,14 @@ let make = () => {
                             onOpenEditor={()=>actOpenEditor()}
                             onOpenExplorer={()=>actOpenExplorer()}
                             onOpenDbInfo={()=>actOpenDbInfo()}
+                            dbInfoIsOpened={
+                                tabs->Array.some(tab => {
+                                    switch tab.data {
+                                        | DbInfo => true
+                                        | _ => false
+                                    }
+                                })
+                            }
                         />
                     | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle, maxFrmOrd}) => 
                         <MM_cmp_editor

@@ -10,6 +10,7 @@ type tab<'a> = {
     icon: option<React.element>,
     label: string,
     closable: bool,
+    singleton: bool,
     color:option<string>,
     scrollX:float,
     scrollY:float,
@@ -24,7 +25,7 @@ type state<'a> = {
 }
 
 type tabMethods<'a> = {
-    addTab: (~label:string, ~closable:bool, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
+    addTab: (~label:string, ~closable:bool, ~singleton:bool=?, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
     openTab: tabId => unit,
     moveTabLeft: tabId => unit,
     moveTabRight: tabId => unit,
@@ -52,11 +53,14 @@ let getNextId = st => {
 
 let getTabs = (st:state<'a>) => st.tabs
 
-let addTab = (
-    st, ~icon:option<React.element>=?, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+let addNewTab = (
+    st, ~icon:option<React.element>, ~label:string, ~closable:bool, ~singleton:bool, ~color:option<string>, ~data:'a, 
+    ~doOpen:bool
 ) => {
     let (st, newId) = st->getNextId
-    let newTabs = st.tabs->Array.concat([{id:newId, icon, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
+    let newTabs = st.tabs->Array.concat([
+        {id:newId, icon, label, closable, singleton, color, scrollX:0.0, scrollY:0.0, data}
+    ])
     let newActiveTabId = if (newTabs->Array.length == 1) {
         newId
     } else {
@@ -108,6 +112,21 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
         }
     } else {
         st
+    }
+}
+
+let addTab = (
+    st:state<'a>, ~icon:option<React.element>=?, ~label:string, ~closable:bool, ~singleton:bool=false, 
+    ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+):(state<'a>, tabId) => {
+    let existingSingletonTab = if (singleton) {
+        st.tabs->Array.find(tab => tab.singleton && tab.data == data)
+    } else {
+        None
+    }
+    switch existingSingletonTab {
+        | Some(tab) => (doOpen ? st->openTab(tab.id) : st, tab.id)
+        | None => addNewTab(st, ~icon, ~label, ~closable, ~singleton, ~color, ~data, ~doOpen)
     }
 }
 
@@ -177,9 +196,11 @@ let useTabs = (
         None
     }, [state.activeTabId])
 
-    let addTab = (~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false):promise<tabId> => Promise.make((rlv,_) => {
+    let addTab = (
+        ~label:string, ~closable:bool, ~singleton:bool=false, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+    ):promise<tabId> => Promise.make((rlv,_) => {
         setState(prev => {
-            let (st, tabId) = prev->addTab(~label, ~closable, ~color?, ~data, ~doOpen)
+            let (st, tabId) = prev->addTab(~label, ~closable, ~singleton, ~color?, ~data, ~doOpen)
             rlv(tabId)
             st
         })
