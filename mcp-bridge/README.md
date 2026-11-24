@@ -8,7 +8,8 @@ Agent  --MCP over stdio-->  server.js  --WebSocket 127.0.0.1:8765-->  browser ta
 
 The browser tab does all the work.
 The MCP server only forwards calls to the tab and formats the results for the agent.
-The same port also serves local files over HTTP, so the tab can load them as a context (see `load_context`).
+The same port also serves local files over HTTP, so the tab can load them as a context (see `load_context`),
+if allowed directories are configured.
 
 ## Tools
 
@@ -73,7 +74,9 @@ Environment variables of `server.js`:
 * `MM_LAMP_FILES_DIRS` - directories from which `load_context` may load local files,
   separated by `:` (`;` on Windows).
   Subdirectories are allowed too, and a leading `~` means the home directory.
-  If not set, local files cannot be loaded.
+  Entries which are not existing directories are ignored with a warning on stderr.
+  If no valid directories remain, local files cannot be loaded,
+  and the port serves only the WebSocket (no HTTP server is started).
   Symbolic links are resolved before checking, so a link inside an allowed directory
   cannot point to a file outside of them.
   For example:

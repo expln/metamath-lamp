@@ -7,7 +7,9 @@
 //   MM_LAMP_BRIDGE_ORIGINS  - comma separated list of additional allowed page origins.
 //                             http(s)://localhost:* and https://expln.github.io are always allowed.
 //   MM_LAMP_FILES_DIRS      - directories from which local files may be loaded by load_context,
-//                             separated by ':' (';' on Windows). If not set, local files cannot be loaded.
+//                             separated by ':' (';' on Windows). Entries which are not existing directories
+//                             are ignored. If no valid directories remain, local files cannot be loaded,
+//                             and no HTTP server is started (only the WebSocket server).
 
 import { readFileSync } from 'node:fs'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -49,15 +51,17 @@ const allowedOrigins = [
     ...DEFAULT_ALLOWED_ORIGINS,
     ...(process.env.MM_LAMP_BRIDGE_ORIGINS ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0),
 ]
-const fileServer = new FileServer({
-    allowedDirs: parseAllowedDirs(process.env.MM_LAMP_FILES_DIRS),
+const allowedDirs = parseAllowedDirs(process.env.MM_LAMP_FILES_DIRS)
+// undefined if loading local files is disabled.
+const fileServer = allowedDirs.length === 0 ? undefined : new FileServer({
+    allowedDirs,
     isOriginAllowed: origin => isOriginAllowed(origin, allowedOrigins),
 })
 const fileServerBaseUrl = `http://127.0.0.1:${port}`
 const bridge = new BrowserBridge({
     port,
     allowedOrigins,
-    httpHandler: (req, res) => fileServer.handleRequest(req, res),
+    httpHandler: fileServer === undefined ? undefined : (req, res) => fileServer.handleRequest(req, res),
 })
 
 function textResult(text) {
@@ -151,6 +155,27 @@ function findAssertions({pattern, pageNum, pageSize, editorId}) {
 * */
 function loadContext({srcs}) {
     return bridge.call({path: 'context.load', params: {srcs}, timeoutMs: LOAD_CONTEXT_TIMEOUT_MS})
+}
+
+/*
+* Converts a source given to load_context into a URL which the browser can download.
+* src - an http(s) URL (returned as is), a file:// URL, or an absolute local path.
+* Resolves to {url} or {err}.
+* */
+async function srcToUrl(src) {
+    if (/^https?:\/\//i.test(src)) {
+        return {url: src}
+    }
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(src) && !/^file:/i.test(src)) {
+        return {err: `Unsupported URL scheme in '${src}': only http, https and file URLs are supported.`}
+    }
+    if (fileServer === undefined) {
+        return {
+            err: 'Loading local files is disabled, because no allowed directories are configured. '
+                + 'Ask the user to set the MM_LAMP_FILES_DIRS environment variable of the MCP server.'
+        }
+    }
+    return fileServer.localSrcToUrl(src, fileServerBaseUrl)
 }
 
 /*
@@ -542,7 +567,9 @@ This is the same as selecting sources in the context selector of metamath-lamp a
 Each source is a file given as:
 * an http(s) URL, e.g. https://us.metamath.org/metamath/set.mm (downloaded by the browser), or
 * a local file, as an absolute path or a file:// URL, e.g. /home/user/mm/set.mm. \
-Local files can be loaded only from the allowed directories: ${fileServer.describeAllowedDirs()}.
+${fileServer === undefined
+    ? 'Loading local files is currently disabled (no allowed directories are configured).'
+    : `Local files can be loaded only from the allowed directories: ${fileServer.describeAllowedDirs()}.`}
 
 Several sources are loaded one after another into one context, in the given order. \
 Files included via \`$[ ... $]\` are loaded automatically, relative to the including file. \
@@ -578,7 +605,7 @@ to a minute. Open editor tabs are not closed.`,
             if (stopBefore !== undefined && stopAfter !== undefined) {
                 return errorResult(`Only one of stopBefore and stopAfter may be specified for '${url}'.`)
             }
-            const resolved = await fileServer.srcToUrl(url.trim(), fileServerBaseUrl)
+            const resolved = await srcToUrl(url.trim())
             if (resolved.err !== undefined) {
                 return errorResult(resolved.err)
             }

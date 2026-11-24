@@ -7,7 +7,7 @@
 // relative to the including file, and the same file always gets the same URL,
 // which lets the user mark http://127.0.0.1:<port>/files/* as trusted in metamath-lamp once.
 
-import { createReadStream } from 'node:fs'
+import { createReadStream, realpathSync, statSync } from 'node:fs'
 import { realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
@@ -35,12 +35,28 @@ function expandHome(p) {
 /*
 * Parses a list of directories separated by path.delimiter (':' on Linux and macOS, ';' on Windows).
 * Relative directories are resolved against the current directory of the process.
+* Returns the real paths (with symbolic links resolved) of the directories.
+* Entries which are not existing directories are skipped with a warning.
 * */
 export function parseAllowedDirs(str) {
-    return (str ?? '').split(path.delimiter)
-        .map(s => s.trim())
-        .filter(s => s.length > 0)
-        .map(s => path.resolve(expandHome(s)))
+    const dirs = []
+    for (const entry of (str ?? '').split(path.delimiter).map(s => s.trim()).filter(s => s.length > 0)) {
+        let realDir
+        try {
+            realDir = realpathSync(path.resolve(expandHome(entry)))
+        } catch {
+            log(`Ignoring the allowed directory '${entry}': it doesn't exist.`)
+            continue
+        }
+        if (!statSync(realDir).isDirectory()) {
+            log(`Ignoring the allowed directory '${entry}': it is not a directory.`)
+            continue
+        }
+        if (!dirs.includes(realDir)) {
+            dirs.push(realDir)
+        }
+    }
+    return dirs
 }
 
 /*
@@ -78,16 +94,20 @@ function urlPathToAbsPath(urlPath) {
 
 export class FileServer {
     /*
-    * allowedDirs - absolute paths of directories which may be served (with all their subdirectories).
+    * allowedDirs - real paths of directories which may be served (with all their subdirectories),
+    * as returned by parseAllowedDirs(). Must not be empty.
     * isOriginAllowed - origin => boolean, decides which browser pages may download the files.
     * */
     constructor({allowedDirs, isOriginAllowed}) {
+        if (allowedDirs.length === 0) {
+            throw new Error('FileServer requires at least one allowed directory.')
+        }
         this.allowedDirs = allowedDirs
         this.isOriginAllowed = isOriginAllowed
     }
 
     describeAllowedDirs() {
-        return this.allowedDirs.length === 0 ? '(none)' : this.allowedDirs.join(', ')
+        return this.allowedDirs.join(', ')
     }
 
     /*
@@ -96,32 +116,13 @@ export class FileServer {
     * Resolves to {realPath, size} or {err}.
     * */
     async _checkFile(absPath) {
-        if (this.allowedDirs.length === 0) {
-            return {
-                err: 'Loading local files is disabled, because no allowed directories are configured. '
-                    + 'Ask the user to set the MM_LAMP_FILES_DIRS environment variable of the MCP server.'
-            }
-        }
         let realPath
         try {
             realPath = await realpath(absPath)
         } catch {
             return {err: `File not found: ${absPath}`}
         }
-        let isAllowed = false
-        for (const dir of this.allowedDirs) {
-            let realDir
-            try {
-                realDir = await realpath(dir)
-            } catch {
-                continue
-            }
-            if (isInsideDir(realDir, realPath)) {
-                isAllowed = true
-                break
-            }
-        }
-        if (!isAllowed) {
+        if (!this.allowedDirs.some(dir => isInsideDir(dir, realPath))) {
             return {
                 err: `Access denied: ${absPath} is outside the allowed directories `
                     + `(${this.describeAllowedDirs()}).`
@@ -135,15 +136,12 @@ export class FileServer {
     }
 
     /*
-    * Converts a source given to load_context into a URL which the browser can download.
-    * src - an http(s) URL (returned as is), a file:// URL, or an absolute local path (~ is expanded).
+    * Converts a local file given to load_context into a URL which the browser can download.
+    * src - a file:// URL, or an absolute local path (~ is expanded).
     * baseUrl - the base URL of this server, e.g. http://127.0.0.1:8765.
     * Resolves to {url} or {err}.
     * */
-    async srcToUrl(src, baseUrl) {
-        if (/^https?:\/\//i.test(src)) {
-            return {url: src}
-        }
+    async localSrcToUrl(src, baseUrl) {
         let absPath
         if (/^file:/i.test(src)) {
             try {
@@ -151,8 +149,6 @@ export class FileServer {
             } catch (e) {
                 return {err: `Invalid file URL '${src}': ${e.message}`}
             }
-        } else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(src)) {
-            return {err: `Unsupported URL scheme in '${src}': only http, https and file URLs are supported.`}
         } else {
             absPath = expandHome(src)
             if (!path.isAbsolute(absPath)) {

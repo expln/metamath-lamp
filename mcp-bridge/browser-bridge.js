@@ -1,7 +1,8 @@
 // WebSocket server which a metamath-lamp browser tab connects to.
 // The browser side is the macro in mm-lamp-macro.js.
-// The WebSocket server runs on top of an HTTP server, which also serves other HTTP requests
-// (e.g. local files, see file-server.js) on the same port.
+// If an HTTP handler is given, the WebSocket server runs on top of an HTTP server,
+// which also serves other HTTP requests (e.g. local files, see file-server.js) on the same port.
+// Otherwise a standalone WebSocket server is started.
 //
 // Protocol (all messages are JSON):
 //   browser -> relay  {type:"hello", client:string, version:number, url:string}
@@ -45,8 +46,9 @@ export function isOriginAllowed(origin, allowedOrigins) {
 
 export class BrowserBridge {
     /*
-    * httpHandler - async (req, res) => boolean, handles plain HTTP requests (not WebSocket upgrades).
+    * httpHandler - optional async (req, res) => boolean, handles plain HTTP requests (not WebSocket upgrades).
     * It returns false if it didn't handle the request; then 404 is returned.
+    * If undefined, no HTTP server is started, only a standalone WebSocket server.
     * */
     constructor({port, allowedOrigins, httpHandler}) {
         this.port = port
@@ -73,10 +75,14 @@ export class BrowserBridge {
         }
         if (this.listeningPromise === null) {
             this.listeningPromise = new Promise(resolve => {
-                const httpServer = createServer((req, res) => this._onHttpRequest(req, res))
-                // The WebSocket server re-emits 'listening' and 'error' events of the HTTP server,
+                // With an HTTP server, the WebSocket server re-emits its 'listening' and 'error' events,
                 // so the handlers below work the same as for a standalone WebSocket server.
-                const wss = new WebSocketServer({server: httpServer})
+                const httpServer = this.httpHandler === undefined
+                    ? undefined
+                    : createServer((req, res) => this._onHttpRequest(req, res))
+                const wss = httpServer === undefined
+                    ? new WebSocketServer({host: '127.0.0.1', port: this.port})
+                    : new WebSocketServer({server: httpServer})
                 wss.once('listening', () => {
                     // A bound server is never closed: it is supposed to work until the process exits.
                     // The process exits only when the MCP client closes stdin, i.e. when the agent session ends
@@ -114,7 +120,7 @@ export class BrowserBridge {
                     resolve(errMsg)
                 })
                 wss.on('connection', (ws, req) => this._onConnection(ws, req))
-                httpServer.listen(this.port, '127.0.0.1')
+                httpServer?.listen(this.port, '127.0.0.1')
             })
         }
         return this.listeningPromise
@@ -155,7 +161,7 @@ export class BrowserBridge {
 
     async _onHttpRequest(req, res) {
         try {
-            const handled = this.httpHandler !== undefined && await this.httpHandler(req, res)
+            const handled = await this.httpHandler(req, res)
             if (!handled) {
                 res.writeHead(404, {'Content-Type': 'text/plain; charset=utf-8'})
                 res.end('Not found')
