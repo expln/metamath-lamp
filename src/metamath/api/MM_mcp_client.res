@@ -108,15 +108,31 @@ let exnToMsg = (exn:exn):string => {
     }
 }
 
+let isEditorPath = (path:string):bool => path->String.startsWith("editor.")
+
+let tabIdIsBlank = (tabId:Nullable.t<string>):bool => {
+    switch tabId->Nullable.toOption {
+        | None => true
+        | Some(tabId) => tabId->String.trim == ""
+    }
+}
+
 let handleCall = async (msg:callMsg):JSON.t => {
-    switch resolveApiFunc(MM_api.api, msg.path, msg.tabId)->Nullable.toOption {
-        | None => errResp(`Unknown API function '${msg.path}'.`)
-        | Some(func) => {
-            try {
-                let resp = await func(msg.params)
-                resp->Obj.magic
-            } catch {
-                | exn => errResp(exnToMsg(exn))
+    // The MCP server always knows which editor a call is for.
+    // Without this check, a missing tabId would silently fall back to the last opened editor
+    // (that fallback is meant only for macros calling window.api directly).
+    if (isEditorPath(msg.path) && tabIdIsBlank(msg.tabId)) {
+        errResp(`tabId is required for '${msg.path}'.`)
+    } else {
+        switch resolveApiFunc(MM_api.api, msg.path, msg.tabId)->Nullable.toOption {
+            | None => errResp(`Unknown API function '${msg.path}'.`)
+            | Some(func) => {
+                try {
+                    let resp = await func(msg.params)
+                    resp->Obj.magic
+                } catch {
+                    | exn => errResp(exnToMsg(exn))
+                }
             }
         }
     }

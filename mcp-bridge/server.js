@@ -295,7 +295,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
                 'Show only bookmarked steps, hypotheses, the goal, unproved steps, and steps with errors. '
                 + 'Use it to save context on large proofs when only the unfinished part matters.'
             ),
-            editorId: z.string().min(1).describe('Id of the editor tab.'),
+            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -345,7 +345,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
                     + 'Omit to leave the step without a justification. Ignored for hypotheses.'
                 ),
             })).min(1).describe('Steps to add, in order.'),
-            editorId: z.string().min(1).describe('Id of the editor tab.'),
+            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -418,7 +418,7 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
                     + 'Proved steps which are not bookmarked are hidden in the returned editor state.'
                 ),
             })).min(1).describe('Steps to update.'),
-            editorId: z.string().min(1).describe('Id of the editor tab.'),
+            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -465,7 +465,7 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
 (only relevant steps).`,
         inputSchema: {
             labels: z.array(z.string()).min(1).describe('Labels of the steps to delete.'),
-            editorId: z.string().min(1).describe('Id of the editor tab.'),
+            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -523,7 +523,7 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
         inputSchema: {
             pattern: z.string().min(1).describe('The search pattern, e.g. "|- $+a A + B = B + A".'),
             page: z.number().int().min(1).default(1).describe('Number of the page to return, starting from 1.'),
-            editorId: z.string().min(1).optional().describe(
+            editorId: z.string().trim().min(1).optional().describe(
                 'Id of an editor tab to return only assertions available in it. Omit to search the whole database.'
             ),
         },
