@@ -319,25 +319,21 @@ function makeFrameForLlm({disj, hyps, asrt}) {
 }
 
 const FIND_ASSERTIONS_PAGE_SIZE = 100
-let lastPattern = undefined
-let lastFoundAssertions = undefined
+/*
+* Finds assertions which can be used in the current editor.
+* The search result is cached by metamath-lamp, so requesting other pages of the same pattern doesn't repeat the search.
+* */
 async function findAssertions({pattern, pageNum}) {
-    if (lastPattern !== pattern) {
-        lastFoundAssertions = getResponse(await api.editor().findAssertions({pattern}))
-        lastPattern = pattern
-    }
-    const pageIdx = (pageNum??1) - 1
-    const minIdx = pageIdx*FIND_ASSERTIONS_PAGE_SIZE
-    const maxIdx = minIdx + FIND_ASSERTIONS_PAGE_SIZE - 1
-    const res = []
-    let i = minIdx
-    while (i < lastFoundAssertions.length && i <= maxIdx) {
-        res.push(makeFrameForLlm(lastFoundAssertions[i]))
-        i++
-    }
-    const numOfPages = Math.ceil(lastFoundAssertions.length / FIND_ASSERTIONS_PAGE_SIZE)
-    const header = `Results for pattern '${pattern}', page ${pageIdx + 1} of ${numOfPages}`
-    const pageContent = res.join('\n\n')
+    const {editorId} = await getEditorState()
+    pageNum = pageNum??1
+    const {numOfPages, asrts} = getResponse(await api.explorer.findAssertions({
+        pattern,
+        pageNum,
+        pageSize: FIND_ASSERTIONS_PAGE_SIZE,
+        editorId,
+    }))
+    const header = `Results for pattern '${pattern}', page ${pageNum} of ${numOfPages}`
+    const pageContent = asrts.map(makeFrameForLlm).join('\n\n')
     await putTextToClipboard(`${header}\n\n${pageContent}`);
     console.log('Found assertions have been copied to the clipboard.')
 }
