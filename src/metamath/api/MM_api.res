@@ -238,7 +238,11 @@ let makeContextApi = ():contextApi => {
 
 // Editor ids used to be integers. Editors created before that keep their old ids as strings ("0", "1", ...).
 // This lets macros which pass an old integer id keep working.
-let normalizeEditorId: option<string> => option<string> = %raw(`id => typeof id === 'number' ? String(id) : id`)
+// The id comes from JS code, so it may be of any type: anything other than undefined or null is converted to a string,
+// so the result is always either None or Some(string).
+let normalizeEditorId: option<string> => option<string> = %raw(`
+    id => id === undefined || id === null ? undefined : String(id)
+`)
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
