@@ -479,7 +479,7 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             return errorResult(`Could not find assertions: ${resp.err}`)
         }
         const {totalCount, numOfPages, editorScope, asrts} = resp.res
-        const scope = editorScope === undefined ? '' : ` (searched in editor ${editorId}: ${editorScope})`
+        const scope = editorScope === undefined ? '' : ` (scope of editor ${editorId}: ${editorScope})`
         if (totalCount === 0) {
             return textResult(`No assertions match the pattern '${pattern}'${scope}.`)
         }
