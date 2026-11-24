@@ -6,13 +6,16 @@
 //   MM_LAMP_BRIDGE_PORT     - WebSocket port to listen on (127.0.0.1 only). Default: 8765.
 //   MM_LAMP_BRIDGE_ORIGINS  - comma separated list of additional allowed page origins.
 //                             http(s)://localhost:* and https://expln.github.io are always allowed.
+//   MM_LAMP_FILES_DIRS      - directories from which local files may be loaded by load_context,
+//                             separated by ':' (';' on Windows). If not set, local files cannot be loaded.
 
 import { readFileSync } from 'node:fs'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { BrowserBridge, log } from './browser-bridge.js'
+import { BrowserBridge, isOriginAllowed, log } from './browser-bridge.js'
 import { editorStateToText } from './editor-state-format.js'
+import { FileServer, parseAllowedDirs } from './file-server.js'
 
 const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
@@ -23,6 +26,9 @@ const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
 const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
 const FIND_ASSERTIONS_PAGE_SIZE = 100
+// Includes downloading and parsing the files, loading the context,
+// and waiting for the user to confirm downloading from untrusted URLs.
+const LOAD_CONTEXT_TIMEOUT_MS = 15 * 60_000
 
 const PATTERN_SYNTAX = readFileSync(new URL('./pattern-syntax.md', import.meta.url), 'utf8')
 
@@ -38,12 +44,20 @@ function parsePort(str) {
     return port
 }
 
+const port = parsePort(process.env.MM_LAMP_BRIDGE_PORT)
+const allowedOrigins = [
+    ...DEFAULT_ALLOWED_ORIGINS,
+    ...(process.env.MM_LAMP_BRIDGE_ORIGINS ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0),
+]
+const fileServer = new FileServer({
+    allowedDirs: parseAllowedDirs(process.env.MM_LAMP_FILES_DIRS),
+    isOriginAllowed: origin => isOriginAllowed(origin, allowedOrigins),
+})
+const fileServerBaseUrl = `http://127.0.0.1:${port}`
 const bridge = new BrowserBridge({
-    port: parsePort(process.env.MM_LAMP_BRIDGE_PORT),
-    allowedOrigins: [
-        ...DEFAULT_ALLOWED_ORIGINS,
-        ...(process.env.MM_LAMP_BRIDGE_ORIGINS ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0),
-    ],
+    port,
+    allowedOrigins,
+    httpHandler: (req, res) => fileServer.handleRequest(req, res),
 })
 
 function textResult(text) {
@@ -128,6 +142,15 @@ function findAssertions({pattern, pageNum, pageSize, editorId}) {
         params: {pattern, pageNum, pageSize, editorId},
         timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS,
     })
+}
+
+/*
+* Replaces the loaded context with files downloaded from the given URLs.
+* srcs - [{url, stopBefore?, stopAfter?}], in the order of loading.
+* Resolves to the API response: res is {summary, numOfAsrts}.
+* */
+function loadContext({srcs}) {
+    return bridge.call({path: 'context.load', params: {srcs}, timeoutMs: LOAD_CONTEXT_TIMEOUT_MS})
 }
 
 /*
@@ -507,6 +530,67 @@ server.registerTool(
         },
     },
     async () => textResult(PATTERN_SYNTAX)
+)
+
+server.registerTool(
+    'load_context',
+    {
+        title: 'Load context',
+        description: `Loads a Metamath database (the context) into metamath-lamp, replacing the loaded one. \
+This is the same as selecting sources in the context selector of metamath-lamp and clicking "Apply changes".
+
+Each source is a file given as:
+* an http(s) URL, e.g. https://us.metamath.org/metamath/set.mm (downloaded by the browser), or
+* a local file, as an absolute path or a file:// URL, e.g. /home/user/mm/set.mm. \
+Local files can be loaded only from the allowed directories: ${fileServer.describeAllowedDirs()}.
+
+Several sources are loaded one after another into one context, in the given order. \
+Files included via \`$[ ... $]\` are loaded automatically, relative to the including file. \
+For each source, reading may be limited to the assertions before \`stopBefore\` or up to \`stopAfter\` \
+(assertion labels), e.g. to prove a theorem without using itself and the theorems after it.
+
+If a URL is not marked as trusted in metamath-lamp, the user is asked to confirm downloading from it, \
+so this call may take a while. Loading a big database such as set.mm takes from several seconds \
+to a minute. Open editor tabs are not closed.`,
+        inputSchema: {
+            sources: z.array(z.object({
+                url: z.string().min(1).describe(
+                    'An http(s) URL, a file:// URL, or an absolute local path of a Metamath (.mm) file.'
+                ),
+                stopBefore: z.string().min(1).optional().describe(
+                    'Read the file only up to this assertion label, excluding it. Cannot be used with stopAfter.'
+                ),
+                stopAfter: z.string().min(1).optional().describe(
+                    'Read the file only up to this assertion label, including it. Cannot be used with stopBefore.'
+                ),
+            })).min(1).describe('Files to load, in order.'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
+        },
+    },
+    withConnectedTab(async ({sources}) => {
+        const srcs = []
+        for (const {url, stopBefore, stopAfter} of sources) {
+            if (stopBefore !== undefined && stopAfter !== undefined) {
+                return errorResult(`Only one of stopBefore and stopAfter may be specified for '${url}'.`)
+            }
+            const resolved = await fileServer.srcToUrl(url.trim(), fileServerBaseUrl)
+            if (resolved.err !== undefined) {
+                return errorResult(resolved.err)
+            }
+            srcs.push({url: resolved.url, stopBefore, stopAfter})
+        }
+        const resp = await loadContext({srcs})
+        if (!resp.isOk) {
+            return errorResult(`Could not load the context: ${resp.err}`)
+        }
+        const {summary, numOfAsrts} = resp.res
+        return textResult(`${summary}\nNumber of assertions: ${numOfAsrts}`)
+    })
 )
 
 await server.connect(new StdioServerTransport())

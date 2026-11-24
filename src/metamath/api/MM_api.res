@@ -142,6 +142,10 @@ type explorerApi = {
     "findAssertions": api,
 }
 
+type contextApi = {
+    "load": api,
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
@@ -150,6 +154,7 @@ let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
 let settingsRef:ref<option<settingsApi>> = ref(None)
 let findAssertionsRef:ref<option<api>> = ref(None)
+let loadContextRef:ref<option<api>> = ref(None)
 
 let makeSingleMacroApi = (methodGetter:macroApi=>api):api => {
     apiInput => {
@@ -204,6 +209,9 @@ let api = {
     "explorer": {
         "findAssertions": makeApiFuncFromRef(findAssertionsRef),
     },
+    "context": {
+        "load": makeApiFuncFromRef(loadContextRef),
+    },
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
@@ -242,4 +250,8 @@ let setSettingsApi = ( settingsApi:settingsApi ):unit => {
 
 let setExplorerApi = ( explorerApi:explorerApi ):unit => {
     findAssertionsRef := Some(explorerApi["findAssertions"])
+}
+
+let setContextApi = ( contextApi:contextApi ):unit => {
+    loadContextRef := Some(contextApi["load"])
 }

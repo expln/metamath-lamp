@@ -1103,6 +1103,73 @@ let make = (
         }
     )
 
+    /*
+    * Downloads and parses the files from the given URLs (including the files they include via $[ ... $]),
+    * then replaces the loaded context with them. This is the same as selecting Web sources in the UI
+    * and clicking "Apply changes". Untrusted URLs are confirmed by the user, as in the UI.
+    * Errors are returned rather than shown, so that the caller (an API client) can handle them.
+    * */
+    let actLoadCtxFromUrls = async (
+        srcs:array<MM_api_context.ctxSrcToLoad>
+    ):result<MM_api_context.loadedCtxInfo,string> => {
+        try {
+            let localFiles = Belt_HashMapString.make(~hintSize=0)
+            let loadedScopes: array<mmSingleScope> = await loadAndParseFiles(srcs->Array.map(src => src.url), localFiles)
+            let singleScopes = []
+            let i = ref(0)
+            while (i.contents < srcs->Array.length) {
+                let src = srcs->Array.getUnsafe(i.contents)
+                let alias = settings.webSrcSettings
+                    ->Array.find(ws => ws.url == src.url && ws.alias->String.trim != "")
+                    ->Option.map(ws => ws.alias)
+                    ->Option.getOr(src.url)
+                let ss = {
+                    ...loadedScopes->Array.getUnsafe(i.contents),
+                    id: i.contents->Int.toString,
+                    fileSrc: Some(Web({alias, url:src.url})),
+                    readInstr: src.readInstr,
+                    label: src.label,
+                }
+                let ss = switch await replaceIncludes(ss, localFiles) {
+                    | Error(msg) => Common.panic(msg)
+                    | Ok(ss) => ss
+                }
+                switch ss.label {
+                    | Some(label) if !(ss.allLabels->Array.includes(label)) => {
+                        Common.panic(`The assertion '${label}' is not found in '${src.url}'.`)
+                    }
+                    | _ => ()
+                }
+                singleScopes->Array.push(ss)
+                i := i.contents + 1
+            }
+            let mmScope = {
+                nextId: singleScopes->Array.length,
+                expanded: false,
+                singleScopes,
+                loadedContextSummary: "",
+            }
+            switch await applyChanges(~mmScope, ~settings) {
+                | Error(msg) => Error(msg)
+                | Ok(_) => {
+                    let numOfAsrts = singleScopes->Array.reduce(0, (cnt, ss) => {
+                        cnt + switch (ss.readInstr, ss.label) {
+                            | (StopBefore, Some(label)) => ss.allLabels->Array.indexOf(label)
+                            | (StopAfter, Some(label)) => ss.allLabels->Array.indexOf(label) + 1
+                            | _ => ss.allLabels->Array.length
+                        }
+                    })
+                    Ok({MM_api_context.summary: getSummary(mmScope), numOfAsrts})
+                }
+            }
+        } catch {
+            | Common.MmException({msg}) => Error(msg)
+            | exn => Error(Common.jsErrorToExnData(exn).msg)
+        }
+    }
+
+    MM_api_context.updateContextApi(~loadContext=actLoadCtxFromUrls)
+
     doToggle.current = Nullable.make(actToggleAccordion)
 
     let rndSaveButtons = () => {

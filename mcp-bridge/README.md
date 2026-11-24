@@ -8,6 +8,7 @@ Agent  --MCP over stdio-->  server.js  --WebSocket 127.0.0.1:8765-->  browser ta
 
 The browser tab does all the work.
 The MCP server only forwards calls to the tab and formats the results for the agent.
+The same port also serves local files over HTTP, so the tab can load them as a context (see `load_context`).
 
 ## Tools
 
@@ -31,6 +32,12 @@ The MCP server only forwards calls to the tab and formats the results for the ag
   The full result of the last search is cached in the browser tab,
   so requesting other pages of the same pattern (in any editor scope) doesn't repeat the search.
 * `get_pattern_syntax` - returns the full description of the pattern syntax (from `pattern-syntax.md`).
+* `load_context` - replaces the loaded context with files given as http(s) URLs or local paths,
+  optionally reading each file only up to `stopBefore` or `stopAfter` labels.
+  Files included via `$[ ... $]` are loaded too.
+  The browser downloads URLs directly.
+  Local files are served by the MCP server at `http://127.0.0.1:8765/files/<absolute path>`,
+  and only from directories listed in `MM_LAMP_FILES_DIRS`.
 
 ## Setup
 
@@ -46,7 +53,8 @@ The MCP server only forwards calls to the tab and formats the results for the ag
    ```
 3. In metamath-lamp, open the macros dialog, create a new macro module,
    paste the content of `mm-lamp-macro.js` into it and make the module active.
-4. Load a context, open an editor tab, and run the "Connect to MCP server" macro.
+4. Open an editor tab and run the "Connect to MCP server" macro.
+   Load a context manually, or let the agent load it with `load_context`.
    The tab keeps reconnecting until "Disconnect from MCP server" is run,
    so it doesn't matter whether the agent session starts before or after this step.
 
@@ -61,8 +69,33 @@ Environment variables of `server.js`:
   If you change it, change `PORT` in the macro too.
 * `MM_LAMP_BRIDGE_ORIGINS` - comma separated list of additional page origins allowed to connect.
   `http(s)://localhost:*`, `http(s)://127.0.0.1:*` and `https://expln.github.io` are always allowed.
+  The same origins are allowed to download local files.
+* `MM_LAMP_FILES_DIRS` - directories from which `load_context` may load local files,
+  separated by `:` (`;` on Windows).
+  Subdirectories are allowed too, and a leading `~` means the home directory.
+  If not set, local files cannot be loaded.
+  Symbolic links are resolved before checking, so a link inside an allowed directory
+  cannot point to a file outside of them.
+  For example:
+  ```
+  claude mcp add mm-lamp -e MM_LAMP_FILES_DIRS=~/metamath -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js
+  ```
 
 Set `AUTO_CONNECT = true` in the macro to connect automatically when the page loads.
+
+## Trusted URLs
+
+metamath-lamp asks the user to confirm downloading from URLs which are not marked as trusted,
+and `load_context` waits for that confirmation.
+To avoid the confirmation, choose "Don't ask for all URLs starting with ..." in the confirmation dialog,
+or add trusted web sources in the metamath-lamp settings, for example:
+
+* `http://127.0.0.1:8765/files/*` - all local files served by the MCP server.
+* `https://us.metamath.org/metamath/*` - databases from the Metamath site.
+
+A context loaded from local files keeps their `http://127.0.0.1:8765/files/...` URLs.
+If metamath-lamp reloads such a context (e.g. when an editor state is restored),
+the MCP server must be running at that moment.
 
 ## Limitations
 
@@ -70,4 +103,4 @@ Set `AUTO_CONNECT = true` in the macro to connect automatically when the page lo
   Other tabs keep retrying and take over when the connected tab disconnects.
 * Only one agent session can use the default port at a time.
   A second session reports that the port is in use.
-* Loading a context and opening an editor tab must be done manually.
+* Opening an editor tab must be done manually.

@@ -61,6 +61,10 @@ type explorerApi = {
     "findAssertions": api,
 }
 
+type contextApi = {
+    "load": api,
+}
+
 let api: {
     "setLogApiCallsToConsole": api,
     "ui" : uiApi,
@@ -68,6 +72,7 @@ let api: {
     "macro" : macroApi,
     "settings" : settingsApi,
     "explorer" : explorerApi,
+    "context" : contextApi,
 }
 
 let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ~multilineTextInput:api, ) => unit
@@ -75,5 +80,6 @@ let setEditorApi: editorApi => unit
 let setMacroApi: macroApi => unit
 let setSettingsApi: settingsApi => unit
 let setExplorerApi: explorerApi => unit
+let setContextApi: contextApi => unit
 
 let makeEmptySingleEditorApi: string => singleEditorApi
