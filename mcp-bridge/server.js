@@ -2,16 +2,17 @@
 // MCP server (stdio) which lets AI agents work with metamath-lamp opened in a browser tab.
 // The browser tab connects to this process over a WebSocket by running the macro from mm-lamp-macro.js.
 //
-// Environment variables:
-//   MM_LAMP_BRIDGE_PORT     - WebSocket port to listen on (127.0.0.1 only). Default: 8765.
-//   MM_LAMP_BRIDGE_ORIGINS  - comma separated list of additional allowed page origins.
-//                             http(s)://localhost:* and https://expln.github.io are always allowed.
-//   MM_LAMP_FILES_DIRS      - directories from which local files may be loaded by load_context,
-//                             separated by ':' (';' on Windows). Entries which are not existing directories
-//                             are ignored. If no valid directories remain, local files cannot be loaded,
-//                             and no HTTP server is started (only the WebSocket server).
+// Command-line arguments (if an option is repeated, the last occurrence overrides the previous ones):
+//   --port <port>         - WebSocket port to listen on (127.0.0.1 only). Default: 8765.
+//   --origins <origins>   - comma separated list of additional allowed page origins.
+//                           http(s)://localhost:* and https://expln.github.io are always allowed.
+//   --files-dirs <dirs>   - directories from which local files may be loaded by load_context,
+//                           separated by ':' (';' on Windows). Entries which are not existing directories
+//                           are ignored. If no valid directories remain, local files cannot be loaded,
+//                           and no HTTP server is started (only the WebSocket server).
 
 import { readFileSync } from 'node:fs'
+import { parseArgs } from 'node:util'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
@@ -40,18 +41,38 @@ function parsePort(str) {
     }
     const port = Number(str)
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        log(`Invalid MM_LAMP_BRIDGE_PORT: '${str}'`)
+        log(`Invalid --port: '${str}'`)
         process.exit(1)
     }
     return port
 }
 
-const port = parsePort(process.env.MM_LAMP_BRIDGE_PORT)
+const CLI_OPTIONS = {
+    port: {type: 'string'},
+    origins: {type: 'string'},
+    'files-dirs': {type: 'string'},
+}
+
+/*
+* Parses the command-line arguments. Exits the process if they are invalid.
+* If an option is given more than once, the last occurrence wins.
+* */
+function parseCliArgs(args) {
+    try {
+        return parseArgs({args, options: CLI_OPTIONS, strict: true, allowPositionals: false}).values
+    } catch (e) {
+        log(`Invalid command-line arguments: ${e.message}`)
+        process.exit(1)
+    }
+}
+
+const cliArgs = parseCliArgs(process.argv.slice(2))
+const port = parsePort(cliArgs.port)
 const allowedOrigins = [
     ...DEFAULT_ALLOWED_ORIGINS,
-    ...(process.env.MM_LAMP_BRIDGE_ORIGINS ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0),
+    ...(cliArgs.origins ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0),
 ]
-const allowedDirs = parseAllowedDirs(process.env.MM_LAMP_FILES_DIRS)
+const allowedDirs = parseAllowedDirs(cliArgs['files-dirs'])
 // undefined if loading local files is disabled.
 const fileServer = allowedDirs.length === 0 ? undefined : new FileServer({
     allowedDirs,
@@ -172,7 +193,7 @@ async function srcToUrl(src) {
     if (fileServer === undefined) {
         return {
             err: 'Loading local files is disabled, because no allowed directories are configured. '
-                + 'Ask the user to set the MM_LAMP_FILES_DIRS environment variable of the MCP server.'
+                + 'Ask the user to pass the --files-dirs argument to the MCP server.'
         }
     }
     return fileServer.localSrcToUrl(src, fileServerBaseUrl)

@@ -38,7 +38,7 @@ if allowed directories are configured.
   Files included via `$[ ... $]` are loaded too.
   The browser downloads URLs directly.
   Local files are served by the MCP server at `http://127.0.0.1:8765/files/<absolute path>`,
-  and only from directories listed in `MM_LAMP_FILES_DIRS`.
+  and only from directories listed in the `--files-dirs` argument.
 
 ## Setup
 
@@ -64,14 +64,16 @@ because browsers slow down background tabs.
 
 ## Configuration
 
-Environment variables of `server.js`:
+Command-line arguments of `server.js`.
+If an option is given more than once, the last occurrence overrides the previous ones.
+For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists are not merged).
 
-* `MM_LAMP_BRIDGE_PORT` - the WebSocket port, `8765` by default.
+* `--port <port>` - the WebSocket port, `8765` by default.
   If you change it, change `PORT` in the macro too.
-* `MM_LAMP_BRIDGE_ORIGINS` - comma separated list of additional page origins allowed to connect.
+* `--origins <origins>` - comma separated list of additional page origins allowed to connect.
   `http(s)://localhost:*`, `http(s)://127.0.0.1:*` and `https://expln.github.io` are always allowed.
   The same origins are allowed to download local files.
-* `MM_LAMP_FILES_DIRS` - directories from which `load_context` may load local files,
+* `--files-dirs <dirs>` - directories from which `load_context` may load local files,
   separated by `:` (`;` on Windows).
   Subdirectories are allowed too, and a leading `~` means the home directory.
   Entries which are not existing directories are ignored with a warning on stderr.
@@ -81,7 +83,7 @@ Environment variables of `server.js`:
   cannot point to a file outside of them.
   For example:
   ```
-  claude mcp add mm-lamp -e MM_LAMP_FILES_DIRS=~/metamath -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js
+  claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js --files-dirs ~/metamath
   ```
 
 Set `AUTO_CONNECT = true` in the macro to connect automatically when the page loads.

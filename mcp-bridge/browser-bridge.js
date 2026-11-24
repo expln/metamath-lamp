@@ -114,7 +114,7 @@ export class BrowserBridge {
                     const errMsg = err.code === 'EADDRINUSE'
                         ? `Port ${this.port} is already in use by another program `
                             + `(probably the mm-lamp MCP server of another agent session). `
-                            + `Close that session, or set MM_LAMP_BRIDGE_PORT to use a different port.`
+                            + `Close that session, or use the --port argument to choose a different port.`
                         : `Could not start the WebSocket server: ${err.message}`
                     log(errMsg)
                     resolve(errMsg)

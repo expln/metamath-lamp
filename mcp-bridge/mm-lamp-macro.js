@@ -8,7 +8,7 @@
 
 const moduleName = 'MCP server'
 
-// Must match MM_LAMP_BRIDGE_PORT of the MCP server.
+// Must match the --port argument of the MCP server.
 const PORT = 8765
 
 // Connect automatically when this macro module is loaded (e.g. on page reload).
