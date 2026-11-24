@@ -85,6 +85,15 @@ let make = () => {
         Some(unsubscribe)
     })
 
+    React.useEffect1(() => {
+        if (copiedToClipboard) {
+            let timerId = setTimeout(() => setCopiedToClipboard(_ => false), 2000)
+            Some(() => clearTimeout(timerId))
+        } else {
+            None
+        }
+    }, [copiedToClipboard])
+
     let isEnabled = switch status {
         | Disconnected | Failed(_) => false
         | Connecting | WaitingForServer | WaitingForOtherTab(_) | Connected => true
