@@ -16,6 +16,9 @@ https://ss64.com/nt/copy.html
 /Y   Suppress confirmation prompt, when overwriting files.
 
 ------------------------------------------------------------------------------------------------------------------------
+! claude mcp remove mm-lamp -s local
+! claude mcp add mm-lamp -e MM_LAMP_FILES_DIRS=~/metamath -- node ~/IdeaProjects/metamath-lamp/mcp-bridge/server.js
+------------------------------------------------------------------------------------------------------------------------
 Migrate to Array.getUnsafe:
 \[([^\[\]]+)\]
 ->Array.getUnsafe($1)
