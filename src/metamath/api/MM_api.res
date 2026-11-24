@@ -140,6 +140,10 @@ type uiApi = {
     "multilineTextInput": api,
 }
 
+type explorerApi = {
+    "findAssertions": api,
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
@@ -147,6 +151,7 @@ let multilineTextInputRef:ref<option<api>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
 let settingsRef:ref<option<settingsApi>> = ref(None)
+let findAssertionsRef:ref<option<api>> = ref(None)
 
 let makeSingleMacroApi = (methodGetter:macroApi=>api):api => {
     apiInput => {
@@ -198,6 +203,9 @@ let api = {
     },
     "macro": makeMacroApi(),
     "settings": makeSettingsApi(),
+    "explorer": {
+        "findAssertions": makeApiFuncFromRef(findAssertionsRef),
+    },
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
@@ -232,4 +240,8 @@ let setMacroApi = ( macroApi:macroApi ):unit => {
 
 let setSettingsApi = ( settingsApi:settingsApi ):unit => {
     settingsRef:= Some(settingsApi)
+}
+
+let setExplorerApi = ( explorerApi:explorerApi ):unit => {
+    findAssertionsRef := Some(explorerApi["findAssertions"])
 }

@@ -31,3 +31,4 @@ yarn-error.log*
 /dist/
 /public/webworker-main.js
 /lib/ocaml/
+/lib/watch.lock

@@ -58,17 +58,23 @@ type uiApi = {
     "multilineTextInput": api,
 }
 
+type explorerApi = {
+    "findAssertions": api,
+}
+
 let api: {
     "setLogApiCallsToConsole": api,
     "ui" : uiApi,
     "editor" : editorApi,
     "macro" : macroApi,
     "settings" : settingsApi,
+    "explorer" : explorerApi,
 }
 
 let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ~multilineTextInput:api, ) => unit
 let setEditorApi: editorApi => unit
 let setMacroApi: macroApi => unit
 let setSettingsApi: settingsApi => unit
+let setExplorerApi: explorerApi => unit
 
 let makeEmptySingleEditorApi: string => singleEditorApi

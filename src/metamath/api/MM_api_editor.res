@@ -199,30 +199,8 @@ let findAssertions = (
     switch parseResult {
         | Error(msg) => Promise.resolve(Error(msg))
         | Ok(parsedParams) => {
-            let preCtx = preCtxData.ctxV.val.min
-            let typeColors = Belt_HashMapString.make(~hintSize=0)
             searchAssertions(parsedParams["pattern"])->Promise.thenResolve(frms => frms->Result.map(frms =>
-                frms->Array.map(frm => {
-                    let frmData = MM_cmp_pe_frame_summary_state.makeInitialState(
-                        ~preCtx,
-                        ~frame=frm,
-                        ~typeColors,
-                        ~typeOrderInDisj=preCtxData.typeOrderInDisj
-                    )
-                    let disj = frmData.disj->Option.getOr([])->Array.map(disjGrp => 
-                        disjGrp->Array.map(((var,_)) => var->JSON.Encode.string)->JSON.Encode.array
-                    )->JSON.Encode.array
-                    let hyps = frmData.eHyps->Array.map(hyp => 
-                        ctxIntsToStrExn(preCtx, hyp)->JSON.Encode.string
-                    )->JSON.Encode.array
-                    Dict.fromArray([
-                        ("label", frm.label->JSON.Encode.string),
-                        ("isAxiom", frm.isAxiom->JSON.Encode.bool),
-                        ("disj", disj),
-                        ("hyps", hyps),
-                        ("asrt", ctxIntsToStrExn(preCtx, frmData.asrt)->JSON.Encode.string),
-                    ])->JSON.Encode.object
-                })->JSON.Encode.array
+                MM_api_explorer.framesToJson(~preCtxData, frms)
             ))
         }
     }

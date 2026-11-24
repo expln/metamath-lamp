@@ -308,6 +308,34 @@ let make = () => {
         None
     }, [state.preCtxData.settingsV.val.webSrcSettings])
 
+    React.useEffect1(() => {
+        let preCtxData = state.preCtxData
+        MM_api_explorer.updateExplorerApi(
+            ~preCtxData,
+            ~searchAssertions = (~pattern:string):promise<result<array<frame>,string>> => {
+                MM_cmp_search_asrt.searchAssertions(
+                    ~modalRef,
+                    ~preCtxData,
+                    ~typ=None,
+                    ~label="",
+                    ~patternStr=pattern,
+                    ~patternVersion=2,
+                    ~isDisc=false,
+                    ~isDepr=false,
+                )->Promise.thenResolve(foundLabels => {
+                    foundLabels->Result.map(foundLabels =>
+                        foundLabels->Array.map(((label,_)) =>
+                            preCtxData.ctxV.val.full->getFrame(label)->Option.getOrThrow(
+                                ~message=`MM_cmp_root.searchAssertions: cannot get frame by label '${label}'.`
+                            )
+                        )
+                    )
+                })
+            }
+        )
+        None
+    }, [state.preCtxData])
+
     let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
 
     React.useEffect2(() => {

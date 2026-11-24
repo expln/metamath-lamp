@@ -7,6 +7,7 @@
 //   MM_LAMP_BRIDGE_ORIGINS  - comma separated list of additional allowed page origins.
 //                             http(s)://localhost:* and https://expln.github.io are always allowed.
 
+import { readFileSync } from 'node:fs'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
@@ -20,6 +21,10 @@ const GET_STATE_TIMEOUT_MS = 30_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
+const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
+const FIND_ASSERTIONS_PAGE_SIZE = 100
+
+const PATTERN_SYNTAX = readFileSync(new URL('./pattern-syntax.md', import.meta.url), 'utf8')
 
 function parsePort(str) {
     if (str === undefined || str === '') {
@@ -107,6 +112,32 @@ function updateSteps({editorId, steps}) {
 * */
 function deleteSteps({editorId, labels}) {
     return bridge.call({path: 'editor.deleteSteps', editorId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
+}
+
+/*
+* Searches assertions by a pattern in the whole loaded context (discouraged and deprecated assertions are excluded).
+* pageNum is 1-based.
+* Resolves to the API response: res is {totalCount, pageNum, pageSize, numOfPages, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
+* */
+function findAssertions({pattern, pageNum, pageSize}) {
+    return bridge.call({
+        path: 'explorer.findAssertions', params: {pattern, pageNum, pageSize}, timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS
+    })
+}
+
+/*
+* Converts one found assertion to the text format of the find_assertions tool.
+* */
+function assertionToText({label, isAxiom, disj, hyps, asrt}) {
+    const lines = [`${label}${isAxiom ? ' (axiom)' : ''}`]
+    if (disj.length > 0) {
+        lines.push(`  disj: ${disj.map(grp => grp.join(' ')).join(' , ')}`)
+    }
+    for (const hyp of hyps) {
+        lines.push(`  hyp: ${hyp}`)
+    }
+    lines.push(`  asrt: ${asrt}`)
+    return lines.join('\n')
 }
 
 /*
@@ -394,6 +425,71 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
             notes: [`Deleted steps: ${labels.join(' ')}`],
         })
     })
+)
+
+server.registerTool(
+    'find_assertions',
+    {
+        title: 'Find assertions',
+        description: `Searches assertions (theorems and axioms) by a pattern in the loaded Metamath database. \
+Discouraged and deprecated assertions are excluded.
+
+The simplest pattern is a space-separated sequence of math symbols, e.g. \`A + B = B + A\`. \
+Variables match any variable of the same type, typecodes match any variable of that type, \
+and other symbols may occur in between the pattern symbols. \
+Patterns support more features: adjacency, restricting matches to hypotheses or the assertion statement, \
+operators, negation. Call get_pattern_syntax once to learn the full syntax.
+
+Results are returned in pages of ${FIND_ASSERTIONS_PAGE_SIZE} assertions, in the order of their declaration \
+in the database. Each assertion is printed as its label, optionally followed by \
+\`(axiom)\`, then indented lines: \`disj:\` disjoint variable groups separated by commas, \
+one \`hyp:\` line per essential hypothesis, and \`asrt:\` the assertion statement.
+
+The search may open a progress dialog in metamath-lamp, and the user may cancel it.`,
+        inputSchema: {
+            pattern: z.string().min(1).describe('The search pattern, e.g. "|- $+a A + B = B + A".'),
+            page: z.number().int().min(1).default(1).describe('Number of the page to return, starting from 1.'),
+        },
+        annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({pattern, page}) => {
+        const resp = await findAssertions({pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE})
+        if (!resp.isOk) {
+            return errorResult(`Could not find assertions: ${resp.err}`)
+        }
+        const {totalCount, numOfPages, asrts} = resp.res
+        if (totalCount === 0) {
+            return textResult(`No assertions match the pattern '${pattern}'.`)
+        }
+        if (asrts.length === 0) {
+            return errorResult(
+                `Page ${page} doesn't exist: ${totalCount} assertions match the pattern, ${numOfPages} pages in total.`
+            )
+        }
+        const header = `${totalCount} assertions match the pattern '${pattern}'. Page ${page} of ${numOfPages}:`
+        return textResult([header, ...asrts.map(assertionToText)].join('\n\n'))
+    })
+)
+
+server.registerTool(
+    'get_pattern_syntax',
+    {
+        title: 'Get pattern syntax',
+        description: 'Returns the full description of the syntax of patterns used by find_assertions.',
+        inputSchema: {},
+        annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    async () => textResult(PATTERN_SYNTAX)
 )
 
 await server.connect(new StdioServerTransport())

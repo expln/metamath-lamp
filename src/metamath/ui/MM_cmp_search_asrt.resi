@@ -5,6 +5,8 @@ let searchAssertions: (
     ~label: string,
     ~patternStr: string,
     ~patternVersion: int,
+    ~isDisc: bool=?,
+    ~isDepr: bool=?,
 ) => promise<result<array<(string, option<MM_wrk_pattern_search.matchedIndices>)>, string>>
 
 @react.component
