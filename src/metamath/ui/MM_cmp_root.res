@@ -37,6 +37,7 @@ type tabData =
     })
     | ExplorerFrame({label:string})
     | DbInfo
+    | Mcp
 
 type state = {
     preCtxData:preCtxData,
@@ -207,7 +208,7 @@ let getNewEditorId = (~existingTabs: array<Expln_React_UseTabs.tab<'a>>):int => 
     existingTabs->Array.forEach(t => {
         switch t.data {
             | Editor({editorId}) => existingIds->Array.push(editorId)
-            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => ()
+            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo | Mcp => ()
         }
     })
     let newId = ref(0)
@@ -251,7 +252,7 @@ let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a
     existingTabs->Array.forEach(tab => {
         switch tab.data {
             | Editor({editorId}) => editorsOrder->Array.push({editorId:editorId})
-            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => ()
+            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo | Mcp => ()
         }
     })
     saveEditorsOrderToLocStor(editorsOrder)
@@ -271,6 +272,10 @@ let make = () => {
         switch tab.data {
             | Settings | TabsManager => Promise.resolve(false)
             | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => Promise.resolve(true)
+            | Mcp => {
+                MM_mcp_client.disconnect()
+                Promise.resolve(true)
+            }
             | Editor({editorId}) => {
                 openOkCancelDialog(
                     ~modalRef, 
@@ -529,6 +534,19 @@ let make = () => {
         })
     }
 
+    let actOpenMcp = ():unit => {
+        updateTabs(tabsSt => {
+            let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
+                ~label="MCP",
+                ~closable=true, 
+                ~singleton=true,
+                ~data=Mcp, 
+                ~doOpen=true
+            )
+            tabsSt
+        })
+    }
+
     let setTabTitle = (
         ~editorStateLocStor:MM_wrk_editor_json.editorStateLocStor,
         ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
@@ -701,6 +719,15 @@ let make = () => {
                                     }
                                 })
                             }
+                            onOpenMcp={()=>actOpenMcp()}
+                            mcpIsOpened={
+                                tabs->Array.some(tab => {
+                                    switch tab.data {
+                                        | Mcp => true
+                                        | _ => false
+                                    }
+                                })
+                            }
                         />
                     | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle, maxFrmOrd}) => 
                         <MM_cmp_editor
@@ -756,6 +783,7 @@ let make = () => {
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
                     | DbInfo => <MM_cmp_db_info preCtxData=state.preCtxData />
+                    | Mcp => <MM_cmp_mcp />
                 }
             }
         </div>

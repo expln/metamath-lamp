@@ -1,5 +1,5 @@
 // WebSocket server which a metamath-lamp browser tab connects to.
-// The browser side is the macro in mm-lamp-macro.js.
+// The browser side is src/metamath/api/MM_mcp_client.res (controlled from the MCP tab of metamath-lamp).
 // If an HTTP handler is given, the WebSocket server runs on top of an HTTP server,
 // which also serves other HTTP requests (e.g. local files, see file-server.js) on the same port.
 // Otherwise a standalone WebSocket server is started.
@@ -15,7 +15,7 @@ import { WebSocketServer } from 'ws'
 const PROTOCOL_VERSION = 1
 const HEARTBEAT_INTERVAL_MS = 15_000
 // How long a tool call waits for a tab to (re)connect.
-// The macro retries every 3 s (RECONNECT_DELAY_MS in mm-lamp-macro.js),
+// The browser tab retries every 3 s (reconnectDelayMs in MM_mcp_client.res),
 // so this is enough for a tab to connect after the port is opened.
 const TAB_CONNECT_WAIT_MS = 5000
 const CLOSE_CODE_ANOTHER_TAB_CONNECTED = 4001
@@ -215,7 +215,7 @@ export class BrowserBridge {
             if (msg.version !== PROTOCOL_VERSION) {
                 ws.close(
                     CLOSE_CODE_PROTOCOL_MISMATCH,
-                    `Protocol version mismatch: relay=${PROTOCOL_VERSION}, macro=${msg.version}`
+                    `Protocol version mismatch: relay=${PROTOCOL_VERSION}, tab=${msg.version}`
                 )
                 return
             }
@@ -261,7 +261,7 @@ export class BrowserBridge {
             return undefined
         }
         return 'No metamath-lamp tab is connected to the MCP server. '
-            + 'Ask the user to open metamath-lamp and run the "Connect to MCP server" macro.'
+            + 'Ask the user to open metamath-lamp, open the MCP tab (via the "Tabs" tab) and click "Connect".'
     }
 
     /*

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // MCP server (stdio) which lets AI agents work with metamath-lamp opened in a browser tab.
-// The browser tab connects to this process over a WebSocket by running the macro from mm-lamp-macro.js.
+// The browser tab connects to this process over a WebSocket from the MCP tab of metamath-lamp.
 //
 // Command-line arguments (if an option is repeated, the last occurrence overrides the previous ones):
 //   --port <port>         - WebSocket port to listen on (127.0.0.1 only). Default: 8765.

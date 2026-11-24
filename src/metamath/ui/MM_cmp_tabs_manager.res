@@ -21,6 +21,8 @@ let make = (
     ~onOpenEditor:unit=>unit,
     ~onOpenDbInfo:unit=>unit,
     ~dbInfoIsOpened:bool,
+    ~onOpenMcp:unit=>unit,
+    ~mcpIsOpened:bool,
 ) => {
     let actRenameTab = (tab:tabProps) => {
         openModalPaneWithTitle(
@@ -45,6 +47,7 @@ let make = (
             <Button onClick={_=>onOpenEditor()} variant={#outlined}> {React.string("Editor")} </Button>
             <Button onClick={_=>onOpenExplorer()} variant={#outlined}> {React.string("Explorer")} </Button>
             <Button onClick={_=>onOpenDbInfo()} variant={#outlined} disabled=dbInfoIsOpened> {React.string("Database Info")} </Button>
+            <Button onClick={_=>onOpenMcp()} variant={#outlined} disabled=mcpIsOpened> {React.string("MCP")} </Button>
         </Row>
     }
 

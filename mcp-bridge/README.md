@@ -3,7 +3,7 @@
 An MCP server which lets AI agents work with metamath-lamp opened in a browser tab.
 
 ```
-Agent  --MCP over stdio-->  server.js  --WebSocket 127.0.0.1:8765-->  browser tab (macro)  -->  window.api
+Agent  --MCP over stdio-->  server.js  --WebSocket 127.0.0.1:8765-->  browser tab (MCP tab)  -->  window.api
 ```
 
 The browser tab does all the work.
@@ -52,12 +52,14 @@ if allowed directories are configured.
    ```
    claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js
    ```
-3. In metamath-lamp, open the macros dialog, create a new macro module,
-   paste the content of `mm-lamp-macro.js` into it and make the module active.
-4. Open an editor tab and run the "Connect to MCP server" macro.
+   The MCP tab of metamath-lamp (see the next step) can build this command for you,
+   including the arguments described in [Configuration](#configuration).
+3. In metamath-lamp, open the "Tabs" tab and click "MCP".
+   In the MCP tab, check the port and click "Connect".
    Load a context manually, or let the agent load it with `load_context`.
-   The tab keeps reconnecting until "Disconnect from MCP server" is run,
+   The browser tab keeps reconnecting until "Disconnect" is clicked,
    so it doesn't matter whether the agent session starts before or after this step.
+   Closing the MCP tab disconnects, so keep it open while the agent works.
 
 Keep the metamath-lamp tab visible (e.g. in a separate window),
 because browsers slow down background tabs.
@@ -69,7 +71,7 @@ If an option is given more than once, the last occurrence overrides the previous
 For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists are not merged).
 
 * `--port <port>` - the WebSocket port, `8765` by default.
-  If you change it, change `PORT` in the macro too.
+  If you change it, change the port in the MCP tab of metamath-lamp too.
 * `--origins <origins>` - comma separated list of additional page origins allowed to connect.
   `http(s)://localhost:*`, `http(s)://127.0.0.1:*` and `https://expln.github.io` are always allowed.
   The same origins are allowed to download local files.
@@ -85,8 +87,6 @@ For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists ar
   ```
   claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js --files-dirs ~/metamath
   ```
-
-Set `AUTO_CONNECT = true` in the macro to connect automatically when the page loads.
 
 ## Trusted URLs
 
