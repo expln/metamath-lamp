@@ -112,6 +112,7 @@ let getMandHyps: (mmContext, expr, ~skipEssentials:bool=?, ~overrideHyps:array<e
 let getAllHyps: mmContext => Belt_MapString.t<hypothesis>
 let getAllFrames: mmContext => Belt_MapString.t<frame>
 let getAllFramesArr: mmContext => array<frame>
+let getNumOfFrames: mmContext => int
 let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>

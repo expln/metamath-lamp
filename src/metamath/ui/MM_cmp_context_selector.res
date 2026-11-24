@@ -908,12 +908,23 @@ let make = (
         }
     }
 
-    let applyChanges = ( ~mmScope:mmScope, ~settings:settings, ):promise<result<unit,string>> => {
+    /*
+    * Loads the context from mmScope and makes it the current context.
+    * Returns the summary of the loaded context and the number of assertions in it.
+    * */
+    let applyChanges = (
+        ~mmScope:mmScope, ~settings:settings,
+    ):promise<result<MM_api_context.loadedCtxInfo,string>> => {
+        let makeLoadedCtxInfo = (ctx:mmContext):MM_api_context.loadedCtxInfo => {
+            summary: getSummary(mmScope),
+            numOfAsrts: ctx->getNumOfFrames,
+        }
         if (scopeIsEmpty(mmScope.singleScopes)) {
             Promise.make((rslv,_) => {
+                let ctx = createContext(())
                 setState(_ => mmScope)
-                actNewCtxIsReady([],createContext(()))
-                rslv(Ok(()))
+                actNewCtxIsReady([],ctx)
+                rslv(Ok(makeLoadedCtxInfo(ctx)))
             })
         } else {
             loadMmContext(
@@ -965,7 +976,7 @@ let make = (
                         })
                         setState(_ => mmScope)
                         actNewCtxIsReady(mmCtxSrcDtos, ctx)
-                        Ok(())
+                        Ok(makeLoadedCtxInfo(ctx))
                     }
                 }
             })
@@ -1079,7 +1090,9 @@ let make = (
                 switch mmScope {
                     | Error(msg) => Promise.resolve(Error(msg))
                     | Ok(None) => Promise.resolve(Ok())
-                    | Ok(Some(mmScope)) => applyChanges( ~mmScope=mmScope, ~settings )
+                    | Ok(Some(mmScope)) => {
+                        applyChanges( ~mmScope=mmScope, ~settings )->Promise.thenResolve(Result.map(_, _ => ()))
+                    }
                 }
             })
             ->Promise.then(reloadRes => {
@@ -1149,19 +1162,7 @@ let make = (
                 singleScopes,
                 loadedContextSummary: "",
             }
-            switch await applyChanges(~mmScope, ~settings) {
-                | Error(msg) => Error(msg)
-                | Ok(_) => {
-                    let numOfAsrts = singleScopes->Array.reduce(0, (cnt, ss) => {
-                        cnt + switch (ss.readInstr, ss.label) {
-                            | (StopBefore, Some(label)) => ss.allLabels->Array.indexOf(label)
-                            | (StopAfter, Some(label)) => ss.allLabels->Array.indexOf(label) + 1
-                            | _ => ss.allLabels->Array.length
-                        }
-                    })
-                    Ok({MM_api_context.summary: getSummary(mmScope), numOfAsrts})
-                }
-            }
+            await applyChanges(~mmScope, ~settings)
         } catch {
             | Common.MmException({msg}) => Error(msg)
             | exn => Error(Common.jsErrorToExnData(exn).msg)
