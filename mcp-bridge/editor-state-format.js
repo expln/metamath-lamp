@@ -82,6 +82,10 @@ export function editorStateToText({state, onlyRelevantSteps, notes = []}) {
     const maxLabelLength = Math.max(0, ...steps.map(step => step.label.length))
     const res = ['--- editor state begin ---']
     res.push(`Editor tab id: ${state.editorId}`)
+    res.push(`Scope: ${state.scope}`)
+    if (isNonEmptyStr(state.scopeErr)) {
+        res.push(`Scope error: ${state.scopeErr}`)
+    }
     for (const note of notes) {
         res.push(`Note: ${note}`)
     }

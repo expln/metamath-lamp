@@ -32,6 +32,15 @@ let framesToJson = (~preCtxData:preCtxData, frms:array<frame>):JSON.t => {
 
 let defaultPageSize = 100
 
+type backend = {
+    preCtxData:preCtxData,
+    searchAssertions:(~pattern:string)=>promise<result<array<frame>,string>>,
+    getEditorScope:int=>result<(int,string),string>,
+}
+
+// Set by updateExplorerApi() from the root component every time the loaded context changes.
+let backendRef:ref<option<backend>> = ref(None)
+
 type cachedSearchResult = {
     settingsVer:int,
     preCtxVer:int,
@@ -40,22 +49,19 @@ type cachedSearchResult = {
 }
 
 // The result of the last search, so that requesting other pages of the same search doesn't repeat the search.
+// Results are not limited by an editor scope, so the same cached result is used for all editors.
 let lastSearchResult:ref<option<cachedSearchResult>> = ref(None)
 
-let searchWithCache = (
-    ~preCtxData:preCtxData,
-    ~searchAssertions:(~pattern:string)=>promise<result<array<frame>,string>>,
-    ~pattern:string,
-):promise<result<array<frame>,string>> => {
-    let settingsVer = preCtxData.settingsV.ver
-    let preCtxVer = preCtxData.ctxV.ver
+let searchWithCache = (~backend:backend, ~pattern:string):promise<result<array<frame>,string>> => {
+    let settingsVer = backend.preCtxData.settingsV.ver
+    let preCtxVer = backend.preCtxData.ctxV.ver
     switch lastSearchResult.contents {
         | Some(cached) if
             cached.settingsVer == settingsVer && cached.preCtxVer == preCtxVer && cached.pattern == pattern => {
             Promise.resolve(Ok(cached.frms))
         }
         | _ => {
-            searchAssertions(~pattern)->Promise.thenResolve(res => {
+            backend.searchAssertions(~pattern)->Promise.thenResolve(res => {
                 switch res {
                     | Error(_) => ()
                     | Ok(frms) => lastSearchResult := Some({settingsVer, preCtxVer, pattern, frms})
@@ -66,39 +72,74 @@ let searchWithCache = (
     }
 }
 
-let findAssertions = (
-    ~params:apiInput,
-    ~preCtxData:preCtxData,
-    ~searchAssertions:(~pattern:string)=>promise<result<array<frame>,string>>,
-):promise<result<JSON.t,string>> => {
+let searchAssertions = (~pattern:string, ~maxFrmOrd=?):promise<result<array<frame>,string>> => {
+    switch backendRef.contents {
+        | None => Promise.resolve(Error("The search of assertions is not initialized yet."))
+        | Some(backend) => {
+            searchWithCache(~backend, ~pattern)->Promise.thenResolve(frms => frms->Result.map(frms => {
+                switch maxFrmOrd {
+                    | None => frms
+                    | Some(maxFrmOrd) => frms->Array.filter(frm => frm.ord <= maxFrmOrd)
+                }
+            }))
+        }
+    }
+}
+
+let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
     let positive = (name:string, i:int):result<int,string> =>
         if (i < 1) { Error(`'${name}' must be a positive integer.`) } else { Ok(i) }
-    let parseResult:result<{"pattern":string, "pageNum":int, "pageSize":int},string> =
+    let parseResult:result<{"pattern":string, "pageNum":int, "pageSize":int, "editorId":option<int>},string> =
         fromJson(params->apiInputToJson, asObj(_, d=>{
             {
                 "pattern": d->str("pattern"),
                 "pageNum": d->int("pageNum", ~default=()=>1, ~validator=positive("pageNum", _)),
                 "pageSize": d->int("pageSize", ~default=()=>defaultPageSize, ~validator=positive("pageSize", _)),
+                "editorId": d->intOpt("editorId"),
             }
         }))
     switch parseResult {
         | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parsedParams) => {
-            let pageNum = parsedParams["pageNum"]
-            let pageSize = parsedParams["pageSize"]
-            searchWithCache(~preCtxData, ~searchAssertions, ~pattern=parsedParams["pattern"])
-                ->Promise.thenResolve(frms => frms->Result.map(frms => {
-                    let totalCount = frms->Array.length
-                    let minIdx = (pageNum - 1) * pageSize
-                    Dict.fromArray([
-                        ("totalCount", totalCount->Int.toFloat->JSON.Encode.float),
-                        ("pageNum", pageNum->Int.toFloat->JSON.Encode.float),
-                        ("pageSize", pageSize->Int.toFloat->JSON.Encode.float),
-                        ("numOfPages", ((totalCount + pageSize - 1) / pageSize)->Int.toFloat->JSON.Encode.float),
-                        ("asrts", frms->Array.slice(~start=minIdx, ~end=minIdx + pageSize)->framesToJson(~preCtxData, _)),
-                    ])->JSON.Encode.object
-                }))
+            let scope = switch parsedParams["editorId"] {
+                | None => Ok(None)
+                | Some(editorId) => backend.getEditorScope(editorId)->Result.map(scope => Some(scope))
+            }
+            switch scope {
+                | Error(msg) => Promise.resolve(Error(msg))
+                | Ok(scope) => {
+                    let pageNum = parsedParams["pageNum"]
+                    let pageSize = parsedParams["pageSize"]
+                    let maxFrmOrd = scope->Option.map(((maxFrmOrd,_)) => maxFrmOrd)
+                    searchAssertions(~pattern=parsedParams["pattern"], ~maxFrmOrd?)
+                        ->Promise.thenResolve(frms => frms->Result.map(frms => {
+                            let totalCount = frms->Array.length
+                            let minIdx = (pageNum - 1) * pageSize
+                            let res = [
+                                ("totalCount", totalCount->Int.toFloat->JSON.Encode.float),
+                                ("pageNum", pageNum->Int.toFloat->JSON.Encode.float),
+                                ("pageSize", pageSize->Int.toFloat->JSON.Encode.float),
+                                (
+                                    "numOfPages",
+                                    ((totalCount + pageSize - 1) / pageSize)->Int.toFloat->JSON.Encode.float
+                                ),
+                                (
+                                    "asrts",
+                                    frms->Array.slice(~start=minIdx, ~end=minIdx + pageSize)
+                                        ->framesToJson(~preCtxData=backend.preCtxData, _)
+                                ),
+                            ]
+                            switch scope {
+                                | None => ()
+                                | Some((_, scopeDescr)) => {
+                                    res->Array.push(("editorScope", scopeDescr->JSON.Encode.string))
+                                }
+                            }
+                            Dict.fromArray(res)->JSON.Encode.object
+                        }))
+                }
+            }
         }
     }
 }
@@ -106,11 +147,11 @@ let findAssertions = (
 let updateExplorerApi = (
     ~preCtxData:preCtxData,
     ~searchAssertions:(~pattern:string)=>promise<result<array<frame>,string>>,
+    ~getEditorScope:int=>result<(int,string),string>,
 ):unit => {
+    let backend = {preCtxData, searchAssertions, getEditorScope}
+    backendRef := Some(backend)
     setExplorerApi({
-        "findAssertions": makeApiFunc(
-            "explorer.findAssertions",
-            params => findAssertions(~params, ~preCtxData, ~searchAssertions)
-        ),
+        "findAssertions": makeApiFunc("explorer.findAssertions", params => findAssertions(~params, ~backend)),
     })
 }

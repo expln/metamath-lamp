@@ -19,6 +19,12 @@ type proverParams = {
 }
 
 let deleteEditor: int => unit
+
+/*
+Returns the scope of an editor: (maxFrmOrd, scope description).
+Only assertions with frame.ord <= maxFrmOrd can be used in the editor.
+*/
+let getEditorScope: int => result<(int,string),string>
 let setLastOpenedEditorId: int => unit
 
 let updateEditorData: (
@@ -34,7 +40,6 @@ let updateEditorData: (
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
-    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => JSON.t

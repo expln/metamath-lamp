@@ -115,13 +115,18 @@ function deleteSteps({editorId, labels}) {
 }
 
 /*
-* Searches assertions by a pattern in the whole loaded context (discouraged and deprecated assertions are excluded).
+* Searches assertions by a pattern (discouraged and deprecated assertions are excluded).
+* editorId - if defined, only assertions which can be used in that editor tab are returned;
+* if undefined, the whole loaded context is searched.
 * pageNum is 1-based.
-* Resolves to the API response: res is {totalCount, pageNum, pageSize, numOfPages, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
+* Resolves to the API response: res is
+* {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
 * */
-function findAssertions({pattern, pageNum, pageSize}) {
+function findAssertions({pattern, pageNum, pageSize, editorId}) {
     return bridge.call({
-        path: 'explorer.findAssertions', params: {pattern, pageNum, pageSize}, timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS
+        path: 'explorer.findAssertions',
+        params: {pattern, pageNum, pageSize, editorId},
+        timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS,
     })
 }
 
@@ -189,6 +194,10 @@ server.registerTool(
         title: 'Get editor state',
         description: `Returns the content of a metamath-lamp editor tab: description, local variables, \
 disjoint variable groups, and proof steps.
+
+The \`Scope:\` line shows which assertions of the database can be used in justifications in this editor \
+(all assertions, or only those before or up to some label). \
+Pass editorId to find_assertions to search only within this scope.
 
 Each step is printed as one line: \`type status label statement\`, optionally followed by indented lines
 \`jstf: <hypothesis labels> : <assertion label>\` (the justification) and \`error: <message>\`.
@@ -434,6 +443,10 @@ server.registerTool(
         description: `Searches assertions (theorems and axioms) by a pattern in the loaded Metamath database. \
 Discouraged and deprecated assertions are excluded.
 
+Pass editorId to return only assertions which can be used in that editor tab \
+(an editor may be limited to assertions declared before or up to some label). \
+Without editorId, the whole database is searched.
+
 The simplest pattern is a space-separated sequence of math symbols, e.g. \`A + B = B + A\`. \
 Variables match any variable of the same type, typecodes match any variable of that type, \
 and other symbols may occur in between the pattern symbols. \
@@ -449,6 +462,9 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
         inputSchema: {
             pattern: z.string().min(1).describe('The search pattern, e.g. "|- $+a A + B = B + A".'),
             page: z.number().int().min(1).default(1).describe('Number of the page to return, starting from 1.'),
+            editorId: z.number().int().optional().describe(
+                'Id of an editor tab to return only assertions available in it. Omit to search the whole database.'
+            ),
         },
         annotations: {
             readOnlyHint: true,
@@ -457,21 +473,22 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({pattern, page}) => {
-        const resp = await findAssertions({pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE})
+    withConnectedTab(async ({pattern, page, editorId}) => {
+        const resp = await findAssertions({pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorId})
         if (!resp.isOk) {
             return errorResult(`Could not find assertions: ${resp.err}`)
         }
-        const {totalCount, numOfPages, asrts} = resp.res
+        const {totalCount, numOfPages, editorScope, asrts} = resp.res
+        const scope = editorScope === undefined ? '' : ` (searched in editor ${editorId}: ${editorScope})`
         if (totalCount === 0) {
-            return textResult(`No assertions match the pattern '${pattern}'.`)
+            return textResult(`No assertions match the pattern '${pattern}'${scope}.`)
         }
         if (asrts.length === 0) {
             return errorResult(
                 `Page ${page} doesn't exist: ${totalCount} assertions match the pattern, ${numOfPages} pages in total.`
             )
         }
-        const header = `${totalCount} assertions match the pattern '${pattern}'. Page ${page} of ${numOfPages}:`
+        const header = `${totalCount} assertions match the pattern '${pattern}'${scope}. Page ${page} of ${numOfPages}:`
         return textResult([header, ...asrts.map(assertionToText)].join('\n\n'))
     })
 )

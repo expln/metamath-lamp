@@ -127,6 +127,14 @@ let getAllSteps = (~state:editorState):JSON.t => {
 
 let stateCached:Belt_HashMapInt.t<editorState> = Belt_HashMapInt.make(~hintSize=4)
 let stateJsonCached:Belt_HashMapInt.t<JSON.t> = Belt_HashMapInt.make(~hintSize=4)
+let locationToScopeDescr = (loc:location):string => {
+    switch loc {
+        | Before(label) => `assertions before '${label}'`
+        | After(label) => `assertions up to and including '${label}'`
+        | Last => "all assertions"
+    }
+}
+
 let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,string>> => {
     let cachedResult = switch stateCached->Belt_HashMapInt.get(editorId) {
         | None => None
@@ -146,6 +154,8 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
             )
             let stateJson = Dict.fromArray([
                 ("editorId", editorId->JSON.Encode.int),
+                ("scope", state.loc->locationToScopeDescr->JSON.Encode.string),
+                ("scopeErr", state.locErr->Option.map(JSON.Encode.string)->Option.getOr(JSON.Encode.null)),
                 ("descr", state.descr->JSON.Encode.string),
                 ("varsText", state.varsText->JSON.Encode.string),
                 ("varsErr", state.varsErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
@@ -187,7 +197,7 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
 
 let findAssertions = (
     ~params:apiInput, 
-    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
+    ~state:editorState,
     ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
@@ -199,9 +209,13 @@ let findAssertions = (
     switch parseResult {
         | Error(msg) => Promise.resolve(Error(msg))
         | Ok(parsedParams) => {
-            searchAssertions(parsedParams["pattern"])->Promise.thenResolve(frms => frms->Result.map(frms =>
-                MM_api_explorer.framesToJson(~preCtxData, frms)
-            ))
+            switch state.locErr {
+                | Some(msg) => Promise.resolve(Error(`The scope of the editor is invalid: ${msg}`))
+                | None => {
+                    MM_api_explorer.searchAssertions(~pattern=parsedParams["pattern"], ~maxFrmOrd=state.maxFrmOrd)
+                        ->Promise.thenResolve(frms => frms->Result.map(MM_api_explorer.framesToJson(~preCtxData, _)))
+                }
+            }
         }
     }
 }
@@ -1273,7 +1287,6 @@ type editorData = {
     buildSyntaxTrees:(array<string>,array<string>/*untyped,typed*/)=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     addAsrtByLabel: string=>promise<result<unit,string>>,
-    searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
@@ -1290,7 +1303,6 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let buildSyntaxTrees = editorData.buildSyntaxTrees
     let getAsrtSyntaxTrees = editorData.getAsrtSyntaxTrees
     let addAsrtByLabel = editorData.addAsrtByLabel
-    let searchAssertions = editorData.searchAssertions
 
     {
         "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
@@ -1325,7 +1337,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
         "findAssertions": makeApiFunc(
             "editor.findAssertions", 
-            params => findAssertions( ~params, ~searchAssertions, ~preCtxData)
+            params => findAssertions( ~params, ~state, ~preCtxData)
         ),
     }
 }
@@ -1352,6 +1364,18 @@ let editorApi = (editorId:option<int>):singleEditorApi => {
 
 setEditorApi(editorApi)
 
+let getEditorScope = (editorId:int):result<(int,string),string> => {
+    switch editorsData->Belt_HashMapInt.get(editorId) {
+        | None => Error("Cannot find an editor with id=" ++ editorId->Int.toString)
+        | Some({state}) => {
+            switch state.locErr {
+                | Some(msg) => Error(`The scope of the editor with id=${editorId->Int.toString} is invalid: ${msg}`)
+                | None => Ok((state.maxFrmOrd, state.loc->locationToScopeDescr))
+            }
+        }
+    }
+}
+
 let deleteEditor = (editorId:int):unit => {
     if (lastOpenedEditorId.contents == Some(editorId)) {
         lastOpenedEditorId := None
@@ -1374,7 +1398,6 @@ let updateEditorData = (
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
-    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ):unit => {
     editorsData->Belt_HashMapInt.set(editorId, {
         editorId,
@@ -1389,6 +1412,5 @@ let updateEditorData = (
         buildSyntaxTrees,
         getAsrtSyntaxTrees,
         addAsrtByLabel,
-        searchAssertions,
     })
 }

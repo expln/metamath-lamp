@@ -312,6 +312,7 @@ let make = () => {
         let preCtxData = state.preCtxData
         MM_api_explorer.updateExplorerApi(
             ~preCtxData,
+            ~getEditorScope=MM_api_editor.getEditorScope,
             ~searchAssertions = (~pattern:string):promise<result<array<frame>,string>> => {
                 MM_cmp_search_asrt.searchAssertions(
                     ~modalRef,

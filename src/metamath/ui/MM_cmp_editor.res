@@ -2464,27 +2464,6 @@ let make = (
         }
     }
 
-    let apiSearchAssertions = (pattern:string):promise<result<array<frame>,string>> => {
-        MM_cmp_search_asrt.searchAssertions(
-            ~modalRef,
-            ~preCtxData,
-            ~typ=None,
-            ~label="",
-            ~patternStr=pattern,
-            ~patternVersion=2
-        )->Promise.thenResolve(foundLabels => {
-            foundLabels->Result.map(foundLabels => 
-                foundLabels
-                    ->Array.map(((label,_)) => label)
-                    ->Array.map(label =>
-                        preCtxData.ctxV.val.full->getFrame(label)
-                            ->Option.getOrThrow(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
-                    )
-                    ->Array.filter(frm => frm.ord <= maxFrmOrd.contents)
-            )
-        })
-    }
-
     MM_api_editor.updateEditorData(
         ~editorId,
         ~preCtxData,
@@ -2524,7 +2503,6 @@ let make = (
         ~buildSyntaxTrees=actBuildSyntaxTrees,
         ~getAsrtSyntaxTrees,
         ~addAsrtByLabel=actAddAsrtByLabel,
-        ~searchAssertions=apiSearchAssertions,
     )
 
     <Expln_React_ContentWithStickyHeader

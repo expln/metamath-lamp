@@ -24,11 +24,12 @@ The MCP server only forwards calls to the tab and formats the results for the ag
 * `delete_steps` - deletes steps by labels.
   If any label doesn't exist, nothing is deleted.
   Returns the editor state after "Unify All".
-* `find_assertions` - searches assertions by a pattern in the whole loaded context,
-  excluding discouraged and deprecated ones.
+* `find_assertions` - searches assertions by a pattern, excluding discouraged and deprecated ones.
+  With `editorId`, only assertions which can be used in that editor tab are returned,
+  otherwise the whole loaded context is searched.
   Results are paginated, 100 assertions per page.
   The full result of the last search is cached in the browser tab,
-  so requesting other pages of the same pattern doesn't repeat the search.
+  so requesting other pages of the same pattern (in any editor scope) doesn't repeat the search.
 * `get_pattern_syntax` - returns the full description of the pattern syntax (from `pattern-syntax.md`).
 
 ## Setup
