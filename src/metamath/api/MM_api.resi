@@ -75,7 +75,7 @@ let api: {
     "context" : contextApi,
 }
 
-let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ~multilineTextInput:api, ) => unit
+let setUiApi: uiApi => unit
 let setEditorApi: editorApi => unit
 let setMacroApi: macroApi => unit
 let setSettingsApi: settingsApi => unit

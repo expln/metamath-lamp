@@ -147,14 +147,21 @@ type contextApi = {
 }
 
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
-let showInfoMsgRef:ref<option<api>> = ref(None)
-let showErrMsgRef:ref<option<api>> = ref(None)
-let multilineTextInputRef:ref<option<api>> = ref(None)
+let uiRef:ref<option<uiApi>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
 let settingsRef:ref<option<settingsApi>> = ref(None)
-let findAssertionsRef:ref<option<api>> = ref(None)
-let loadContextRef:ref<option<api>> = ref(None)
+let explorerRef:ref<option<explorerApi>> = ref(None)
+let contextRef:ref<option<contextApi>> = ref(None)
+
+let makeSingleUiApi = (methodGetter:uiApi=>api):api => {
+    apiInput => {
+        switch uiRef.contents {
+            | None => Promise.resolve(errResp("The UI API function is not defined."))
+            | Some(uiApi) => methodGetter(uiApi)(apiInput)
+        }
+    }
+}
 
 let makeSingleMacroApi = (methodGetter:macroApi=>api):api => {
     apiInput => {
@@ -171,6 +178,32 @@ let makeSingleSettingsApi = (methodGetter:settingsApi=>api):api => {
             | None => Promise.resolve(errResp("The settings API function is not defined."))
             | Some(settingsApi) => methodGetter(settingsApi)(apiInput)
         }
+    }
+}
+
+let makeSingleExplorerApi = (methodGetter:explorerApi=>api):api => {
+    apiInput => {
+        switch explorerRef.contents {
+            | None => Promise.resolve(errResp("The explorer API function is not defined."))
+            | Some(explorerApi) => methodGetter(explorerApi)(apiInput)
+        }
+    }
+}
+
+let makeSingleContextApi = (methodGetter:contextApi=>api):api => {
+    apiInput => {
+        switch contextRef.contents {
+            | None => Promise.resolve(errResp("The context API function is not defined."))
+            | Some(contextApi) => methodGetter(contextApi)(apiInput)
+        }
+    }
+}
+
+let makeUiApi = ():uiApi => {
+    {
+        "showInfoMsg": makeSingleUiApi(a => a["showInfoMsg"]),
+        "showErrMsg": makeSingleUiApi(a => a["showErrMsg"]),
+        "multilineTextInput": makeSingleUiApi(a => a["multilineTextInput"]),
     }
 }
 
@@ -191,13 +224,21 @@ let makeSettingsApi = ():settingsApi => {
     }
 }
 
+let makeExplorerApi = ():explorerApi => {
+    {
+        "findAssertions": makeSingleExplorerApi(a => a["findAssertions"]),
+    }
+}
+
+let makeContextApi = ():contextApi => {
+    {
+        "load": makeSingleContextApi(a => a["load"]),
+    }
+}
+
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
-    "ui": {
-        "showInfoMsg": makeApiFuncFromRef(showInfoMsgRef),
-        "showErrMsg": makeApiFuncFromRef(showErrMsgRef),
-        "multilineTextInput": makeApiFuncFromRef(multilineTextInputRef),
-    },
+    "ui": makeUiApi(),
     "editor": (editorId:option<int>) => {
         switch editorRef.contents {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")
@@ -206,12 +247,8 @@ let api = {
     },
     "macro": makeMacroApi(),
     "settings": makeSettingsApi(),
-    "explorer": {
-        "findAssertions": makeApiFuncFromRef(findAssertionsRef),
-    },
-    "context": {
-        "load": makeApiFuncFromRef(loadContextRef),
-    },
+    "explorer": makeExplorerApi(),
+    "context": makeContextApi(),
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
@@ -226,14 +263,8 @@ let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => 
 
 setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
 
-let setUiApi = (
-    ~showInfoMsg:api,
-    ~showErrMsg:api,
-    ~multilineTextInput:api,
-):unit => {
-    showInfoMsgRef := Some(showInfoMsg)
-    showErrMsgRef := Some(showErrMsg)
-    multilineTextInputRef := Some(multilineTextInput)
+let setUiApi = ( uiApi:uiApi ):unit => {
+    uiRef:= Some(uiApi)
 }
 
 let setEditorApi = ( editorApi:editorApi ):unit => {
@@ -249,9 +280,9 @@ let setSettingsApi = ( settingsApi:settingsApi ):unit => {
 }
 
 let setExplorerApi = ( explorerApi:explorerApi ):unit => {
-    findAssertionsRef := Some(explorerApi["findAssertions"])
+    explorerRef:= Some(explorerApi)
 }
 
 let setContextApi = ( contextApi:contextApi ):unit => {
-    loadContextRef := Some(contextApi["load"])
+    contextRef:= Some(contextApi)
 }

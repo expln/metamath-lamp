@@ -59,9 +59,9 @@ let apiMultilineTextInput = (modalRef:modalRef, params:apiInput):promise<result<
 }
 
 let initUiApi = (modalRef:modalRef):unit => {
-    setUiApi(
-        ~showInfoMsg = makeApiFunc("showInfoMsg", apiShowInfoMsg(modalRef, _)),
-        ~showErrMsg = makeApiFunc("showErrMsg", apiShowErrMsg(modalRef, _)),
-        ~multilineTextInput = makeApiFunc("multilineTextInput", apiMultilineTextInput(modalRef, _)),
-    )
+    setUiApi({
+        "showInfoMsg": makeApiFunc("showInfoMsg", apiShowInfoMsg(modalRef, _)),
+        "showErrMsg": makeApiFunc("showErrMsg", apiShowErrMsg(modalRef, _)),
+        "multilineTextInput": makeApiFunc("multilineTextInput", apiMultilineTextInput(modalRef, _)),
+    })
 }
