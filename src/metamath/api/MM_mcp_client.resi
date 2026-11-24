@@ -22,11 +22,6 @@ let getStatus: unit => status
 let getPort: unit => int
 
 /*
-* Returns true if this tab is connected or keeps trying to connect.
-* */
-let isEnabled: unit => bool
-
-/*
 * Registers a listener of status changes. Returns a function which unregisters the listener.
 * */
 let subscribe: (status=>unit) => (unit=>unit)

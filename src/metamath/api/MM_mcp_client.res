@@ -62,7 +62,6 @@ let state = {
 
 let getStatus = ():status => state.status
 let getPort = ():int => state.port
-let isEnabled = ():bool => state.enabled
 
 /*
 * Registers a listener of status changes. Returns a function which unregisters the listener.
