@@ -92,7 +92,6 @@ type singleEditorApi = {
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
     "addAsrtByLabel": api,
-    "findAssertions": api,
 }
 
 type editorApi = option<int> => singleEditorApi
@@ -117,7 +116,6 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "buildSyntaxTrees": _ => Promise.resolve(errResp(msg)),
         "findAsrtsByUnif": _ => Promise.resolve(errResp(msg)),
         "addAsrtByLabel": _ => Promise.resolve(errResp(msg)),
-        "findAssertions": _ => Promise.resolve(errResp(msg)),
     }
 }
 

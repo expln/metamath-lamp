@@ -38,9 +38,6 @@ type backend = {
     getEditorScope:int=>result<(int,string),string>,
 }
 
-// Set by updateExplorerApi() from the root component every time the loaded context changes.
-let backendRef:ref<option<backend>> = ref(None)
-
 type cachedSearchResult = {
     settingsVer:int,
     preCtxVer:int,
@@ -72,18 +69,15 @@ let searchWithCache = (~backend:backend, ~pattern:string):promise<result<array<f
     }
 }
 
-let searchAssertions = (~pattern:string, ~maxFrmOrd=?):promise<result<array<frame>,string>> => {
-    switch backendRef.contents {
-        | None => Promise.resolve(Error("The search of assertions is not initialized yet."))
-        | Some(backend) => {
-            searchWithCache(~backend, ~pattern)->Promise.thenResolve(frms => frms->Result.map(frms => {
-                switch maxFrmOrd {
-                    | None => frms
-                    | Some(maxFrmOrd) => frms->Array.filter(frm => frm.ord <= maxFrmOrd)
-                }
-            }))
+let searchAssertions = (
+    ~backend:backend, ~pattern:string, ~maxFrmOrd:option<int>
+):promise<result<array<frame>,string>> => {
+    searchWithCache(~backend, ~pattern)->Promise.thenResolve(frms => frms->Result.map(frms => {
+        switch maxFrmOrd {
+            | None => frms
+            | Some(maxFrmOrd) => frms->Array.filter(frm => frm.ord <= maxFrmOrd)
         }
-    }
+    }))
 }
 
 let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,string>> => {
@@ -112,7 +106,7 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
                     let pageNum = parsedParams["pageNum"]
                     let pageSize = parsedParams["pageSize"]
                     let maxFrmOrd = scope->Option.map(((maxFrmOrd,_)) => maxFrmOrd)
-                    searchAssertions(~pattern=parsedParams["pattern"], ~maxFrmOrd?)
+                    searchAssertions(~backend, ~pattern=parsedParams["pattern"], ~maxFrmOrd)
                         ->Promise.thenResolve(frms => frms->Result.map(frms => {
                             let totalCount = frms->Array.length
                             let minIdx = (pageNum - 1) * pageSize
@@ -150,7 +144,6 @@ let updateExplorerApi = (
     ~getEditorScope:int=>result<(int,string),string>,
 ):unit => {
     let backend = {preCtxData, searchAssertions, getEditorScope}
-    backendRef := Some(backend)
     setExplorerApi({
         "findAssertions": makeApiFunc("explorer.findAssertions", params => findAssertions(~params, ~backend)),
     })

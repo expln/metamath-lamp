@@ -195,31 +195,6 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
     }
 }
 
-let findAssertions = (
-    ~params:apiInput, 
-    ~state:editorState,
-    ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
-):promise<result<JSON.t,string>> => {
-    open Expln_utils_jsonParse
-    let parseResult:result<{"pattern":string},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
-        {
-            "pattern": d->str("pattern"),
-        }
-    }))
-    switch parseResult {
-        | Error(msg) => Promise.resolve(Error(msg))
-        | Ok(parsedParams) => {
-            switch state.locErr {
-                | Some(msg) => Promise.resolve(Error(`The scope of the editor is invalid: ${msg}`))
-                | None => {
-                    MM_api_explorer.searchAssertions(~pattern=parsedParams["pattern"], ~maxFrmOrd=state.maxFrmOrd)
-                        ->Promise.thenResolve(frms => frms->Result.map(MM_api_explorer.framesToJson(~preCtxData, _)))
-                }
-            }
-        }
-    }
-}
-
 let getTokenType = (
     ~paramsJson:apiInput,
     ~state:editorState,
@@ -1335,10 +1310,6 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
         "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
-        "findAssertions": makeApiFunc(
-            "editor.findAssertions", 
-            params => findAssertions( ~params, ~state, ~preCtxData)
-        ),
     }
 }
 

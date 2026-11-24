@@ -34,7 +34,6 @@ type singleEditorApi = {
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
     "addAsrtByLabel": api,
-    "findAssertions": api,
 }
 
 type editorApi = option<int> => singleEditorApi

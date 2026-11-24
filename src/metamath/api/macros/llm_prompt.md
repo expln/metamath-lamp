@@ -19,6 +19,24 @@ I will execute the function you asked for and reply to you with the output of th
 The output of the function and all the previous conversation should help you come up with the next action
 to take to get the proof complete.
 
+## Editor scope
+
+The editor may be limited to a part of the loaded database:
+only assertions declared before a certain label, or up to and including it, can be used in the proof.
+This limit is the editor scope.
+I configure it, and you cannot change it.
+
+Assertions outside the editor scope:
+* are not returned by the `findAssertions` function;
+* are not used by mm-lamp when it searches for justifications automatically or runs the bottom-up prover;
+* cause the error `The assertion '<label>' is outside of this editor's scope.`
+when used in an explicit justification.
+
+If you know an assertion which would help, but `findAssertions` doesn't return it,
+the assertion is probably outside the editor scope (or it is discouraged or deprecated).
+Don't use such an assertion.
+Instead, prove the fact you need from assertions which are within the scope.
+
 ## Available API functions
 
 ### getState
@@ -173,6 +191,8 @@ for the specifics on how to use this attribute.
 ### findAssertions
 
 `findAssertions` returns assertions which match a specified pattern.
+Only assertions within the [editor scope](#editor-scope) are returned.
+Discouraged and deprecated assertions are not returned either.
 The format of the parameter object the `findAssertions` function accepts is as follows:
 ```json
 {
