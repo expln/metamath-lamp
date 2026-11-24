@@ -6,7 +6,7 @@
 //
 // Protocol (all messages are JSON):
 //   browser -> relay  {type:"hello", client:string, version:number, url:string}
-//   relay   -> browser {type:"call", id:number, path:string, editorId?:string, params?:any}
+//   relay   -> browser {type:"call", id:number, path:string, tabId?:string, params?:any}
 //   browser -> relay  {type:"result", id:number, resp:{isOk:boolean, res?:any, err?:string}}
 
 import { createServer } from 'node:http'
@@ -267,11 +267,11 @@ export class BrowserBridge {
     /*
     * Calls a metamath-lamp API function in the connected browser tab.
     * path - e.g. "editor.getState" or "editor.unifyAll".
-    * editorId - only for "editor.*" paths: the id of the editor tab (the same as the tab id).
-*            undefined means the last opened editor tab.
+    * tabId - id of the tab the call is for, e.g. the editor tab for "editor.*" paths.
+*         For "editor.*" paths, undefined means the last opened editor tab.
     * Resolves to the API response {isOk, res, err}. Never rejects.
     * */
-    call({path, params, editorId, timeoutMs}) {
+    call({path, params, tabId, timeoutMs}) {
         const notConnectedErr = this._getNotConnectedError()
         if (notConnectedErr !== undefined) {
             return Promise.resolve({isOk: false, err: notConnectedErr})
@@ -283,7 +283,7 @@ export class BrowserBridge {
                 resolve({isOk: false, err: `metamath-lamp did not respond to '${path}' within ${timeoutMs} ms.`})
             }, timeoutMs)
             this.pendingCalls.set(id, {resolve, timer})
-            this.socket.send(JSON.stringify({type: 'call', id, path, editorId, params}))
+            this.socket.send(JSON.stringify({type: 'call', id, path, tabId, params}))
         })
     }
 }

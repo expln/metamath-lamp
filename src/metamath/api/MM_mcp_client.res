@@ -38,7 +38,7 @@ type callMsg = {
     @as("type") type_: string,
     id: JSON.t,
     path: string,
-    editorId: Nullable.t<string>,
+    tabId: Nullable.t<string>,
     params: MM_api.apiInput,
 }
 
@@ -86,14 +86,14 @@ let errResp = (msg:string):JSON.t => {
 }
 
 /*
-* Finds an API function by its path, e.g. "editor.getState" -> api.editor(editorId).getState
+* Finds an API function by its path, e.g. "editor.getState" -> api.editor(tabId).getState
 * */
 let resolveApiFunc: (
     {..}, string, Nullable.t<string>
 ) => Nullable.t<MM_api.apiInput => promise<MM_api.apiResp>> = %raw(`
-    (api, path, editorId) => {
+    (api, path, tabId) => {
         const [namespace, ...rest] = path.split('.')
-        let obj = namespace === 'editor' ? api.editor(editorId ?? undefined) : api[namespace]
+        let obj = namespace === 'editor' ? api.editor(tabId ?? undefined) : api[namespace]
         for (const name of rest) {
             obj = obj?.[name]
         }
@@ -109,7 +109,7 @@ let exnToMsg = (exn:exn):string => {
 }
 
 let handleCall = async (msg:callMsg):JSON.t => {
-    switch resolveApiFunc(MM_api.api, msg.path, msg.editorId)->Nullable.toOption {
+    switch resolveApiFunc(MM_api.api, msg.path, msg.tabId)->Nullable.toOption {
         | None => errResp(`Unknown API function '${msg.path}'.`)
         | Some(func) => {
             try {
