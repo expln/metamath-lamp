@@ -3,6 +3,7 @@
 // The state is kept on the module level. The MCP tab disconnects when it is closed (see MM_cmp_root.res).
 // See the protocol description in mcp-bridge/browser-bridge.js.
 
+let serverHostUrl = "ws://127.0.0.1"
 let defaultPort = 8765
 
 let protocolVersion = 1
@@ -136,7 +137,7 @@ let clearReconnectTimer = ():unit => {
 let rec connectSocket = ():unit => {
     if (state.enabled && state.socket->Option.isNone) {
         let port = state.port
-        let socket = newWebSocket(`ws://127.0.0.1:${port->Int.toString}`)
+        let socket = newWebSocket(`${serverHostUrl}:${port->Int.toString}`)
         state.socket = Some(socket)
         socket->setOnOpen(() => {
             send(socket, JSON.Encode.object(Dict.fromArray([

@@ -2,6 +2,8 @@
 // The MCP server forwards tool calls to this tab, and this tab executes them via MM_api.api.
 // There is at most one connection per browser tab.
 
+// The URL of the MCP server without the port.
+let serverHostUrl: string
 let defaultPort: int
 
 type status =

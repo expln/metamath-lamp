@@ -22,10 +22,10 @@ let statusToStr = (status:MM_mcp_client.status):string => {
     let port = MM_mcp_client.getPort()->Int.toString
     switch status {
         | Disconnected => "Disconnected."
-        | Connecting => `Connecting to ws://127.0.0.1:${port} ...`
+        | Connecting => `Connecting to ${MM_mcp_client.serverHostUrl}:${port} ...`
         | WaitingForServer => `Waiting for the MCP server to start on port ${port} ...`
         | WaitingForOtherTab(reason) => `Waiting: ${reason}`
-        | Connected => `Connected to ws://127.0.0.1:${port}`
+        | Connected => `Connected to ${MM_mcp_client.serverHostUrl}:${port}`
         | Failed(reason) => `Disconnected: ${reason}`
     }
 }
