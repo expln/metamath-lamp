@@ -67,6 +67,7 @@ type contextApi = {
 
 type tabsApi = {
     "list": api,
+    "createEditorTab": api,
 }
 
 let api: {

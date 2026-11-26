@@ -23,6 +23,8 @@ Use `list_tabs` to find the ids.
   as a JSON array of `{tabId, type, title, isVisible}`.
   `type` is one of `settings`, `tabs`, `editor`, `explorer`, `assertion`, `db-info`, `mcp`.
   `isVisible` is true only for the currently displayed tab.
+* `create_editor_tab` - creates a new empty editor tab and returns its id as `{tabId}`.
+  With `open` (true by default), the new tab becomes visible.
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.
@@ -118,4 +120,3 @@ the MCP server must be running at that moment.
   Other tabs keep retrying and take over when the connected tab disconnects.
 * Only one agent session can use the default port at a time.
   A second session reports that the port is in use.
-* Opening an editor tab must be done manually.

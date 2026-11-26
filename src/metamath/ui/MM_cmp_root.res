@@ -375,21 +375,6 @@ let make = () => {
         None
     }, [state.preCtxData])
 
-    React.useEffect0(() => {
-        MM_api_tabs.updateTabsApi(
-            // The tabs are read inside a state updater (which doesn't change the state),
-            // so the result reflects all previously requested changes, even if they are not rendered yet.
-            ~listTabs=() => Promise.make((resolve,_) => {
-                updateTabs(st => {
-                    let activeTabId = st->Expln_React_UseTabs.getActiveTabId
-                    resolve(st->Expln_React_UseTabs.getTabs->Array.map(tabToTabInfo(_, ~activeTabId)))
-                    st
-                })
-            })
-        )
-        None
-    })
-
     let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
 
     React.useEffect2(() => {
@@ -608,41 +593,50 @@ let make = () => {
         }
     }
 
+    // Must not depend on the component state, because it is used by the tabs API, which is registered only once.
+    let addEditorTab = (
+        tabsSt:Expln_React_UseTabs.state<tabData>,
+        ~newTabId:string,
+        ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>,
+        ~doOpen:bool,
+    ):Expln_React_UseTabs.state<tabData> => {
+        let initialStateLocStor = switch initialStateLocStor {
+            | Some(initialStateLocStor) => {
+                setTabTitle(
+                    ~editorStateLocStor=initialStateLocStor,
+                    ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
+                )
+            }
+            | None => {
+                let newTabTitle = makeNewTabTitle(
+                    ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
+                    ~prefix="EDITOR"
+                )
+                MM_wrk_editor_json.makeEmptyEditorStateLocStor(~tabTitle=newTabTitle)
+            }
+        }
+        let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
+            ~id=newTabId,
+            ~label=initialStateLocStor.tabTitle,
+            ~icon=pencilSymbol,
+            ~closable=true, 
+            ~data=Editor({
+                tabId:newTabId, 
+                initialStateLocStor,
+                addAsrtByLabel:ref(None),
+                updateTabTitle:ref(None),
+                maxFrmOrd:ref(-1),
+            }),
+            ~doOpen
+        )
+        tabsSt
+    }
+
     let actOpenEditor = (
         ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>=?,
     ):unit => {
         updateTabs(tabsSt => {
-            let initialStateLocStor = switch initialStateLocStor {
-                | Some(initialStateLocStor) => {
-                    setTabTitle(
-                        ~editorStateLocStor=initialStateLocStor,
-                        ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
-                    )
-                }
-                | None => {
-                    let newTabTitle = makeNewTabTitle(
-                        ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
-                        ~prefix="EDITOR"
-                    )
-                    MM_wrk_editor_json.makeEmptyEditorStateLocStor(~tabTitle=newTabTitle)
-                }
-            }
-            let newTabId = tabsSt->Expln_React_UseTabs.makeNewTabId
-            let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
-                ~id=newTabId,
-                ~label=initialStateLocStor.tabTitle,
-                ~icon=pencilSymbol,
-                ~closable=true, 
-                ~data=Editor({
-                    tabId:newTabId, 
-                    initialStateLocStor,
-                    addAsrtByLabel:ref(None),
-                    updateTabTitle:ref(None),
-                    maxFrmOrd:ref(-1),
-                }),
-                ~doOpen=true
-            )
-            tabsSt
+            addEditorTab(tabsSt, ~newTabId=tabsSt->Expln_React_UseTabs.makeNewTabId, ~initialStateLocStor, ~doOpen=true)
         })
         switch initialStateLocStor {
             | None => ()
@@ -653,6 +647,53 @@ let make = () => {
             }
         }
     }
+
+    let tabsCreatedByApi: React.ref<Belt_HashMapString.t<result<string,string>=>unit>> =
+        React.useRef(Belt_HashMapString.make(~hintSize=1))
+    React.useEffect0(() => {
+        MM_api_tabs.updateTabsApi(
+            // The tabs are read inside a state updater (which doesn't change the state),
+            // so the result reflects all previously requested changes, even if they are not rendered yet.
+            ~listTabs=() => Promise.make((resolve,_) => {
+                updateTabs(st => {
+                    let activeTabId = st->Expln_React_UseTabs.getActiveTabId
+                    resolve(st->Expln_React_UseTabs.getTabs->Array.map(tabToTabInfo(_, ~activeTabId)))
+                    st
+                })
+            }),
+            ~createEditorTab=(~doOpen:bool) => Promise.make((resolve,_) => {
+                // The id is generated outside of the state updater,
+                // because React may call an updater twice, and both calls must add a tab with the same id.
+                let newTabId = Expln_React_UseTabs.makeUniqueTabId(_ => false)
+                tabsCreatedByApi.current->Belt_HashMapString.set(newTabId, resolve)
+                updateTabs(st => {
+                    if (st->Expln_React_UseTabs.tabExists(newTabId)) {
+                        tabsCreatedByApi.current->Belt_HashMapString.remove(newTabId)
+                        resolve(Error(`Could not create a tab: the generated id '${newTabId}' is already used.`))
+                        st
+                    } else {
+                        addEditorTab(st, ~newTabId, ~initialStateLocStor=None, ~doOpen)
+                    }
+                })
+            }),
+        )
+        None
+    })
+
+    // Resolves the promises returned by createEditorTab after the new tabs are rendered.
+    // An editor registers itself in MM_api_editor while rendering, so it can be used via the API right away.
+    React.useEffect1(() => {
+        let pending = tabsCreatedByApi.current
+        if (pending->Belt_HashMapString.size > 0) {
+            tabs->Array.forEach(tab => {
+                pending->Belt_HashMapString.get(tab.id)->Option.forEach(resolve => {
+                    pending->Belt_HashMapString.remove(tab.id)
+                    resolve(Ok(tab.id))
+                })
+            })
+        }
+        None
+    }, [tabs])
 
     React.useEffect0(()=>{
         updateTabs(st => {

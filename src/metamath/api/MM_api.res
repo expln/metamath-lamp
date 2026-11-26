@@ -148,6 +148,7 @@ type contextApi = {
 
 type tabsApi = {
     "list": api,
+    "createEditorTab": api,
 }
 
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
@@ -253,6 +254,7 @@ let makeContextApi = ():contextApi => {
 let makeTabsApi = ():tabsApi => {
     {
         "list": makeSingleTabsApi(a => a["list"]),
+        "createEditorTab": makeSingleTabsApi(a => a["createEditorTab"]),
     }
 }
 

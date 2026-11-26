@@ -25,6 +25,7 @@ const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
 const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
 const LIST_TABS_TIMEOUT_MS = 10_000
+const CREATE_EDITOR_TAB_TIMEOUT_MS = 30_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
@@ -114,6 +115,15 @@ function withConnectedTab(handler) {
 * */
 function listTabs() {
     return bridge.call({path: 'tabs.list', timeoutMs: LIST_TABS_TIMEOUT_MS})
+}
+
+/*
+* Creates a new empty editor tab.
+* open - whether to make the new tab visible.
+* Resolves to the API response: res is the id of the new tab.
+* */
+function createEditorTab({open}) {
+    return bridge.call({path: 'tabs.createEditorTab', params: {open}, timeoutMs: CREATE_EDITOR_TAB_TIMEOUT_MS})
 }
 
 /*
@@ -299,6 +309,35 @@ Use the tabId of an editor tab in the tools which work with editors.`,
             return errorResult(`Could not list the tabs: ${resp.err}`)
         }
         return textResult(JSON.stringify(resp.res))
+    })
+)
+
+server.registerTool(
+    'create_editor_tab',
+    {
+        title: 'Create editor tab',
+        description: `Creates a new empty editor tab in metamath-lamp.
+
+Returns the id of the new tab as JSON \`{tabId}\`. \
+The new editor can be used right away in the tools which work with editors.`,
+        inputSchema: {
+            open: z.boolean().default(true).describe(
+                'Make the new tab visible. If false, the currently visible tab stays visible.'
+            ),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({open}) => {
+        const resp = await createEditorTab({open})
+        if (!resp.isOk) {
+            return errorResult(`Could not create the tab: ${resp.err}`)
+        }
+        return textResult(JSON.stringify({tabId: resp.res}))
     })
 )
 

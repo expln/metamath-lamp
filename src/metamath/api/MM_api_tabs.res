@@ -20,10 +20,31 @@ let apiListTabs = (~listTabs:unit=>promise<array<tabInfo>>):promise<result<JSON.
     listTabs()->Promise.thenResolve(tabs => Ok(tabs->Array.map(tabInfoToJson)->JSON.Encode.array))
 }
 
+// params may be omitted: {open?:bool}.
+let apiCreateEditorTab = (
+    ~params:apiInput,
+    ~createEditorTab:(~doOpen:bool)=>promise<result<string,string>>,
+):promise<result<JSON.t,string>> => {
+    let parsed = Raw_js_utils.invokeExnFunc("Parsing parameters of tabs.createEditorTab", () => {
+        switch params->apiInputToNullableObj->Nullable.toOption {
+            | None => true
+            | Some(params) => {
+                Raw_js_utils.optBoolExn(params["open"], "'open' must be a boolean")->Option.getOr(true)
+            }
+        }
+    })
+    switch parsed {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok(doOpen) => createEditorTab(~doOpen)->Promise.thenResolve(res => res->Result.map(JSON.Encode.string))
+    }
+}
+
 let updateTabsApi = (
     ~listTabs:unit=>promise<array<tabInfo>>,
+    ~createEditorTab:(~doOpen:bool)=>promise<result<string,string>>,
 ):unit => {
     setTabsApi({
         "list": makeApiFunc("tabs.list", _ => apiListTabs(~listTabs)),
+        "createEditorTab": makeApiFunc("tabs.createEditorTab", params => apiCreateEditorTab(~params, ~createEditorTab)),
     })
 }
