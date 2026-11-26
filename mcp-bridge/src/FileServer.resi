@@ -36,14 +36,15 @@ type srcToUrlResult = {
 }
 
 /*
-* Converts a local file given to load_context into a URL which the browser can download.
-* src - a file:// URL, or an absolute local path (~ is expanded).
+* Converts a source given to load_context into a URL which the browser can download.
+* t - the file server, or None if loading local files is disabled (then local sources are rejected).
+* src - an http(s) URL (returned as is), a file:// URL, or an absolute local path (~ is expanded).
 * baseUrl - the base URL of this server, e.g. http://127.0.0.1:8765.
 * */
-let localSrcToUrl: (t, string, string) => promise<srcToUrlResult>
+let srcToUrl: (option<t>, string, string) => promise<srcToUrlResult>
 
 /*
-* Converts a URL returned by localSrcToUrl back to the absolute local path.
+* Converts a URL of a local file returned by srcToUrl back to the absolute local path.
 * Returns None if the URL is not a URL of a local file served by this server.
 * baseUrl - the base URL of this server, e.g. http://127.0.0.1:8765.
 * */

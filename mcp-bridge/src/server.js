@@ -303,27 +303,6 @@ function getLoadedContextInfo() {
 }
 
 /*
-* Converts a source given to load_context into a URL which the browser can download.
-* src - an http(s) URL (returned as is), a file:// URL, or an absolute local path.
-* Resolves to {url} or {err}.
-* */
-async function srcToUrl(src) {
-    if (/^https?:\/\//i.test(src)) {
-        return {url: src}
-    }
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(src) && !/^file:/i.test(src)) {
-        return {err: `Unsupported URL scheme in '${src}': only http, https and file URLs are supported.`}
-    }
-    if (fileServer === undefined) {
-        return {
-            err: 'Loading local files is disabled, because no allowed directories are configured. '
-                + 'Ask the user to pass the --files-dirs argument to the MCP server.'
-        }
-    }
-    return FileServer.localSrcToUrl(fileServer, src, fileServerBaseUrl)
-}
-
-/*
 * Optionally runs 'Unify All', then reads the editor state and returns it as a tool result in the text format.
 * notes - additional lines to show at the top of the state.
 * */
@@ -1033,7 +1012,7 @@ to a minute. Open editor tabs are not closed.`,
             if (stopBefore !== undefined && stopAfter !== undefined) {
                 return errorResult(`Only one of stopBefore and stopAfter may be specified for '${url}'.`)
             }
-            const resolved = await srcToUrl(url.trim())
+            const resolved = await FileServer.srcToUrl(fileServer, url.trim(), fileServerBaseUrl)
             if (resolved.err !== undefined) {
                 return errorResult(resolved.err)
             }

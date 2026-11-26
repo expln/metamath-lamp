@@ -196,6 +196,24 @@ let localSrcToUrl = async (t:t, src:string, baseUrl:string):srcToUrlResult => {
     }
 }
 
+let srcToUrl = async (t:option<t>, src:string, baseUrl:string):srcToUrlResult => {
+    if (%re("/^https?:\/\//i")->RegExp.test(src)) {
+        {url: src}
+    } else if (
+        %re("/^[a-z][a-z0-9+.-]*:\/\//i")->RegExp.test(src) && !(%re("/^file:/i")->RegExp.test(src))
+    ) {
+        {err: `Unsupported URL scheme in '${src}': only http, https and file URLs are supported.`}
+    } else {
+        switch t {
+            | None => {
+                err: "Loading local files is disabled, because no allowed directories are configured. "
+                    ++ "Ask the user to pass the --files-dirs argument to the MCP server."
+            }
+            | Some(t) => await localSrcToUrl(t, src, baseUrl)
+        }
+    }
+}
+
 let urlToLocalPath = (url:string, baseUrl:string):option<string> => {
     if (url->String.startsWith(baseUrl ++ filesUrlPrefix ++ "/")) {
         urlPathToAbsPath(url->String.substring(~start=baseUrl->String.length))
