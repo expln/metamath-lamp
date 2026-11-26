@@ -51,7 +51,7 @@ let buildCommand = (~serverJsPath:string, ~port:string, ~origins:string, ~filesD
     let serverJsPath = serverJsPath->String.trim
     let parts = [
         "node",
-        serverJsPath == "" ? "/absolute/path/to/metamath-lamp/mcp-bridge/server.js" : quoteShellArg(serverJsPath),
+        serverJsPath == "" ? "/absolute/path/to/metamath-lamp/mcp-bridge/src/server.js" : quoteShellArg(serverJsPath),
     ]
     let addArg = (name:string, value:string) => {
         let value = value->String.trim

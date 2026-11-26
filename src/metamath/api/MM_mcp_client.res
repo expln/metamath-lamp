@@ -1,7 +1,7 @@
-// Connection of this browser tab to the metamath-lamp MCP server (mcp-bridge/server.js).
+// Connection of this browser tab to the metamath-lamp MCP server (mcp-bridge/src/server.js).
 // The MCP server forwards tool calls to this tab, and this tab executes them via MM_api.api.
 // The state is kept on the module level. The MCP tab disconnects when it is closed (see MM_cmp_root.res).
-// See the protocol description in mcp-bridge/browser-bridge.js.
+// See the protocol description in mcp-bridge/src/BrowserBridge.res.
 
 let serverHostUrl = "ws://127.0.0.1"
 let defaultPort = 8765

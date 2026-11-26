@@ -16,9 +16,9 @@ import { parseArgs } from 'node:util'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { BrowserBridge, isOriginAllowed, log } from './browser-bridge.js'
-import { editorStateToText } from './editor-state-format.js'
-import { FileServer, parseAllowedDirs } from './file-server.js'
+import * as BrowserBridge from './BrowserBridge.res.mjs'
+import { editorStateToText } from './EditorStateFormat.res.mjs'
+import * as FileServer from './FileServer.res.mjs'
 
 const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
@@ -50,7 +50,7 @@ function parsePort(str) {
     }
     const port = Number(str)
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        log(`Invalid --port: '${str}'`)
+        BrowserBridge.log(`Invalid --port: '${str}'`)
         process.exit(1)
     }
     return port
@@ -70,7 +70,7 @@ function parseCliArgs(args) {
     try {
         return parseArgs({args, options: CLI_OPTIONS, strict: true, allowPositionals: false}).values
     } catch (e) {
-        log(`Invalid command-line arguments: ${e.message}`)
+        BrowserBridge.log(`Invalid command-line arguments: ${e.message}`)
         process.exit(1)
     }
 }
@@ -81,18 +81,27 @@ const allowedOrigins = [
     ...DEFAULT_ALLOWED_ORIGINS,
     ...(cliArgs.origins ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0),
 ]
-const allowedDirs = parseAllowedDirs(cliArgs['files-dirs'])
+const allowedDirs = FileServer.parseAllowedDirs(cliArgs['files-dirs'])
 // undefined if loading local files is disabled.
-const fileServer = allowedDirs.length === 0 ? undefined : new FileServer({
+const fileServer = allowedDirs.length === 0 ? undefined : FileServer.make({
     allowedDirs,
-    isOriginAllowed: origin => isOriginAllowed(origin, allowedOrigins),
+    isOriginAllowed: origin => BrowserBridge.isOriginAllowed(origin, allowedOrigins),
 })
 const fileServerBaseUrl = `http://127.0.0.1:${port}`
-const bridge = new BrowserBridge({
+const bridge = BrowserBridge.make({
     port,
     allowedOrigins,
-    httpHandler: fileServer === undefined ? undefined : (req, res) => fileServer.handleRequest(req, res),
+    httpHandler: fileServer === undefined
+        ? undefined
+        : (req, res) => FileServer.handleRequest(fileServer, req, res),
 })
+
+/*
+* Calls a metamath-lamp API function in the connected browser tab, see BrowserBridge.call.
+* */
+function callBridge(params) {
+    return BrowserBridge.call(bridge, params)
+}
 
 function textResult(text) {
     return {content: [{type: 'text', text}]}
@@ -108,7 +117,7 @@ function errorResult(text) {
 * */
 function withConnectedTab(handler) {
     return async (args, extra) => {
-        const notConnectedErr = await bridge.ensureConnected()
+        const notConnectedErr = await BrowserBridge.ensureConnected(bridge)
         if (notConnectedErr !== undefined) {
             return errorResult(notConnectedErr)
         }
@@ -121,7 +130,7 @@ function withConnectedTab(handler) {
 * Resolves to the API response: res is [{tabId, type, title, isVisible}].
 * */
 function listTabs() {
-    return bridge.call({path: 'tabs.list', timeoutMs: LIST_TABS_TIMEOUT_MS})
+    return callBridge({path: 'tabs.list', timeoutMs: LIST_TABS_TIMEOUT_MS})
 }
 
 /*
@@ -131,7 +140,7 @@ function listTabs() {
 * Resolves to the API response: res is the id of the new tab.
 * */
 function createEditorTab({open, title}) {
-    return bridge.call({
+    return callBridge({
         path: 'tabs.createEditorTab',
         params: {open, title},
         timeoutMs: CREATE_EDITOR_TAB_TIMEOUT_MS,
@@ -143,7 +152,7 @@ function createEditorTab({open, title}) {
 * Resolves to the API response: res is true if the tab was closed.
 * */
 function closeTab({tabId}) {
-    return bridge.call({
+    return callBridge({
         path: 'tabs.close',
         params: {tabId, askConfirmation: false},
         timeoutMs: CLOSE_TAB_TIMEOUT_MS,
@@ -155,7 +164,7 @@ function closeTab({tabId}) {
 * Resolves to the API response: res is null.
 * */
 function openTab({tabId}) {
-    return bridge.call({path: 'tabs.open', params: {tabId}, timeoutMs: OPEN_TAB_TIMEOUT_MS})
+    return callBridge({path: 'tabs.open', params: {tabId}, timeoutMs: OPEN_TAB_TIMEOUT_MS})
 }
 
 /*
@@ -163,7 +172,7 @@ function openTab({tabId}) {
 * Resolves to the API response: res is null.
 * */
 function renameTab({tabId, title}) {
-    return bridge.call({path: 'tabs.rename', params: {tabId, title}, timeoutMs: RENAME_TAB_TIMEOUT_MS})
+    return callBridge({path: 'tabs.rename', params: {tabId, title}, timeoutMs: RENAME_TAB_TIMEOUT_MS})
 }
 
 /*
@@ -172,7 +181,7 @@ function renameTab({tabId, title}) {
 * The compressed proof dialog is suppressed, so it does not pop up in the browser when the goal gets proved.
 * */
 function unifyAll({tabId}) {
-    return bridge.call({
+    return callBridge({
         path: 'editor.unifyAll', tabId, params: {showProofDialog: false}, timeoutMs: UNIFY_ALL_TIMEOUT_MS
     })
 }
@@ -183,7 +192,7 @@ function unifyAll({tabId}) {
 * Resolves to the API response: res is the editor state as returned by api.editor().getState().
 * */
 function getEditorState({tabId, includeDescription = false}) {
-    return bridge.call({
+    return callBridge({
         path: 'editor.getState', tabId, params: {includeDescription}, timeoutMs: GET_STATE_TIMEOUT_MS
     })
 }
@@ -193,7 +202,7 @@ function getEditorState({tabId, includeDescription = false}) {
 * Resolves to the API response: res is the proof text as returned by api.editor().getCompressedProof().
 * */
 function getCompressedProof({tabId, label, includeDescription}) {
-    return bridge.call({
+    return callBridge({
         path: 'editor.getCompressedProof',
         tabId,
         params: {label, includeDescription},
@@ -209,7 +218,7 @@ function getCompressedProof({tabId, label, includeDescription}) {
 * Resolves to the API response: res is the array of labels of the added steps.
 * */
 function addSteps({tabId, atIdx, vars, steps}) {
-    return bridge.call({path: 'editor.addSteps', tabId, params: {atIdx, vars, steps}, timeoutMs: ADD_STEPS_TIMEOUT_MS})
+    return callBridge({path: 'editor.addSteps', tabId, params: {atIdx, vars, steps}, timeoutMs: ADD_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -219,7 +228,7 @@ function addSteps({tabId, atIdx, vars, steps}) {
 * Resolves to the API response: res is true.
 * */
 function updateSteps({tabId, steps}) {
-    return bridge.call({path: 'editor.updateSteps', tabId, params: {steps}, timeoutMs: UPDATE_STEPS_TIMEOUT_MS})
+    return callBridge({path: 'editor.updateSteps', tabId, params: {steps}, timeoutMs: UPDATE_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -228,7 +237,7 @@ function updateSteps({tabId, steps}) {
 * Resolves to the API response: res is null.
 * */
 function deleteSteps({tabId, labels}) {
-    return bridge.call({path: 'editor.deleteSteps', tabId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
+    return callBridge({path: 'editor.deleteSteps', tabId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -236,7 +245,7 @@ function deleteSteps({tabId, labels}) {
 * Resolves to the API response: res is null.
 * */
 function setDescription({tabId, descr}) {
-    return bridge.call({path: 'editor.setDescription', tabId, params: {descr}, timeoutMs: SET_DESCRIPTION_TIMEOUT_MS})
+    return callBridge({path: 'editor.setDescription', tabId, params: {descr}, timeoutMs: SET_DESCRIPTION_TIMEOUT_MS})
 }
 
 /*
@@ -245,7 +254,7 @@ function setDescription({tabId, descr}) {
 * Resolves to the API response: res is null.
 * */
 function setDisjoints({tabId, disj}) {
-    return bridge.call({path: 'editor.setDisjoints', tabId, params: {disj}, timeoutMs: SET_DISJOINTS_TIMEOUT_MS})
+    return callBridge({path: 'editor.setDisjoints', tabId, params: {disj}, timeoutMs: SET_DISJOINTS_TIMEOUT_MS})
 }
 
 /*
@@ -254,7 +263,7 @@ function setDisjoints({tabId, disj}) {
 * Resolves to the API response: res is null.
 * */
 function setLocation({tabId, place, label}) {
-    return bridge.call({path: 'editor.setLocation', tabId, params: {place, label}, timeoutMs: SET_LOCATION_TIMEOUT_MS})
+    return callBridge({path: 'editor.setLocation', tabId, params: {place, label}, timeoutMs: SET_LOCATION_TIMEOUT_MS})
 }
 
 /*
@@ -266,7 +275,7 @@ function setLocation({tabId, place, label}) {
 * {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
 * */
 function findAssertions({pattern, pageNum, pageSize, editorTabId}) {
-    return bridge.call({
+    return callBridge({
         path: 'explorer.findAssertions',
         params: {pattern, pageNum, pageSize, editorTabId},
         timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS,
@@ -279,7 +288,7 @@ function findAssertions({pattern, pageNum, pageSize, editorTabId}) {
 * Resolves to the API response: res is {summary, numOfAsrts}.
 * */
 function loadContext({srcs}) {
-    return bridge.call({path: 'context.load', params: {srcs}, timeoutMs: LOAD_CONTEXT_TIMEOUT_MS})
+    return callBridge({path: 'context.load', params: {srcs}, timeoutMs: LOAD_CONTEXT_TIMEOUT_MS})
 }
 
 /*
@@ -300,7 +309,7 @@ async function srcToUrl(src) {
                 + 'Ask the user to pass the --files-dirs argument to the MCP server.'
         }
     }
-    return fileServer.localSrcToUrl(src, fileServerBaseUrl)
+    return FileServer.localSrcToUrl(fileServer, src, fileServerBaseUrl)
 }
 
 /*
@@ -1011,7 +1020,7 @@ Each source is a file given as:
 * a local file, as an absolute path or a file:// URL, e.g. /home/user/mm/set.mm. \
 ${fileServer === undefined
     ? 'Loading local files is currently disabled (no allowed directories are configured).'
-    : `Local files can be loaded only from the allowed directories: ${fileServer.describeAllowedDirs()}.`}
+    : `Local files can be loaded only from the allowed directories: ${FileServer.describeAllowedDirs(fileServer)}.`}
 
 Several sources are loaded one after another into one context, in the given order. \
 Files included via \`$[ ... $]\` are loaded automatically, relative to the including file. \

@@ -1,4 +1,4 @@
-// Connection of this browser tab to the metamath-lamp MCP server (mcp-bridge/server.js).
+// Connection of this browser tab to the metamath-lamp MCP server (mcp-bridge/src/server.js).
 // The MCP server forwards tool calls to this tab, and this tab executes them via MM_api.api.
 // There is at most one connection per browser tab.
 

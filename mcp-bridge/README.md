@@ -3,7 +3,7 @@
 An MCP server which lets AI agents work with metamath-lamp opened in a browser tab.
 
 ```
-Agent  --MCP over stdio-->  server.js  --WebSocket 127.0.0.1:8765-->  browser tab (MCP tab)  -->  window.api
+Agent  --MCP over stdio-->  src/server.js  --WebSocket 127.0.0.1:8765-->  browser tab (MCP tab)  -->  window.api
 ```
 
 The browser tab does all the work.
@@ -65,7 +65,7 @@ Use `list_tabs` to find the ids.
   Results are paginated, 100 assertions per page.
   The full result of the last search is cached in the browser tab,
   so requesting other pages of the same pattern (in any editor scope) doesn't repeat the search.
-* `get_pattern_syntax` - returns the full description of the pattern syntax (from `pattern-syntax.md`).
+* `get_pattern_syntax` - returns the full description of the pattern syntax (from `src/pattern-syntax.md`).
 * `load_context` - replaces the loaded context with files given as http(s) URLs or local paths,
   optionally reading each file only up to `stopBefore` or `stopAfter` labels.
   Files included via `$[ ... $]` are loaded too.
@@ -80,10 +80,12 @@ Use `list_tabs` to find the ids.
    cd mcp-bridge
    npm install
    ```
+   This also compiles the ReScript sources in `src` (the `prepare` script).
+   After changing them, run `npm run compile`.
 2. Register the server in your agent.
    For Claude Code:
    ```
-   claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js
+   claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/src/server.js
    ```
    The MCP tab of metamath-lamp (see the next step) can build this command for you,
    including the arguments described in [Configuration](#configuration).
@@ -99,7 +101,7 @@ because browsers slow down background tabs.
 
 ## Configuration
 
-Command-line arguments of `server.js`.
+Command-line arguments of `src/server.js`.
 If an option is given more than once, the last occurrence overrides the previous ones.
 For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists are not merged).
 
@@ -118,7 +120,7 @@ For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists ar
   cannot point to a file outside of them.
   For example:
   ```
-  claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/server.js --files-dirs ~/metamath
+  claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/src/server.js --files-dirs ~/metamath
   ```
 
 ## Trusted URLs
