@@ -53,6 +53,9 @@ Use `list_tabs` to find the ids.
   Returns the editor state after "Unify All".
 * `set_description` - replaces the description of an editor tab.
   An empty string clears it.
+* `set_disjoints` - replaces all disjoint variable groups of an editor tab.
+  An empty list removes all disjoints.
+  Returns the editor state after "Unify All".
 * `find_assertions` - searches assertions by a pattern, excluding discouraged and deprecated ones.
   With `editorTabId`, only assertions which can be used in that editor tab are returned,
   otherwise the whole loaded context is searched.

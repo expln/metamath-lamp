@@ -34,6 +34,7 @@ const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
 const SET_DESCRIPTION_TIMEOUT_MS = 10_000
+const SET_DISJOINTS_TIMEOUT_MS = 10_000
 const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
 const FIND_ASSERTIONS_PAGE_SIZE = 100
 // Includes downloading and parsing the files, loading the context,
@@ -235,6 +236,15 @@ function deleteSteps({tabId, labels}) {
 * */
 function setDescription({tabId, descr}) {
     return bridge.call({path: 'editor.setDescription', tabId, params: {descr}, timeoutMs: SET_DESCRIPTION_TIMEOUT_MS})
+}
+
+/*
+* Replaces the disjoint variable groups of an editor tab.
+* disj - [[var1, var2, ...]], one array per group.
+* Resolves to the API response: res is null.
+* */
+function setDisjoints({tabId, disj}) {
+    return bridge.call({path: 'editor.setDisjoints', tabId, params: {disj}, timeoutMs: SET_DISJOINTS_TIMEOUT_MS})
 }
 
 /*
@@ -812,6 +822,45 @@ Pass an empty string to clear the description.`,
             return errorResult(`Could not set the description: ${resp.err}`)
         }
         return textResult(descr === '' ? 'Cleared the description.' : 'Set the description.')
+    })
+)
+
+server.registerTool(
+    'set_disjoints',
+    {
+        title: 'Set disjoints',
+        description: `Replaces all disjoint variable groups of a metamath-lamp editor tab. \
+Each group is a list of variables which must be pairwise distinct (as in a Metamath \`$d\` statement). \
+Existing groups are discarded, so pass all groups which the editor must have. \
+Pass an empty list to remove all disjoints.
+
+After setting, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
+(only relevant steps). Errors in disjoints are shown in the Disjoints section.`,
+        inputSchema: {
+            disj: z.array(
+                z.array(z.string().trim().regex(/^\S+$/, 'A variable must be a non-empty string without spaces.'))
+                    .min(2)
+            ).describe('Disjoint variable groups, e.g. [["x", "y"], ["x", "A", "B"]].'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({disj, tabId}) => {
+        const resp = await setDisjoints({tabId, disj})
+        if (!resp.isOk) {
+            return errorResult(`Could not set the disjoints: ${resp.err}`)
+        }
+        return editorStateResult({
+            tabId,
+            unifyFirst: true,
+            onlyRelevantSteps: true,
+            notes: [disj.length === 0 ? 'Removed all disjoints.' : `Set ${disj.length} disjoint variable groups.`],
+        })
     })
 )
 
