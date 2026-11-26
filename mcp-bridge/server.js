@@ -177,10 +177,13 @@ function unifyAll({tabId}) {
 
 /*
 * Reads the state of an editor tab.
+* includeDescription - include the description of the editor (it may be long, so it is omitted by default).
 * Resolves to the API response: res is the editor state as returned by api.editor().getState().
 * */
-function getEditorState({tabId}) {
-    return bridge.call({path: 'editor.getState', tabId, timeoutMs: GET_STATE_TIMEOUT_MS})
+function getEditorState({tabId, includeDescription = false}) {
+    return bridge.call({
+        path: 'editor.getState', tabId, params: {includeDescription}, timeoutMs: GET_STATE_TIMEOUT_MS
+    })
 }
 
 /*
@@ -299,7 +302,7 @@ function assertionToText({label, isAxiom, disj, hyps, asrt}) {
 * Optionally runs 'Unify All', then reads the editor state and returns it as a tool result in the text format.
 * notes - additional lines to show at the top of the state.
 * */
-async function editorStateResult({tabId, unifyFirst, onlyRelevantSteps, notes = []}) {
+async function editorStateResult({tabId, unifyFirst, onlyRelevantSteps, includeDescription = false, notes = []}) {
     notes = [...notes]
     if (unifyFirst) {
         const unifyResp = await unifyAll({tabId})
@@ -310,7 +313,7 @@ async function editorStateResult({tabId, unifyFirst, onlyRelevantSteps, notes = 
             notes.push("'Unify All' could not start (another action may be running), statuses may be outdated.")
         }
     }
-    const stateResp = await getEditorState({tabId})
+    const stateResp = await getEditorState({tabId, includeDescription})
     if (!stateResp.isOk) {
         return errorResult(`Could not get the editor state: ${stateResp.err}`)
     }
@@ -494,8 +497,8 @@ server.registerTool(
     'get_editor_state',
     {
         title: 'Get editor state',
-        description: `Returns the content of a metamath-lamp editor tab: description, local variables, \
-disjoint variable groups, and proof steps.
+        description: `Returns the content of a metamath-lamp editor tab: local variables, \
+disjoint variable groups, proof steps, and optionally the description (only with includeDescription=true).
 
 The \`Scope:\` line shows which assertions of the database can be used in justifications in this editor \
 (all assertions, or only those before or up to some label). \
@@ -528,6 +531,9 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
                 'Show only bookmarked steps, hypotheses, the goal, unproved steps, and steps with errors. '
                 + 'Use it to save context on large proofs when only the unfinished part matters.'
             ),
+            includeDescription: z.boolean().default(false).describe(
+                'Include the description of the editor. It may be long, so pass true only when you need it.'
+            ),
             tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
         },
         annotations: {
@@ -537,8 +543,8 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({unifyFirst, onlyRelevantSteps, tabId}) => {
-        return editorStateResult({tabId, unifyFirst, onlyRelevantSteps})
+    withConnectedTab(async ({unifyFirst, onlyRelevantSteps, includeDescription, tabId}) => {
+        return editorStateResult({tabId, unifyFirst, onlyRelevantSteps, includeDescription})
     })
 )
 

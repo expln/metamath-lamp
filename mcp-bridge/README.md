@@ -35,6 +35,8 @@ Use `list_tabs` to find the ids.
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.
+  The editor description is included only with `includeDescription` (false by default),
+  because it may be long.
 * `get_compressed_proof` - returns the compressed proof of a proved step as a Metamath `$p` statement,
   the same text as in the "Show completed proof" dialog without the proof table and with only the used hypotheses.
   The editor description is included as a comment only with `includeDescription` (false by default).

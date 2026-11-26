@@ -126,7 +126,7 @@ let getAllSteps = (~state:editorState):JSON.t => {
 }
 
 let stateCached:Belt_HashMapString.t<editorState> = Belt_HashMapString.make(~hintSize=4)
-let stateJsonCached:Belt_HashMapString.t<JSON.t> = Belt_HashMapString.make(~hintSize=4)
+let stateJsonCached:Belt_HashMapString.t<Dict.t<JSON.t>> = Belt_HashMapString.make(~hintSize=4)
 let locationToScopeDescr = (loc:location):string => {
     switch loc {
         | Before(label) => `assertions before '${label}'`
@@ -135,7 +135,8 @@ let locationToScopeDescr = (loc:location):string => {
     }
 }
 
-let getEditorState = (~tabId:string, ~state:editorState):promise<result<JSON.t,string>> => {
+// The result is cached, so it must not be mutated.
+let getEditorStateDict = (~tabId:string, ~state:editorState):Dict.t<JSON.t> => {
     let cachedResult = switch stateCached->Belt_HashMapString.get(tabId) {
         | None => None
         | Some(stateCached) => {
@@ -147,7 +148,7 @@ let getEditorState = (~tabId:string, ~state:editorState):promise<result<JSON.t,s
         }
     }
     switch cachedResult {
-        | Some(cachedResult) => Promise.resolve(Ok(cachedResult))
+        | Some(cachedResult) => cachedResult
         | None => {
             let stmtIdToLabel = Belt_HashMapString.fromArray(
                 state.stmts->Array.map(stmt => (stmt.id, stmt.label))
@@ -187,10 +188,43 @@ let getEditorState = (~tabId:string, ~state:editorState):promise<result<JSON.t,s
                         ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->JSON.Encode.string)
                         ->JSON.Encode.array
                 ),
-            ])->JSON.Encode.object
+            ])
             stateCached->Belt_HashMapString.set(tabId, state)
             stateJsonCached->Belt_HashMapString.set(tabId, stateJson)
-            Promise.resolve(Ok(stateJson))
+            stateJson
+        }
+    }
+}
+
+/*
+* Returns the state of an editor as a JSON object.
+* params: optional {includeDescription?:bool}.
+* The description is included only when includeDescription is true (false by default),
+* because it may be long, and usually it is not needed.
+* */
+let getEditorState = (~tabId:string, ~state:editorState, ~params:apiInput):promise<result<JSON.t,string>> => {
+    // Params are optional: macros call getState() without arguments.
+    let includeDescription:result<bool,string> = switch params->apiInputToNullableObj->Nullable.toOption {
+        | None => Ok(false)
+        | Some(_) => {
+            open Expln_utils_jsonParse
+            fromJson(params->apiInputToJson, asObj(_, d=>{
+                d->bool("includeDescription", ~default=()=>false)
+            }))
+        }
+    }
+    switch includeDescription {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(includeDescription) => {
+            let stateDict = getEditorStateDict(~tabId, ~state)
+            let stateDict = if (includeDescription) {
+                stateDict
+            } else {
+                let stateDict = stateDict->Dict.copy
+                stateDict->Dict.delete("descr")
+                stateDict
+            }
+            Promise.resolve(Ok(stateDict->JSON.Encode.object))
         }
     }
 }
@@ -1340,7 +1374,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let addAsrtByLabel = editorData.addAsrtByLabel
 
     {
-        "getState": makeApiFunc("editor.getState", _ => getEditorState(~tabId, ~state)),
+        "getState": makeApiFunc("editor.getState", params => getEditorState(~tabId, ~state, ~params)),
         "proveBottomUp": makeApiFunc(
             "editor.proveBottomUp",
             params => proveBottomUp( ~paramsJson=params, ~state, ~canStartProvingBottomUp, ~startProvingBottomUp, )
