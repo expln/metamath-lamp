@@ -19,6 +19,7 @@ https://ss64.com/nt/copy.html
 cd mcp-bridge
 npm run rescript-clean
 npm run compile
+npm run test
 
 - npm run rescript-clean runs rescript clean. It deletes the generated src/*.res.mjs files and the build cache in lib/.
 - npm run compile runs rescript. It compiles src/*.res into src/*.res.mjs.

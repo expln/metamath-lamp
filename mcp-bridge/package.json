@@ -10,7 +10,8 @@
     "prepare": "rescript",
     "compile": "rescript",
     "rescript-clean": "rescript clean",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "rescript && node --test test/*_test.res.mjs"
   },
   "engines": {
     "node": ">=18"
