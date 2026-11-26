@@ -33,6 +33,7 @@ const RENAME_TAB_TIMEOUT_MS = 10_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
+const SET_DESCRIPTION_TIMEOUT_MS = 10_000
 const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
 const FIND_ASSERTIONS_PAGE_SIZE = 100
 // Includes downloading and parsing the files, loading the context,
@@ -223,6 +224,14 @@ function updateSteps({tabId, steps}) {
 * */
 function deleteSteps({tabId, labels}) {
     return bridge.call({path: 'editor.deleteSteps', tabId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
+}
+
+/*
+* Replaces the description of an editor tab.
+* Resolves to the API response: res is null.
+* */
+function setDescription({tabId, descr}) {
+    return bridge.call({path: 'editor.setDescription', tabId, params: {descr}, timeoutMs: SET_DESCRIPTION_TIMEOUT_MS})
 }
 
 /*
@@ -768,6 +777,35 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
             onlyRelevantSteps: true,
             notes: [`Deleted steps: ${labels.join(' ')}`],
         })
+    })
+)
+
+server.registerTool(
+    'set_description',
+    {
+        title: 'Set description',
+        description: `Replaces the description of a metamath-lamp editor tab. \
+The description is free text shown at the top of the editor. \
+It is saved with the editor content and may be included as a comment in the compressed proof \
+(see get_compressed_proof). \
+Pass an empty string to clear the description.`,
+        inputSchema: {
+            descr: z.string().describe('New description of the editor. An empty string clears it.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({descr, tabId}) => {
+        const resp = await setDescription({tabId, descr})
+        if (!resp.isOk) {
+            return errorResult(`Could not set the description: ${resp.err}`)
+        }
+        return textResult(descr === '' ? 'Cleared the description.' : 'Set the description.')
     })
 )
 

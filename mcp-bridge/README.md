@@ -49,6 +49,8 @@ Use `list_tabs` to find the ids.
 * `delete_steps` - deletes steps by labels.
   If any label doesn't exist, nothing is deleted.
   Returns the editor state after "Unify All".
+* `set_description` - replaces the description of an editor tab.
+  An empty string clears it.
 * `find_assertions` - searches assertions by a pattern, excluding discouraged and deprecated ones.
   With `editorTabId`, only assertions which can be used in that editor tab are returned,
   otherwise the whole loaded context is searched.
