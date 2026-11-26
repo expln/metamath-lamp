@@ -12,6 +12,7 @@ type request =
         isAxiom:option<bool>,
         typ:option<int>, 
         label:string, 
+        strictLabel:string,
         pattern:string,
         patternVersion:int,
         isDisc:option<bool>,
@@ -25,8 +26,8 @@ type response =
 
 let reqToStr = req => {
     switch req {
-        | FindAssertions({label, pattern}) => 
-            `FindAssertions(label="${label}", pattern=${pattern})`
+        | FindAssertions({label, strictLabel, pattern}) => 
+            `FindAssertions(label="${label}", strictLabel="${strictLabel}", pattern=${pattern})`
     }
 }
 
@@ -45,6 +46,7 @@ let searchAssertions = (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
+    ~strictLabel:string="",
     ~pattern:string,
     ~patternVersion:int,
     ~isDisc:option<bool>,
@@ -62,7 +64,7 @@ let searchAssertions = (
             ~disjText="",
             ~procName,
             ~initialRequest = FindAssertions({
-                isAxiom, typ, label, pattern, patternVersion, isDisc, isDepr, isTranDepr
+                isAxiom, typ, label, strictLabel, pattern, patternVersion, isDisc, isDepr, isTranDepr
             }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
@@ -139,6 +141,7 @@ let doSearchAssertions = (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
+    ~strictLabel:string="",
     ~pattern:string,
     ~patternVersion:int,
     ~ctx:mmContext,
@@ -157,6 +160,9 @@ let doSearchAssertions = (
 
     let labelParts = label->String.trim->String.toLowerCase
         ->String.splitByRegExp(/\s+/)->Array.filterMap(x => x)->Array.filter(s => s != "")
+    let strictLabels = strictLabel->String.trim
+        ->String.splitByRegExp(/\s+/)->Array.filterMap(x => x)->Array.filter(s => s != "")
+        ->Belt_HashSetString.fromArray
     allFramesInDeclarationOrder->Array.map(frame => {
         switch onProgress {
             | None => ()
@@ -173,6 +179,7 @@ let doSearchAssertions = (
                 let frameLabel = frame.label->String.toLowerCase
                 labelParts->Array.some(part => frameLabel->String.includes(part))
             })
+            && (strictLabels->Belt_HashSetString.size == 0 || strictLabels->Belt_HashSetString.has(frame.label))
             && (threeStateBoolMatchesTwoStateBool(isDisc, frame.isDisc))
             && (threeStateBoolMatchesTwoStateBool(isDepr, frame.isDepr))
             && (threeStateBoolMatchesTwoStateBool(isTranDepr, frame.isTranDepr))
@@ -190,12 +197,15 @@ let doSearchAssertions = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({isAxiom, typ, label, pattern, patternVersion, isDisc, isDepr, isTranDepr}) => {
+        | FindAssertions({
+            isAxiom, typ, label, strictLabel, pattern, patternVersion, isDisc, isDepr, isTranDepr
+        }) => {
             let filteredFrames = doSearchAssertions(
                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
                 ~isAxiom,
                 ~typ,
                 ~label,
+                ~strictLabel,
                 ~pattern,
                 ~patternVersion,
                 ~ctx=getWrkCtxExn(),

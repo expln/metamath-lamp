@@ -15,6 +15,8 @@ let doSearchAssertions: (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
+    // Whitespace separated labels; if not empty, only assertions with one of these labels (exact match) are returned.
+    ~strictLabel:string=?,
     ~pattern:string,
     ~patternVersion:int,
     ~ctx:mmContext,
@@ -32,6 +34,8 @@ let searchAssertions: (
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
     ~label:string, 
+    // Whitespace separated labels; if not empty, only assertions with one of these labels (exact match) are returned.
+    ~strictLabel:string=?,
     ~pattern:string,
     ~patternVersion:int,
     ~isDisc:option<bool>,

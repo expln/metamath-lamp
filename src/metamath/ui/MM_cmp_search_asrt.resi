@@ -3,6 +3,7 @@ let searchAssertions: (
     ~preCtxData: MM_wrk_pre_ctx_data.preCtxData,
     ~typ: option<int>,
     ~label: string,
+    ~strictLabel: string=?,
     ~patternStr: string,
     ~patternVersion: int,
     ~isDisc: bool=?,

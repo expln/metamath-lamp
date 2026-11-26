@@ -59,14 +59,15 @@ Use `list_tabs` to find the ids.
 * `set_location` - sets which assertions can be used in an editor tab:
   those `before` a label, those up to and including (`after`) a label, or all of them (`last`).
   Returns the editor state after "Unify All".
-* `find_assertions` - searches assertions by a pattern and/or a label, excluding discouraged and deprecated ones.
-  Both `pattern` and `label` are optional.
+* `find_assertions` - searches assertions by a pattern and/or labels, excluding discouraged and deprecated ones.
+  `pattern`, `label`, and `strictLabel` are optional.
   With `editorTabId`, only assertions which can be used in that editor tab are returned,
   otherwise the whole loaded context is searched.
   With `label`, only assertions whose label contains at least one of its space-separated parts are returned.
+  With `strictLabel`, only assertions whose label is equal to one of its space-separated labels are returned.
   Results are paginated, 100 assertions per page.
   The full result of the last search is cached in the browser tab,
-  so requesting other pages of the same pattern and label (in any editor scope) doesn't repeat the search.
+  so requesting other pages of the same pattern and labels (in any editor scope) doesn't repeat the search.
 * `get_pattern_syntax` - returns the full description of the pattern syntax (from `src/pattern-syntax.md`).
 * `load_context` - replaces the loaded context with files given as http(s) URLs or local paths,
   optionally reading each file only up to `stopBefore` or `stopAfter` labels.

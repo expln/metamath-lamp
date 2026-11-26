@@ -34,7 +34,7 @@ let defaultPageSize = 100
 
 type backend = {
     preCtxData:preCtxData,
-    searchAssertions:(~label:string, ~pattern:string)=>promise<result<array<frame>,string>>,
+    searchAssertions:(~label:string, ~strictLabel:string, ~pattern:string)=>promise<result<array<frame>,string>>,
     getEditorScope:string=>result<(int,string),string>,
 }
 
@@ -42,6 +42,7 @@ type cachedSearchResult = {
     settingsVer:int,
     preCtxVer:int,
     label:string,
+    strictLabel:string,
     pattern:string,
     frms:array<frame>,
 }
@@ -50,20 +51,22 @@ type cachedSearchResult = {
 // Results are not limited by an editor scope, so the same cached result is used for all editors.
 let lastSearchResult:ref<option<cachedSearchResult>> = ref(None)
 
-let searchWithCache = (~backend:backend, ~label:string, ~pattern:string):promise<result<array<frame>,string>> => {
+let searchWithCache = (
+    ~backend:backend, ~label:string, ~strictLabel:string, ~pattern:string
+):promise<result<array<frame>,string>> => {
     let settingsVer = backend.preCtxData.settingsV.ver
     let preCtxVer = backend.preCtxData.ctxV.ver
     switch lastSearchResult.contents {
         | Some(cached) if
             cached.settingsVer == settingsVer && cached.preCtxVer == preCtxVer
-                && cached.label == label && cached.pattern == pattern => {
+                && cached.label == label && cached.strictLabel == strictLabel && cached.pattern == pattern => {
             Promise.resolve(Ok(cached.frms))
         }
         | _ => {
-            backend.searchAssertions(~label, ~pattern)->Promise.thenResolve(res => {
+            backend.searchAssertions(~label, ~strictLabel, ~pattern)->Promise.thenResolve(res => {
                 switch res {
                     | Error(_) => ()
-                    | Ok(frms) => lastSearchResult := Some({settingsVer, preCtxVer, label, pattern, frms})
+                    | Ok(frms) => lastSearchResult := Some({settingsVer, preCtxVer, label, strictLabel, pattern, frms})
                 }
                 res
             })
@@ -72,9 +75,9 @@ let searchWithCache = (~backend:backend, ~label:string, ~pattern:string):promise
 }
 
 let searchAssertions = (
-    ~backend:backend, ~label:string, ~pattern:string, ~maxFrmOrd:option<int>
+    ~backend:backend, ~label:string, ~strictLabel:string, ~pattern:string, ~maxFrmOrd:option<int>
 ):promise<result<array<frame>,string>> => {
-    searchWithCache(~backend, ~label, ~pattern)->Promise.thenResolve(frms => frms->Result.map(frms => {
+    searchWithCache(~backend, ~label, ~strictLabel, ~pattern)->Promise.thenResolve(frms => frms->Result.map(frms => {
         switch maxFrmOrd {
             | None => frms
             | Some(maxFrmOrd) => frms->Array.filter(frm => frm.ord <= maxFrmOrd)
@@ -86,10 +89,14 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
     open Expln_utils_jsonParse
     let positive = (name:string, i:int):result<int,string> =>
         if (i < 1) { Error(`'${name}' must be a positive integer.`) } else { Ok(i) }
-    let parseResult:result<{"label":string, "pattern":string, "pageNum":int, "pageSize":int, "editorTabId":option<string>},string> =
+    let parseResult:result<{
+        "label":string, "strictLabel":string, "pattern":string, "pageNum":int, "pageSize":int,
+        "editorTabId":option<string>
+    },string> =
         fromJson(params->apiInputToJson, asObj(_, d=>{
             {
                 "label": d->strOpt("label")->Option.getOr(""),
+                "strictLabel": d->strOpt("strictLabel")->Option.getOr(""),
                 "pattern": d->strOpt("pattern")->Option.getOr(""),
                 "pageNum": d->int("pageNum", ~default=()=>1, ~validator=positive("pageNum", _)),
                 "pageSize": d->int("pageSize", ~default=()=>defaultPageSize, ~validator=positive("pageSize", _)),
@@ -110,7 +117,11 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
                     let pageSize = parsedParams["pageSize"]
                     let maxFrmOrd = scope->Option.map(((maxFrmOrd,_)) => maxFrmOrd)
                     searchAssertions(
-                        ~backend, ~label=parsedParams["label"], ~pattern=parsedParams["pattern"], ~maxFrmOrd
+                        ~backend,
+                        ~label=parsedParams["label"],
+                        ~strictLabel=parsedParams["strictLabel"],
+                        ~pattern=parsedParams["pattern"],
+                        ~maxFrmOrd,
                     )
                         ->Promise.thenResolve(frms => frms->Result.map(frms => {
                             let totalCount = frms->Array.length
@@ -145,7 +156,7 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
 
 let updateExplorerApi = (
     ~preCtxData:preCtxData,
-    ~searchAssertions:(~label:string, ~pattern:string)=>promise<result<array<frame>,string>>,
+    ~searchAssertions:(~label:string, ~strictLabel:string, ~pattern:string)=>promise<result<array<frame>,string>>,
     ~getEditorScope:string=>result<(int,string),string>,
 ):unit => {
     let backend = {preCtxData, searchAssertions, getEditorScope}

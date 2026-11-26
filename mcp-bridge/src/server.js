@@ -272,20 +272,22 @@ function isBlank(str) {
 }
 
 /*
-* Searches assertions by a pattern and a label (discouraged and deprecated assertions are excluded).
+* Searches assertions by a pattern and labels (discouraged and deprecated assertions are excluded).
 * pattern - if undefined or blank, assertions are not filtered by a pattern.
 * label - if defined and not blank, only assertions whose label contains at least one of
 * its space-separated parts (case-insensitive) are returned.
+* strictLabel - if defined and not blank, only assertions whose label is equal to
+* one of its space-separated labels (case-sensitive) are returned.
 * editorTabId - if defined, only assertions which can be used in that editor tab are returned;
 * if undefined, the whole loaded context is searched.
 * pageNum is 1-based.
 * Resolves to the API response: res is
 * {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
 * */
-function findAssertions({label, pattern, pageNum, pageSize, editorTabId}) {
+function findAssertions({label, strictLabel, pattern, pageNum, pageSize, editorTabId}) {
     return callBridge({
         path: 'explorer.findAssertions',
-        params: {label, pattern, pageNum, pageSize, editorTabId},
+        params: {label, strictLabel, pattern, pageNum, pageSize, editorTabId},
         timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS,
     })
 }
@@ -905,9 +907,9 @@ server.registerTool(
     'find_assertions',
     {
         title: 'Find assertions',
-        description: `Searches assertions (theorems and axioms) by a pattern and/or a label \
+        description: `Searches assertions (theorems and axioms) by a pattern and/or labels \
 in the loaded Metamath database. Discouraged and deprecated assertions are excluded. \
-Both pattern and label are optional; an assertion is returned only if it matches all given criteria.
+pattern, label, and strictLabel are optional; an assertion is returned only if it matches all given criteria.
 
 Pass editorTabId to return only assertions which can be used in that editor tab \
 (an editor may be limited to assertions declared before or up to some label). \
@@ -915,6 +917,10 @@ Without editorTabId, the whole database is searched.
 
 Pass label to return only assertions whose label contains (case-insensitive) at least one of \
 its space-separated parts, e.g. \`addcom addass\` returns assertions with \`addcom\` or \`addass\` in the label.
+
+Pass strictLabel to return only assertions whose label is equal (case-sensitive) to one of \
+its space-separated labels, e.g. \`ax-mp addcom\` returns exactly \`ax-mp\` and \`addcom\`. \
+Use it to look up known assertions.
 
 The simplest pattern is a space-separated sequence of math symbols, e.g. \`A + B = B + A\`. \
 Variables match any variable of the same type, typecodes match any variable of that type, \
@@ -936,6 +942,9 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             label: z.string().optional().describe(
                 'Space-separated parts of labels; only assertions whose label contains at least one part are returned.'
             ),
+            strictLabel: z.string().optional().describe(
+                'Space-separated labels; only assertions whose label is equal to one of them are returned.'
+            ),
             editorTabId: z.string().trim().min(1).optional().describe(
                 'Id of an editor tab to return only assertions available in it. Omit to search the whole database.'
             ),
@@ -947,9 +956,9 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({label, pattern, page, editorTabId}) => {
+    withConnectedTab(async ({label, strictLabel, pattern, page, editorTabId}) => {
         const resp = await findAssertions({
-            label, pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId
+            label, strictLabel, pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId
         })
         if (!resp.isOk) {
             return errorResult(`Could not find assertions: ${resp.err}`)
@@ -959,6 +968,7 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
         const criteria = [
             ...(isBlank(pattern) ? [] : [`the pattern '${pattern}'`]),
             ...(isBlank(label) ? [] : [`the label '${label}'`]),
+            ...(isBlank(strictLabel) ? [] : [`the strict label '${strictLabel}'`]),
         ].join(' and ')
         const matchText = criteria === '' ? 'found' : `match ${criteria}`
         if (totalCount === 0) {
