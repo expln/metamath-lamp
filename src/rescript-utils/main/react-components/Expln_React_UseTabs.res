@@ -107,7 +107,6 @@ let addNewTab = (
     }
     (
         {
-            ...st,
             tabs: newTabs->Array.map(tab => {
                 if (tab.id == st.activeTabId) {
                     {...tab, scrollX:window["scrollX"], scrollY:window["scrollY"]}
@@ -125,7 +124,6 @@ let addNewTab = (
 let openTab = (st:state<'a>, tabId):state<'a> => {
     if (st.tabs->Array.some(t => t.id == tabId)) {
         {
-            ...st,
             activeTabId:tabId,
             tabs: st.tabs->Array.map(tab => {
                 if (tab.id == st.activeTabId) {
@@ -191,7 +189,6 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
     let newTabs = st.tabs->Array.filter(t => t.id != tabId)
     let newTabHistory = st.tabHistory->Array.filter(id => id != tabId)
     {
-        ...st, 
         tabs: newTabs,
         activeTabId:
             if (newTabs->Array.length == 0) {

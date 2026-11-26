@@ -297,7 +297,6 @@ let contextFromUrlHasBeenReloaded = ref(false)
 @react.component
 let make = () => {
     let modalRef = useModalRef()
-    let (lastOpenedEditorTabId, setLastOpenedEditorTabId) = React.useState(() => None)
     let globalAddAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let globalMaxFrmOrd: React.ref<option<ref<int>>> = React.useRef(None)
 
@@ -325,7 +324,6 @@ let make = () => {
                         MM_api_editor.deleteEditor(tabId)
                         globalAddAsrtByLabel.current = None
                         globalMaxFrmOrd.current = None
-                        setLastOpenedEditorTabId(lastId => lastId == Some(tabId) ? None : lastId)
                     }
                     confirmed
                 })
@@ -411,7 +409,6 @@ let make = () => {
                 switch isEditorTab(tab.data) {
                     | None => ()
                     | Some({tabId, addAsrtByLabel, maxFrmOrd}) => {
-                        setLastOpenedEditorTabId(_ => Some(tabId))
                         MM_api_editor.setLastOpenedEditorTabId(tabId)
                         globalAddAsrtByLabel.current = addAsrtByLabel.contents->Option.map(addAsrtByLabelOrig => {
                             str => {
