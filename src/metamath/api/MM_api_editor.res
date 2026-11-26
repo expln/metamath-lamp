@@ -1315,14 +1315,14 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
 
 let editorsData: Belt_HashMapString.t<editorData> = Belt_HashMapString.make(~hintSize=1)
 
-let lastOpenedTabId:ref<option<string>> = ref(None)
+let lastOpenedEditorTabId:ref<option<string>> = ref(None)
 
-let setLastOpenedTabId = (tabId:string):unit => {
-    lastOpenedTabId := Some(tabId)
+let setLastOpenedEditorTabId = (tabId:string):unit => {
+    lastOpenedEditorTabId := Some(tabId)
 }
 
 let editorApi = (tabId:option<string>):singleEditorApi => {
-    switch tabId->Option.orElse(lastOpenedTabId.contents) {
+    switch tabId->Option.orElse(lastOpenedEditorTabId.contents) {
         | None => makeEmptySingleEditorApi("Cannot determine what editor tab to use.")
         | Some(tabId) => {
             switch editorsData->Belt_HashMapString.get(tabId) {
@@ -1348,8 +1348,8 @@ let getEditorScope = (tabId:string):result<(int,string),string> => {
 }
 
 let deleteEditor = (tabId:string):unit => {
-    if (lastOpenedTabId.contents == Some(tabId)) {
-        lastOpenedTabId := None
+    if (lastOpenedEditorTabId.contents == Some(tabId)) {
+        lastOpenedEditorTabId := None
     }
     editorsData->Belt_HashMapString.remove(tabId)
     stateCached->Belt_HashMapString.remove(tabId)

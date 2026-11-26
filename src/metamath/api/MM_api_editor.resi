@@ -25,7 +25,7 @@ Returns the scope of an editor: (maxFrmOrd, scope description).
 Only assertions with frame.ord <= maxFrmOrd can be used in the editor.
 */
 let getEditorScope: string => result<(int,string),string>
-let setLastOpenedTabId: string => unit
+let setLastOpenedEditorTabId: string => unit
 
 let updateEditorData: (
     ~tabId:string,
