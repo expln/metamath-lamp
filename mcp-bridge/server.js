@@ -24,6 +24,7 @@ const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
 const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
+const GET_COMPRESSED_PROOF_TIMEOUT_MS = 30_000
 const LIST_TABS_TIMEOUT_MS = 10_000
 const CREATE_EDITOR_TAB_TIMEOUT_MS = 30_000
 const CLOSE_TAB_TIMEOUT_MS = 10_000
@@ -179,6 +180,19 @@ function unifyAll({tabId}) {
 * */
 function getEditorState({tabId}) {
     return bridge.call({path: 'editor.getState', tabId, timeoutMs: GET_STATE_TIMEOUT_MS})
+}
+
+/*
+* Generates the compressed proof of a proved step.
+* Resolves to the API response: res is the proof text as returned by api.editor().getCompressedProof().
+* */
+function getCompressedProof({tabId, label, includeDescription}) {
+    return bridge.call({
+        path: 'editor.getCompressedProof',
+        tabId,
+        params: {label, includeDescription},
+        timeoutMs: GET_COMPRESSED_PROOF_TIMEOUT_MS,
+    })
 }
 
 /*
@@ -516,6 +530,56 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
     },
     withConnectedTab(async ({unifyFirst, onlyRelevantSteps, tabId}) => {
         return editorStateResult({tabId, unifyFirst, onlyRelevantSteps})
+    })
+)
+
+server.registerTool(
+    'get_compressed_proof',
+    {
+        title: 'Get compressed proof',
+        description: `Returns the compressed proof of a proved step of a metamath-lamp editor tab, \
+as a Metamath \`$p\` statement ready to be pasted into a .mm file. \
+The label of the step is used as the label of the theorem. \
+If the proof needs new variables, disjoint variable conditions, or hypotheses, \
+the statement is wrapped into a \`\${ ... \$}\` block with the required \`$v\`, \`$f\`, \`$d\` and \`$e\` statements.
+
+This is the same text which metamath-lamp shows in the "Show completed proof" dialog \
+(without the proof table, and with only the hypotheses which are used in the proof).
+
+Only a provable step (P or G) with the status 'v' (proved) has a proof. \
+By default 'Unify All' runs first, so statuses are up to date. \
+'Unify All' may fill in missing justifications and clears the user's step selection.`,
+        inputSchema: {
+            label: z.string().trim().min(1).describe('Label of the proved step.'),
+            includeDescription: z.boolean().default(false).describe(
+                'Include the description of the editor as a comment before the theorem.'
+            ),
+            unifyFirst: z.boolean().default(true).describe(
+                "Run 'Unify All' before generating the proof, so step statuses are up to date."
+            ),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({label, includeDescription, unifyFirst, tabId}) => {
+        if (unifyFirst) {
+            const unifyResp = await unifyAll({tabId})
+            if (!unifyResp.isOk) {
+                return errorResult(`'Unify All' failed: ${unifyResp.err}`)
+            }
+        }
+        const proofResp = await getCompressedProof({tabId, label, includeDescription})
+        if (!proofResp.isOk) {
+            return errorResult(
+                `Could not get the proof: ${proofResp.err} Use get_editor_state to see the statuses of the steps.`
+            )
+        }
+        return textResult(proofResp.res)
     })
 )
 

@@ -92,6 +92,7 @@ type singleEditorApi = {
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
     "addAsrtByLabel": api,
+    "getCompressedProof": api,
 }
 
 type editorApi = option<string> => singleEditorApi
@@ -116,6 +117,7 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "buildSyntaxTrees": _ => Promise.resolve(errResp(msg)),
         "findAsrtsByUnif": _ => Promise.resolve(errResp(msg)),
         "addAsrtByLabel": _ => Promise.resolve(errResp(msg)),
+        "getCompressedProof": _ => Promise.resolve(errResp(msg)),
     }
 }
 

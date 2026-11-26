@@ -605,6 +605,52 @@ let unifyAll = (
     }
 }
 
+type getCompressedProofInputParams = {
+    label: string,
+    includeDescription: bool,
+}
+
+/*
+* Returns the compressed proof of a proved step.
+* This is the same text which is shown in the "Show completed proof" dialog
+* when "proof table" and "all hypotheses" are not selected.
+* */
+let getCompressedProof = (~params:apiInput, ~state:editorState):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<getCompressedProofInputParams,string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            label: d->str("label"),
+            includeDescription: d->bool("includeDescription", ~default=()=>false),
+        }
+    }))
+    Promise.resolve(
+        switch parseResult {
+            | Error(msg) => Error(`Could not parse input parameters: ${msg}`)
+            | Ok({label, includeDescription}) => {
+                switch state->editorGetStmtByLabel(label) {
+                    | None => Error(`The step '${label}' doesn't exist.`)
+                    | Some(stmt) if stmt.typ != P => Error(`The step '${label}' is a hypothesis.`)
+                    | Some(stmt) if stmt.proofStatus != Some(Ready) => Error(`The step '${label}' is not proved.`)
+                    | Some(stmt) => {
+                        let state = includeDescription ? state : {...state, descr:""}
+                        let proof = try {
+                            Ok(generateCompressedProof(state, stmt.id, ~useAllLocalEHyps=false))
+                        } catch {
+                            | MmException({msg}) => Error(msg)
+                            | exn => Error(jsErrorToExnData(exn).msg)
+                        }
+                        switch proof {
+                            | Error(msg) => Error(`Could not generate a proof for the step '${label}': ${msg}`)
+                            | Ok(None) => Error(`Could not generate a proof for the step '${label}'.`)
+                            | Ok(Some((proofText,_,_))) => Ok(proofText->JSON.Encode.string)
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
 let mergeDuplicatedSteps = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
@@ -1326,6 +1372,9 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
         "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
+        "getCompressedProof": makeApiFunc(
+            "editor.getCompressedProof", params => getCompressedProof( ~params, ~state, )
+        ),
     }
 }
 

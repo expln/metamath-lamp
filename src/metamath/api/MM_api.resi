@@ -34,6 +34,7 @@ type singleEditorApi = {
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
     "addAsrtByLabel": api,
+    "getCompressedProof": api,
 }
 
 type editorApi = option<string> => singleEditorApi
