@@ -1057,6 +1057,54 @@ let setDisjoints = (
     }
 }
 
+type setLocationInputParams = {
+    place: string,
+    label: option<string>,
+}
+
+/*
+* Sets the location of the editor, i.e. which assertions of the loaded context can be used in the editor.
+* params: {place:"before"|"after"|"last", label?:string}.
+* "before" - assertions declared before the assertion with the given label.
+* "after" - assertions declared before and including the assertion with the given label.
+* "last" - all assertions; label must not be passed.
+* The location is not changed if the label doesn't exist.
+* */
+let setLocation = (
+    ~apiInput:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<setLocationInputParams,string> = fromJson(apiInput->apiInputToJson, asObj(_, d=>{
+        {
+            place: d->str("place"),
+            label: d->strOpt("label")->Option.map(String.trim),
+        }
+    }))
+    let loc:result<location,string> = switch parseResult {
+        | Error(msg) => Error(`Could not parse input parameters: ${msg}`)
+        | Ok({place:"last", label:None}) => Ok(Last)
+        | Ok({place:"last", label:Some(_)}) => Error(`'label' must not be passed when 'place' is 'last'.`)
+        | Ok({place:"before" | "after", label:None | Some("")}) => {
+            Error(`'label' must be a non-empty string when 'place' is 'before' or 'after'.`)
+        }
+        | Ok({place:"before", label:Some(label)}) => Ok(Before(label))
+        | Ok({place:"after", label:Some(label)}) => Ok(After(label))
+        | Ok({place}) => Error(`'place' must be one of: before, after, last; but got '${place}'.`)
+    }
+    switch loc {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok(loc) => {
+            setState(st => {
+                switch getMaxFrmOrd(st.preCtxData, loc) {
+                    | (_, Some(locErr)) => Error(locErr)
+                    | (_, None) => Ok((st->completeLocEditMode(loc), JSON.Encode.null))
+                }
+            })
+        }
+    }
+}
+
 type setDescriptionInputParams = {
     descr: string,
 }
@@ -1387,6 +1435,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "markStepsChecked": makeApiFunc("editor.markStepsChecked", params => apiMarkStepsChecked( ~params, ~setState, )),
         "setDisjoints": makeApiFunc("editor.setDisjoints", apiInput => setDisjoints( ~apiInput, ~setState, )),
         "setDescription": makeApiFunc("editor.setDescription", apiInput => setDescription( ~apiInput, ~setState, )),
+        "setLocation": makeApiFunc("editor.setLocation", apiInput => setLocation( ~apiInput, ~setState, )),
         "resetEditorContent": makeApiFunc("editor.resetEditorContent", _ => resetEditorContent(~setState, )),
         "getTokenType": makeApiFunc("editor.getTokenType", params => getTokenType( ~paramsJson=params, ~state, )),
         "substitute": makeApiFunc("editor.substitute", params => substitute( ~paramsJson=params, ~setState, )),

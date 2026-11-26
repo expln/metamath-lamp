@@ -26,6 +26,7 @@ type singleEditorApi = {
     "markStepsChecked": api,
     "setDisjoints": api,
     "setDescription": api,
+    "setLocation": api,
     "resetEditorContent": api,
     "getTokenType": api,
     "substitute": api,

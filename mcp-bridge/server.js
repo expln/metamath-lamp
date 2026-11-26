@@ -35,6 +35,7 @@ const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
 const SET_DESCRIPTION_TIMEOUT_MS = 10_000
 const SET_DISJOINTS_TIMEOUT_MS = 10_000
+const SET_LOCATION_TIMEOUT_MS = 10_000
 const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
 const FIND_ASSERTIONS_PAGE_SIZE = 100
 // Includes downloading and parsing the files, loading the context,
@@ -245,6 +246,15 @@ function setDescription({tabId, descr}) {
 * */
 function setDisjoints({tabId, disj}) {
     return bridge.call({path: 'editor.setDisjoints', tabId, params: {disj}, timeoutMs: SET_DISJOINTS_TIMEOUT_MS})
+}
+
+/*
+* Sets the location of an editor tab, i.e. which assertions can be used in it.
+* place - 'before', 'after', or 'last'; label - required for 'before' and 'after', must be undefined for 'last'.
+* Resolves to the API response: res is null.
+* */
+function setLocation({tabId, place, label}) {
+    return bridge.call({path: 'editor.setLocation', tabId, params: {place, label}, timeoutMs: SET_LOCATION_TIMEOUT_MS})
 }
 
 /*
@@ -860,6 +870,58 @@ After setting, 'Unify All' runs and the editor state is returned in the same for
             unifyFirst: true,
             onlyRelevantSteps: true,
             notes: [disj.length === 0 ? 'Removed all disjoints.' : `Set ${disj.length} disjoint variable groups.`],
+        })
+    })
+)
+
+server.registerTool(
+    'set_location',
+    {
+        title: 'Set location',
+        description: `Sets the location of a metamath-lamp editor tab, \
+i.e. which assertions of the loaded database can be used in justifications in this editor \
+(the \`Scope:\` line of get_editor_state, and the scope of find_assertions with editorTabId):
+* before - only assertions declared before the assertion with the given label. \
+Use it to prove an existing theorem without using the theorem itself and the theorems after it.
+* after - assertions declared before the given label, and the assertion with that label.
+* last - all assertions of the database.
+
+If the label doesn't exist, the location is not changed and an error is returned.
+
+After setting, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
+(only relevant steps), because justifications which use assertions outside of the new scope become invalid.`,
+        inputSchema: {
+            place: z.enum(['before', 'after', 'last']).describe('Where the scope of the editor ends.'),
+            label: z.string().trim().min(1).optional().describe(
+                "Label of an assertion. Required for 'before' and 'after'; must be omitted for 'last'."
+            ),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({place, label, tabId}) => {
+        if (place === 'last' && label !== undefined) {
+            return errorResult("'label' must be omitted when 'place' is 'last'.")
+        }
+        if (place !== 'last' && label === undefined) {
+            return errorResult(`'label' is required when 'place' is '${place}'.`)
+        }
+        const resp = await setLocation({tabId, place, label})
+        if (!resp.isOk) {
+            return errorResult(`Could not set the location: ${resp.err}`)
+        }
+        return editorStateResult({
+            tabId,
+            unifyFirst: true,
+            onlyRelevantSteps: true,
+            notes: [
+                place === 'last' ? 'Set the location to all assertions.' : `Set the location to ${place} '${label}'.`
+            ],
         })
     })
 )
