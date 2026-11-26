@@ -301,7 +301,8 @@ let make = () => {
     let globalAddAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let globalMaxFrmOrd: React.ref<option<ref<int>>> = React.useRef(None)
 
-    let beforeTabRemove = (tab:Expln_React_UseTabs.tab<'a>) => {
+    // Must not depend on the component state, because it is used by the tabs API, which is registered only once.
+    let confirmTabRemoval = (tab:Expln_React_UseTabs.tab<'a>, ~askConfirmation:bool):promise<bool> => {
         switch tab.data {
             | Settings | TabsManager => Promise.resolve(false)
             | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo => Promise.resolve(true)
@@ -310,24 +311,29 @@ let make = () => {
                 Promise.resolve(true)
             }
             | Editor({tabId}) => {
-                openOkCancelDialog(
-                    ~modalRef, 
-                    ~title="Close editor tab?",
-                    ~text=tab.label,
-                )->Promise.thenResolve(confirmed => {
+                let confirmed = if (askConfirmation) {
+                    openOkCancelDialog(
+                        ~modalRef, 
+                        ~title="Close editor tab?",
+                        ~text=tab.label,
+                    )
+                } else {
+                    Promise.resolve(true)
+                }
+                confirmed->Promise.thenResolve(confirmed => {
                     if (confirmed) {
                         MM_api_editor.deleteEditor(tabId)
                         globalAddAsrtByLabel.current = None
                         globalMaxFrmOrd.current = None
-                        if (lastOpenedEditorTabId == Some(tabId)) {
-                            setLastOpenedEditorTabId(_ => None)
-                        }
+                        setLastOpenedEditorTabId(lastId => lastId == Some(tabId) ? None : lastId)
                     }
                     confirmed
                 })
             }
         }
     }
+
+    let beforeTabRemove = (tab:Expln_React_UseTabs.tab<'a>) => confirmTabRemoval(tab, ~askConfirmation=true)
 
     @warning("-27")
     let {
@@ -619,7 +625,7 @@ let make = () => {
             ~id=newTabId,
             ~label=initialStateLocStor.tabTitle,
             ~icon=pencilSymbol,
-            ~closable=true, 
+            ~closable=true,
             ~data=Editor({
                 tabId:newTabId, 
                 initialStateLocStor,
@@ -648,19 +654,53 @@ let make = () => {
         }
     }
 
+    // The tabs are read inside a state updater (which doesn't change the state),
+    // so the result reflects all previously requested changes, even if they are not rendered yet.
+    let readTabsState = ():promise<Expln_React_UseTabs.state<tabData>> => Promise.make((resolve,_) => {
+        updateTabs(st => {
+            resolve(st)
+            st
+        })
+    })
+
     let tabsCreatedByApi: React.ref<Belt_HashMapString.t<result<string,string>=>unit>> =
         React.useRef(Belt_HashMapString.make(~hintSize=1))
     React.useEffect0(() => {
         MM_api_tabs.updateTabsApi(
-            // The tabs are read inside a state updater (which doesn't change the state),
-            // so the result reflects all previously requested changes, even if they are not rendered yet.
-            ~listTabs=() => Promise.make((resolve,_) => {
-                updateTabs(st => {
+            ~listTabs=() => {
+                readTabsState()->Promise.thenResolve(st => {
                     let activeTabId = st->Expln_React_UseTabs.getActiveTabId
-                    resolve(st->Expln_React_UseTabs.getTabs->Array.map(tabToTabInfo(_, ~activeTabId)))
-                    st
+                    st->Expln_React_UseTabs.getTabs->Array.map(tabToTabInfo(_, ~activeTabId))
                 })
-            }),
+            },
+            ~closeTab=(~tabId:string, ~askConfirmation:bool) => {
+                readTabsState()->Promise.then(st => {
+                    switch st->Expln_React_UseTabs.getTabs->Array.find(tab => tab.id == tabId) {
+                        | None => Promise.resolve(Error(`There is no tab with id '${tabId}'.`))
+                        | Some(tab) if !tab.closable => Promise.resolve(Error(`The tab '${tabId}' cannot be closed.`))
+                        | Some(tab) => {
+                            let remove = () => {
+                                confirmTabRemoval(tab, ~askConfirmation)->Promise.thenResolve(confirmed => {
+                                    if (confirmed) {
+                                        updateTabs(Expln_React_UseTabs.removeTab(_, tabId))
+                                    }
+                                    confirmed
+                                })
+                            }
+                            switch tab.data {
+                                | Mcp => {
+                                    // Closing the MCP tab disconnects from the MCP server.
+                                    // The tab is closed after this call returns,
+                                    // so that the MCP server can still get the response.
+                                    setTimeout(() => remove()->Promise.ignore, 0)->ignore
+                                    Promise.resolve(Ok(true))
+                                }
+                                | _ => remove()->Promise.thenResolve(confirmed => Ok(confirmed))
+                            }
+                        }
+                    }
+                })
+            },
             ~createEditorTab=(~doOpen:bool, ~title:option<string>) => Promise.make((resolve,_) => {
                 // The id is generated outside of the state updater,
                 // because React may call an updater twice, and both calls must add a tab with the same id.

@@ -26,6 +26,7 @@ const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
 const LIST_TABS_TIMEOUT_MS = 10_000
 const CREATE_EDITOR_TAB_TIMEOUT_MS = 30_000
+const CLOSE_TAB_TIMEOUT_MS = 10_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
@@ -128,6 +129,18 @@ function createEditorTab({open, title}) {
         path: 'tabs.createEditorTab',
         params: {open, title},
         timeoutMs: CREATE_EDITOR_TAB_TIMEOUT_MS,
+    })
+}
+
+/*
+* Closes a tab without asking the user for a confirmation.
+* Resolves to the API response: res is true if the tab was closed.
+* */
+function closeTab({tabId}) {
+    return bridge.call({
+        path: 'tabs.close',
+        params: {tabId, askConfirmation: false},
+        timeoutMs: CLOSE_TAB_TIMEOUT_MS,
     })
 }
 
@@ -346,6 +359,38 @@ The new editor can be used right away in the tools which work with editors.`,
             return errorResult(`Could not create the tab: ${resp.err}`)
         }
         return textResult(JSON.stringify({tabId: resp.res}))
+    })
+)
+
+server.registerTool(
+    'close_tab',
+    {
+        title: 'Close tab',
+        description: `Closes a tab of metamath-lamp without asking the user for a confirmation.
+
+Closing an editor tab permanently deletes its content. \
+The Settings and Tabs tabs cannot be closed. \
+Closing the MCP tab disconnects metamath-lamp from this MCP server, \
+so all tools stop working until the user opens the MCP tab and connects again.`,
+        inputSchema: {
+            tabId: z.string().trim().min(1).describe('Id of the tab to close (see list_tabs).'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({tabId}) => {
+        const resp = await closeTab({tabId})
+        if (!resp.isOk) {
+            return errorResult(`Could not close the tab: ${resp.err}`)
+        }
+        if (resp.res !== true) {
+            return errorResult(`The tab '${tabId}' was not closed.`)
+        }
+        return textResult(`Closed the tab '${tabId}'.`)
     })
 )
 
