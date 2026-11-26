@@ -26,7 +26,7 @@ Use `list_tabs` to find the ids.
 * `create_editor_tab` - creates a new empty editor tab and returns its id as `{tabId}`.
   With `open` (true by default), the new tab becomes visible.
   `title` is optional, by default a title like `EDITOR [2]` is generated.
-* `close_tab` - closes a tab by id without asking the user for a confirmation.
+* `close_tab` - closes a tab by id without asking the user for confirmation.
   Closing an editor tab deletes its content.
   Settings, Tabs, and MCP tabs cannot be closed by this tool.
 * `open_tab` - makes an existing tab visible, as if the user clicked it.
@@ -38,7 +38,7 @@ Use `list_tabs` to find the ids.
   The editor description is included only with `includeDescription` (false by default),
   because it may be long.
 * `get_compressed_proof` - returns the compressed proof of a proved step as a Metamath `$p` statement,
-  the same text as in the "Show completed proof" dialog without the proof table and with only the used hypotheses.
+  the same text as in the "Show completed proof" dialog, but without the proof table and with only the used hypotheses.
   The editor description is included as a comment only with `includeDescription` (false by default).
   By default it runs "Unify All" first.
 * `add_steps` - adds steps (and optionally new variables) before or after a given step,
@@ -115,7 +115,7 @@ For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists ar
 
 * `--port <port>` - the WebSocket port, `8765` by default.
   If you change it, change the port in the MCP tab of metamath-lamp too.
-* `--origins <origins>` - comma separated list of additional page origins allowed to connect.
+* `--origins <origins>` - comma-separated list of additional page origins allowed to connect.
   `http(s)://localhost:*`, `http(s)://127.0.0.1:*` and `https://expln.github.io` are always allowed.
   The same origins are allowed to download local files.
 * `--files-dirs <dirs>` - directories from which `load_context` may load local files,
