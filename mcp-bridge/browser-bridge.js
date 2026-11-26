@@ -16,8 +16,13 @@ const PROTOCOL_VERSION = 1
 const HEARTBEAT_INTERVAL_MS = 15_000
 // How long a tool call waits for a tab to (re)connect.
 // The browser tab retries every 3 s (reconnectDelayMs in MM_mcp_client.res),
-// so this is enough for a tab to connect after the port is opened.
+// so this is enough for a tab to reconnect while the port is open.
 const TAB_CONNECT_WAIT_MS = 5000
+// How long after the port is opened tool calls keep waiting for a tab to connect.
+// The port is opened lazily (see _ensureListening), so a tab may have been failing to connect for a while before,
+// and Firefox delays reconnects to a failing server (network.websocket.delay-failed-reconnects)
+// by up to a minute, so the tab may connect much later than in 3 s.
+const FIRST_TAB_CONNECT_WAIT_MS = 65_000
 const CLOSE_CODE_ANOTHER_TAB_CONNECTED = 4001
 const CLOSE_CODE_ORIGIN_NOT_ALLOWED = 4003
 const CLOSE_CODE_PROTOCOL_MISMATCH = 4004
@@ -56,6 +61,8 @@ export class BrowserBridge {
         this.httpHandler = httpHandler
         this.listeningPromise = null
         this.wss = null
+        // When the port was opened, see FIRST_TAB_CONNECT_WAIT_MS.
+        this.listeningSince = null
         this.tabWaiters = []
         this.socket = null
         this.nextCallId = 1
@@ -94,6 +101,7 @@ export class BrowserBridge {
                     // reset this.wss to null on its 'close' event, so the next tool call binds again,
                     // and store the heartbeat timer to clear it, so timers don't accumulate on rebinding.
                     this.wss = wss
+                    this.listeningSince = Date.now()
                     this.listeningPromise = null
                     wss.on('error', err => log(`WebSocket server error: ${err.message}`))
                     setInterval(() => this._checkHeartbeat(), HEARTBEAT_INTERVAL_MS).unref()
@@ -127,7 +135,8 @@ export class BrowserBridge {
     }
 
     /*
-    * Makes sure a browser tab is connected, waiting up to TAB_CONNECT_WAIT_MS for it to (re)connect.
+    * Makes sure a browser tab is connected, waiting up to TAB_CONNECT_WAIT_MS for it to (re)connect,
+    * or longer shortly after the port was opened (see FIRST_TAB_CONNECT_WAIT_MS).
     * Resolves to undefined if a tab is connected, otherwise to an error message.
     * */
     async ensureConnected() {
@@ -136,11 +145,15 @@ export class BrowserBridge {
             return listenErr
         }
         if (this.socket === null) {
+            const waitMs = Math.max(
+                TAB_CONNECT_WAIT_MS,
+                this.listeningSince + FIRST_TAB_CONNECT_WAIT_MS - Date.now()
+            )
             await new Promise(resolve => {
                 const timer = setTimeout(() => {
                     this.tabWaiters = this.tabWaiters.filter(w => w !== waiter)
                     resolve()
-                }, TAB_CONNECT_WAIT_MS)
+                }, waitMs)
                 const waiter = () => {
                     clearTimeout(timer)
                     resolve()

@@ -17,7 +17,7 @@ https://ss64.com/nt/copy.html
 
 ------------------------------------------------------------------------------------------------------------------------
 ! claude mcp remove mm-lamp -s local
-! claude mcp add mm-lamp -e MM_LAMP_FILES_DIRS=~/metamath -- node ~/IdeaProjects/metamath-lamp/mcp-bridge/server.js --files-dirs ~/metamath
+! claude mcp add mm-lamp -- node ~/IdeaProjects/metamath-lamp/mcp-bridge/server.js --files-dirs ~/metamath
 ------------------------------------------------------------------------------------------------------------------------
 Migrate to Array.getUnsafe:
 \[([^\[\]]+)\]
