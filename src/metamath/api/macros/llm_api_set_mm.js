@@ -324,13 +324,13 @@ const FIND_ASSERTIONS_PAGE_SIZE = 100
 * The search result is cached by metamath-lamp, so requesting other pages of the same pattern doesn't repeat the search.
 * */
 async function findAssertions({pattern, pageNum}) {
-    const {editorId} = await getEditorState()
+    const {tabId} = await getEditorState()
     pageNum = pageNum??1
     const {numOfPages, asrts} = getResponse(await api.explorer.findAssertions({
         pattern,
         pageNum,
         pageSize: FIND_ASSERTIONS_PAGE_SIZE,
-        editorId,
+        editorTabId: tabId,
     }))
     const header = `Results for pattern '${pattern}', page ${pageNum} of ${numOfPages}`
     const pageContent = asrts.map(makeFrameForLlm).join('\n\n')

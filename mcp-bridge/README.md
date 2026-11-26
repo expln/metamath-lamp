@@ -13,8 +13,7 @@ if allowed directories are configured.
 
 ## Tools
 
-Tools which work with an editor tab take its id in the required `editorId` parameter.
-The id of an editor is the same as the id of its tab.
+Tools which work with an editor tab take its id in the required `tabId` parameter.
 Tab ids are random strings, e.g. `k3f9x2m7qa`.
 Ids of editor tabs don't change when metamath-lamp is reloaded.
 Editors created before tab ids were introduced keep their old numeric ids as strings, e.g. `0`.
@@ -33,7 +32,7 @@ Editors created before tab ids were introduced keep their old numeric ids as str
   If any label doesn't exist, nothing is deleted.
   Returns the editor state after "Unify All".
 * `find_assertions` - searches assertions by a pattern, excluding discouraged and deprecated ones.
-  With `editorId`, only assertions which can be used in that editor tab are returned,
+  With `editorTabId`, only assertions which can be used in that editor tab are returned,
   otherwise the whole loaded context is searched.
   Results are paginated, 100 assertions per page.
   The full result of the last search is cached in the browser tab,

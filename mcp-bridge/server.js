@@ -111,16 +111,16 @@ function withConnectedTab(handler) {
 * Runs 'Unify All' in an editor tab.
 * Resolves to the API response: res is true if 'Unify All' ran, false if it could not start.
 * */
-function unifyAll({editorId}) {
-    return bridge.call({path: 'editor.unifyAll', tabId: editorId, timeoutMs: UNIFY_ALL_TIMEOUT_MS})
+function unifyAll({tabId}) {
+    return bridge.call({path: 'editor.unifyAll', tabId, timeoutMs: UNIFY_ALL_TIMEOUT_MS})
 }
 
 /*
 * Reads the state of an editor tab.
 * Resolves to the API response: res is the editor state as returned by api.editor().getState().
 * */
-function getEditorState({editorId}) {
-    return bridge.call({path: 'editor.getState', tabId: editorId, timeoutMs: GET_STATE_TIMEOUT_MS})
+function getEditorState({tabId}) {
+    return bridge.call({path: 'editor.getState', tabId, timeoutMs: GET_STATE_TIMEOUT_MS})
 }
 
 /*
@@ -130,8 +130,8 @@ function getEditorState({editorId}) {
 * steps - [{label?, type?: 'h'|'p'|'g', stmt, jstf?, isBkm?}].
 * Resolves to the API response: res is the array of labels of the added steps.
 * */
-function addSteps({editorId, atIdx, vars, steps}) {
-    return bridge.call({path: 'editor.addSteps', tabId: editorId, params: {atIdx, vars, steps}, timeoutMs: ADD_STEPS_TIMEOUT_MS})
+function addSteps({tabId, atIdx, vars, steps}) {
+    return bridge.call({path: 'editor.addSteps', tabId, params: {atIdx, vars, steps}, timeoutMs: ADD_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -140,8 +140,8 @@ function addSteps({editorId, atIdx, vars, steps}) {
 * attributes which are undefined are not changed.
 * Resolves to the API response: res is true.
 * */
-function updateSteps({editorId, steps}) {
-    return bridge.call({path: 'editor.updateSteps', tabId: editorId, params: {steps}, timeoutMs: UPDATE_STEPS_TIMEOUT_MS})
+function updateSteps({tabId, steps}) {
+    return bridge.call({path: 'editor.updateSteps', tabId, params: {steps}, timeoutMs: UPDATE_STEPS_TIMEOUT_MS})
 }
 
 /*
@@ -149,22 +149,22 @@ function updateSteps({editorId, steps}) {
 * Labels of non-existing steps are silently ignored by the API.
 * Resolves to the API response: res is null.
 * */
-function deleteSteps({editorId, labels}) {
-    return bridge.call({path: 'editor.deleteSteps', tabId: editorId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
+function deleteSteps({tabId, labels}) {
+    return bridge.call({path: 'editor.deleteSteps', tabId, params: {labels}, timeoutMs: DELETE_STEPS_TIMEOUT_MS})
 }
 
 /*
 * Searches assertions by a pattern (discouraged and deprecated assertions are excluded).
-* editorId - if defined, only assertions which can be used in that editor tab are returned;
+* editorTabId - if defined, only assertions which can be used in that editor tab are returned;
 * if undefined, the whole loaded context is searched.
 * pageNum is 1-based.
 * Resolves to the API response: res is
 * {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
 * */
-function findAssertions({pattern, pageNum, pageSize, editorId}) {
+function findAssertions({pattern, pageNum, pageSize, editorTabId}) {
     return bridge.call({
         path: 'explorer.findAssertions',
-        params: {pattern, pageNum, pageSize, editorId},
+        params: {pattern, pageNum, pageSize, editorTabId},
         timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS,
     })
 }
@@ -218,10 +218,10 @@ function assertionToText({label, isAxiom, disj, hyps, asrt}) {
 * Optionally runs 'Unify All', then reads the editor state and returns it as a tool result in the text format.
 * notes - additional lines to show at the top of the state.
 * */
-async function editorStateResult({editorId, unifyFirst, onlyRelevantSteps, notes = []}) {
+async function editorStateResult({tabId, unifyFirst, onlyRelevantSteps, notes = []}) {
     notes = [...notes]
     if (unifyFirst) {
-        const unifyResp = await unifyAll({editorId})
+        const unifyResp = await unifyAll({tabId})
         if (!unifyResp.isOk) {
             return errorResult(`'Unify All' failed: ${unifyResp.err}`)
         }
@@ -229,7 +229,7 @@ async function editorStateResult({editorId, unifyFirst, onlyRelevantSteps, notes
             notes.push("'Unify All' could not start (another action may be running), statuses may be outdated.")
         }
     }
-    const stateResp = await getEditorState({editorId})
+    const stateResp = await getEditorState({tabId})
     if (!stateResp.isOk) {
         return errorResult(`Could not get the editor state: ${stateResp.err}`)
     }
@@ -266,7 +266,7 @@ disjoint variable groups, and proof steps.
 
 The \`Scope:\` line shows which assertions of the database can be used in justifications in this editor \
 (all assertions, or only those before or up to some label). \
-Pass editorId to find_assertions to search only within this scope.
+Pass editorTabId to find_assertions to search only within this scope.
 
 Each step is printed as one line: \`type status label statement\`, optionally followed by indented lines
 \`jstf: <hypothesis labels> : <assertion label>\` (the justification) and \`error: <message>\`.
@@ -295,7 +295,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
                 'Show only bookmarked steps, hypotheses, the goal, unproved steps, and steps with errors. '
                 + 'Use it to save context on large proofs when only the unfinished part matters.'
             ),
-            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -304,8 +304,8 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({unifyFirst, onlyRelevantSteps, editorId}) => {
-        return editorStateResult({editorId, unifyFirst, onlyRelevantSteps})
+    withConnectedTab(async ({unifyFirst, onlyRelevantSteps, tabId}) => {
+        return editorStateResult({tabId, unifyFirst, onlyRelevantSteps})
     })
 )
 
@@ -345,7 +345,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
                     + 'Omit to leave the step without a justification. Ignored for hypotheses.'
                 ),
             })).min(1).describe('Steps to add, in order.'),
-            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -354,8 +354,8 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({beforeLabel, afterLabel, variables, steps, editorId}) => {
-        const stateResp = await getEditorState({editorId})
+    withConnectedTab(async ({beforeLabel, afterLabel, variables, steps, tabId}) => {
+        const stateResp = await getEditorState({tabId})
         if (!stateResp.isOk) {
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
         }
@@ -364,7 +364,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             return errorResult(err)
         }
         const addResp = await addSteps({
-            editorId,
+            tabId,
             atIdx: idx,
             vars: variables,
             steps: steps.map(step => ({
@@ -379,7 +379,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             return errorResult(`Could not add the steps: ${addResp.err}`)
         }
         return editorStateResult({
-            editorId,
+            tabId,
             unifyFirst: true,
             onlyRelevantSteps: true,
             notes: [`Added steps: ${addResp.res.join(' ')}`],
@@ -418,7 +418,7 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
                     + 'Proved steps which are not bookmarked are hidden in the returned editor state.'
                 ),
             })).min(1).describe('Steps to update.'),
-            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -427,9 +427,9 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({steps, editorId}) => {
+    withConnectedTab(async ({steps, tabId}) => {
         const updateResp = await updateSteps({
-            editorId,
+            tabId,
             steps: steps.map(step => ({
                 label: step.label,
                 type: step.type?.toLowerCase(),
@@ -442,7 +442,7 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
             return errorResult(`Could not update the steps: ${updateResp.err}`)
         }
         return editorStateResult({
-            editorId,
+            tabId,
             unifyFirst: true,
             onlyRelevantSteps: true,
             notes: [`Updated steps: ${steps.map(step => step.label).join(' ')}`],
@@ -465,7 +465,7 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
 (only relevant steps).`,
         inputSchema: {
             labels: z.array(z.string()).min(1).describe('Labels of the steps to delete.'),
-            editorId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
         },
         annotations: {
             readOnlyHint: false,
@@ -474,8 +474,8 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({labels, editorId}) => {
-        const stateResp = await getEditorState({editorId})
+    withConnectedTab(async ({labels, tabId}) => {
+        const stateResp = await getEditorState({tabId})
         if (!stateResp.isOk) {
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
         }
@@ -484,12 +484,12 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
         if (unknownLabels.length > 0) {
             return errorResult(`Nothing was deleted, because these steps don't exist: ${unknownLabels.join(' ')}`)
         }
-        const deleteResp = await deleteSteps({editorId, labels})
+        const deleteResp = await deleteSteps({tabId, labels})
         if (!deleteResp.isOk) {
             return errorResult(`Could not delete the steps: ${deleteResp.err}`)
         }
         return editorStateResult({
-            editorId,
+            tabId,
             unifyFirst: true,
             onlyRelevantSteps: true,
             notes: [`Deleted steps: ${labels.join(' ')}`],
@@ -504,9 +504,9 @@ server.registerTool(
         description: `Searches assertions (theorems and axioms) by a pattern in the loaded Metamath database. \
 Discouraged and deprecated assertions are excluded.
 
-Pass editorId to return only assertions which can be used in that editor tab \
+Pass editorTabId to return only assertions which can be used in that editor tab \
 (an editor may be limited to assertions declared before or up to some label). \
-Without editorId, the whole database is searched.
+Without editorTabId, the whole database is searched.
 
 The simplest pattern is a space-separated sequence of math symbols, e.g. \`A + B = B + A\`. \
 Variables match any variable of the same type, typecodes match any variable of that type, \
@@ -523,7 +523,7 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
         inputSchema: {
             pattern: z.string().min(1).describe('The search pattern, e.g. "|- $+a A + B = B + A".'),
             page: z.number().int().min(1).default(1).describe('Number of the page to return, starting from 1.'),
-            editorId: z.string().trim().min(1).optional().describe(
+            editorTabId: z.string().trim().min(1).optional().describe(
                 'Id of an editor tab to return only assertions available in it. Omit to search the whole database.'
             ),
         },
@@ -534,13 +534,13 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({pattern, page, editorId}) => {
-        const resp = await findAssertions({pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorId})
+    withConnectedTab(async ({pattern, page, editorTabId}) => {
+        const resp = await findAssertions({pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId})
         if (!resp.isOk) {
             return errorResult(`Could not find assertions: ${resp.err}`)
         }
         const {totalCount, numOfPages, editorScope, asrts} = resp.res
-        const scope = editorScope === undefined ? '' : ` (scope of editor ${editorId}: ${editorScope})`
+        const scope = editorScope === undefined ? '' : ` (scope of editor ${editorTabId}: ${editorScope})`
         if (totalCount === 0) {
             return textResult(`No assertions match the pattern '${pattern}'${scope}.`)
         }

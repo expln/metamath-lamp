@@ -135,12 +135,12 @@ let locationToScopeDescr = (loc:location):string => {
     }
 }
 
-let getEditorState = (~editorId:string, ~state:editorState):promise<result<JSON.t,string>> => {
-    let cachedResult = switch stateCached->Belt_HashMapString.get(editorId) {
+let getEditorState = (~tabId:string, ~state:editorState):promise<result<JSON.t,string>> => {
+    let cachedResult = switch stateCached->Belt_HashMapString.get(tabId) {
         | None => None
         | Some(stateCached) => {
             if (stateCached === state) {
-                stateJsonCached->Belt_HashMapString.get(editorId)
+                stateJsonCached->Belt_HashMapString.get(tabId)
             } else {
                 None
             }
@@ -153,7 +153,7 @@ let getEditorState = (~editorId:string, ~state:editorState):promise<result<JSON.
                 state.stmts->Array.map(stmt => (stmt.id, stmt.label))
             )
             let stateJson = Dict.fromArray([
-                ("editorId", editorId->JSON.Encode.string),
+                ("tabId", tabId->JSON.Encode.string),
                 ("scope", state.loc->locationToScopeDescr->JSON.Encode.string),
                 ("scopeErr", state.locErr->Option.map(JSON.Encode.string)->Option.getOr(JSON.Encode.null)),
                 ("descr", state.descr->JSON.Encode.string),
@@ -188,8 +188,8 @@ let getEditorState = (~editorId:string, ~state:editorState):promise<result<JSON.
                         ->JSON.Encode.array
                 ),
             ])->JSON.Encode.object
-            stateCached->Belt_HashMapString.set(editorId, state)
-            stateJsonCached->Belt_HashMapString.set(editorId, stateJson)
+            stateCached->Belt_HashMapString.set(tabId, state)
+            stateJsonCached->Belt_HashMapString.set(tabId, stateJson)
             Promise.resolve(Ok(stateJson))
         }
     }
@@ -1250,7 +1250,7 @@ let apiFindAsrtsByUnif = (
 }
 
 type editorData = {
-    editorId:string,
+    tabId:string,
     preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     state:editorState,
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -1265,7 +1265,7 @@ type editorData = {
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
-    let editorId = editorData.editorId
+    let tabId = editorData.tabId
     let preCtxData = editorData.preCtxData
     let unifMetavarPrefix = preCtxData.settingsV.val.unifMetavarPrefix
     let state = editorData.state
@@ -1280,7 +1280,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let addAsrtByLabel = editorData.addAsrtByLabel
 
     {
-        "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
+        "getState": makeApiFunc("editor.getState", _ => getEditorState(~tabId, ~state)),
         "proveBottomUp": makeApiFunc(
             "editor.proveBottomUp",
             params => proveBottomUp( ~paramsJson=params, ~state, ~canStartProvingBottomUp, ~startProvingBottomUp, )
@@ -1315,18 +1315,18 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
 
 let editorsData: Belt_HashMapString.t<editorData> = Belt_HashMapString.make(~hintSize=1)
 
-let lastOpenedEditorId:ref<option<string>> = ref(None)
+let lastOpenedTabId:ref<option<string>> = ref(None)
 
-let setLastOpenedEditorId = (editorId:string):unit => {
-    lastOpenedEditorId := Some(editorId)
+let setLastOpenedTabId = (tabId:string):unit => {
+    lastOpenedTabId := Some(tabId)
 }
 
-let editorApi = (editorId:option<string>):singleEditorApi => {
-    switch editorId->Option.orElse(lastOpenedEditorId.contents) {
+let editorApi = (tabId:option<string>):singleEditorApi => {
+    switch tabId->Option.orElse(lastOpenedTabId.contents) {
         | None => makeEmptySingleEditorApi("Cannot determine what editor tab to use.")
-        | Some(editorId) => {
-            switch editorsData->Belt_HashMapString.get(editorId) {
-                | None => makeEmptySingleEditorApi("Cannot find an editor with id=" ++ editorId)
+        | Some(tabId) => {
+            switch editorsData->Belt_HashMapString.get(tabId) {
+                | None => makeEmptySingleEditorApi("Cannot find an editor with id=" ++ tabId)
                 | Some(editorData) => makeSingleEditorApi(editorData)
             }
         }
@@ -1335,29 +1335,29 @@ let editorApi = (editorId:option<string>):singleEditorApi => {
 
 setEditorApi(editorApi)
 
-let getEditorScope = (editorId:string):result<(int,string),string> => {
-    switch editorsData->Belt_HashMapString.get(editorId) {
-        | None => Error("Cannot find an editor with id=" ++ editorId)
+let getEditorScope = (tabId:string):result<(int,string),string> => {
+    switch editorsData->Belt_HashMapString.get(tabId) {
+        | None => Error("Cannot find an editor with id=" ++ tabId)
         | Some({state}) => {
             switch state.locErr {
-                | Some(msg) => Error(`The scope of the editor with id=${editorId} is invalid: ${msg}`)
+                | Some(msg) => Error(`The scope of the editor with id=${tabId} is invalid: ${msg}`)
                 | None => Ok((state.maxFrmOrd, state.loc->locationToScopeDescr))
             }
         }
     }
 }
 
-let deleteEditor = (editorId:string):unit => {
-    if (lastOpenedEditorId.contents == Some(editorId)) {
-        lastOpenedEditorId := None
+let deleteEditor = (tabId:string):unit => {
+    if (lastOpenedTabId.contents == Some(tabId)) {
+        lastOpenedTabId := None
     }
-    editorsData->Belt_HashMapString.remove(editorId)
-    stateCached->Belt_HashMapString.remove(editorId)
-    stateJsonCached->Belt_HashMapString.remove(editorId)
+    editorsData->Belt_HashMapString.remove(tabId)
+    stateCached->Belt_HashMapString.remove(tabId)
+    stateJsonCached->Belt_HashMapString.remove(tabId)
 }
 
 let updateEditorData = (
-    ~editorId:string,
+    ~tabId:string,
     ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -1370,8 +1370,8 @@ let updateEditorData = (
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ):unit => {
-    editorsData->Belt_HashMapString.set(editorId, {
-        editorId,
+    editorsData->Belt_HashMapString.set(tabId, {
+        tabId,
         preCtxData,
         state,
         setState,

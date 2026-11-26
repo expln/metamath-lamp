@@ -240,17 +240,17 @@ let makeContextApi = ():contextApi => {
 // This lets macros which pass an old integer id keep working.
 // The id comes from JS code, so it may be of any type: anything other than undefined or null is converted to a string,
 // so the result is always either None or Some(string).
-let normalizeEditorId: option<string> => option<string> = %raw(`
+let normalizeTabId: option<string> => option<string> = %raw(`
     id => id === undefined || id === null ? undefined : String(id)
 `)
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
     "ui": makeUiApi(),
-    "editor": (editorId:option<string>) => {
+    "editor": (tabId:option<string>) => {
         switch editorRef.contents {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")
-            | Some(func) => func(normalizeEditorId(editorId))
+            | Some(func) => func(normalizeTabId(tabId))
         }
     },
     "macro": makeMacroApi(),

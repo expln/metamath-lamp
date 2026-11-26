@@ -25,10 +25,10 @@ Returns the scope of an editor: (maxFrmOrd, scope description).
 Only assertions with frame.ord <= maxFrmOrd can be used in the editor.
 */
 let getEditorScope: string => result<(int,string),string>
-let setLastOpenedEditorId: string => unit
+let setLastOpenedTabId: string => unit
 
 let updateEditorData: (
-    ~editorId:string,
+    ~tabId:string,
     ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,

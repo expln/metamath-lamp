@@ -84,21 +84,21 @@ let findAssertions = (~params:apiInput, ~backend:backend):promise<result<JSON.t,
     open Expln_utils_jsonParse
     let positive = (name:string, i:int):result<int,string> =>
         if (i < 1) { Error(`'${name}' must be a positive integer.`) } else { Ok(i) }
-    let parseResult:result<{"pattern":string, "pageNum":int, "pageSize":int, "editorId":option<string>},string> =
+    let parseResult:result<{"pattern":string, "pageNum":int, "pageSize":int, "editorTabId":option<string>},string> =
         fromJson(params->apiInputToJson, asObj(_, d=>{
             {
                 "pattern": d->str("pattern"),
                 "pageNum": d->int("pageNum", ~default=()=>1, ~validator=positive("pageNum", _)),
                 "pageSize": d->int("pageSize", ~default=()=>defaultPageSize, ~validator=positive("pageSize", _)),
-                "editorId": d->strOpt("editorId"),
+                "editorTabId": d->strOpt("editorTabId"),
             }
         }))
     switch parseResult {
         | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parsedParams) => {
-            let scope = switch parsedParams["editorId"] {
+            let scope = switch parsedParams["editorTabId"] {
                 | None => Ok(None)
-                | Some(editorId) => backend.getEditorScope(editorId)->Result.map(scope => Some(scope))
+                | Some(editorTabId) => backend.getEditorScope(editorTabId)->Result.map(scope => Some(scope))
             }
             switch scope {
                 | Error(msg) => Promise.resolve(Error(msg))

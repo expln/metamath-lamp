@@ -25,15 +25,15 @@ let editorHistRegLocStorKey = "hist-reg"
 let editorHistTmpLocStorKey = "hist-tmp"
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
-let getEditorLocStorKey = (editorId:string):string => {
-    editorStateLocStorKey ++ "-" ++ editorId
+let getEditorLocStorKey = (tabId:string):string => {
+    editorStateLocStorKey ++ "-" ++ tabId
 }
 
-let getEditorHistLocStorKey = (editorId:string):string => {
-    editorHistLocStorKey ++ "-" ++ editorId
+let getEditorHistLocStorKey = (tabId:string):string => {
+    editorHistLocStorKey ++ "-" ++ tabId
 }
 
-let editorSaveStateToLocStor = (state:editorState, ~editorId:string):unit => {
+let editorSaveStateToLocStor = (state:editorState, ~tabId:string):unit => {
     // Console.log("------------- Editor ids info --------------------")
     // Console.log2("nextStmtId", state.nextStmtId)
     // let allIds = state.stmts
@@ -43,12 +43,12 @@ let editorSaveStateToLocStor = (state:editorState, ~editorId:string):unit => {
     //     ->Array.join(", ")
     // Console.log(allIds)
     // Console.log("--------------------------------------------------")
-    locStorWriteString(getEditorLocStorKey(editorId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+    locStorWriteString(getEditorLocStorKey(tabId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
 }
 
-let histSaveToLocStor = (hist:editorHistory, ~editorId:string):unit => {
+let histSaveToLocStor = (hist:editorHistory, ~tabId:string):unit => {
     let histStr = hist->editorHistToString
-    let locStorKey = getEditorHistLocStorKey(editorId)
+    let locStorKey = getEditorHistLocStorKey(tabId)
     let histChanged = switch locStorReadString(locStorKey) {
         | None => true
         | Some(oldHistStr) => oldHistStr != histStr
@@ -59,8 +59,8 @@ let histSaveToLocStor = (hist:editorHistory, ~editorId:string):unit => {
     }
 }
 
-let histReadFromLocStor = (~editorId:string):option<editorHistory> => {
-    switch locStorReadString(getEditorHistLocStorKey(editorId)) {
+let histReadFromLocStor = (~tabId:string):option<editorHistory> => {
+    switch locStorReadString(getEditorHistLocStorKey(tabId)) {
         | None => None
         | Some(histStr) => {
             switch editorHistFromString(histStr) {
@@ -115,11 +115,11 @@ let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorSt
 }
 
 let loadEditorInitialStateFromLocStor = (
-    ~editorId:string,
+    ~tabId:string,
     ~preCtxData:preCtxData,
     ~initialStateLocStor:option<editorStateLocStor>,
 ):editorState => {
-    switch histReadFromLocStor(~editorId) {
+    switch histReadFromLocStor(~tabId) {
         | None => createInitialEditorState( ~preCtxData, ~stateLocStor=initialStateLocStor, ~nextStmtId=0, )
         | Some(hist) => {
             let nextStmtId = hist->editorHistGetMaxIntStmtId->Option.map(i => i+1)->Option.getOr(0)
@@ -155,7 +155,7 @@ let infoAboutInliningTheorems = `In order to inline theorems do the following: `
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~editorId:string,
+    ~tabId:string,
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,
@@ -204,10 +204,10 @@ let make = (
     )
 
     let (state, setStatePriv) = React.useState(_ => {
-        loadEditorInitialStateFromLocStor( ~editorId, ~preCtxData, ~initialStateLocStor, )
+        loadEditorInitialStateFromLocStor( ~tabId, ~preCtxData, ~initialStateLocStor, )
     })
     let (hist, setHistPriv) = React.useState(() => {
-        switch histReadFromLocStor(~editorId) {
+        switch histReadFromLocStor(~tabId) {
             | None => editorHistMake(~initState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
             | Some(hist) => hist->editorHistAddSnapshot(state)
         }
@@ -251,7 +251,7 @@ let make = (
     let setHist = (update:editorHistory=>editorHistory):unit => {
         setHistPriv(ht => {
             let ht = update(ht)
-            histSaveToLocStor(ht, ~editorId)
+            histSaveToLocStor(ht, ~tabId)
             ht
         })
     }
@@ -283,7 +283,7 @@ let make = (
     }
 
     let saveStateToLocStorAndMakeHistSnapshot = (st:editorState):editorState => {
-        editorSaveStateToLocStor(st, ~editorId)
+        editorSaveStateToLocStor(st, ~tabId)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
     }
@@ -854,7 +854,7 @@ let make = (
         updateTabTitle.contents = Some(newTabTitle => {
             setStatePriv(st => {
                 let st = {...st, tabTitle:newTabTitle}
-                editorSaveStateToLocStor(st, ~editorId)
+                editorSaveStateToLocStor(st, ~tabId)
                 st
             })
         })
@@ -2465,7 +2465,7 @@ let make = (
     }
 
     MM_api_editor.updateEditorData(
-        ~editorId,
+        ~tabId,
         ~preCtxData,
         ~state,
         ~setState=actSetStateFromApi,

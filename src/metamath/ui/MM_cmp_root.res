@@ -13,12 +13,11 @@ let magnifyingGlassSymbol = <img className="magnifying-glass-img"></img>
 let turnstileSymbol = <img className="turnstile-img"></img>
 
 type editorTabDataLocStor = {
-    editorId:string, 
+    tabId:string, 
 }
 
-// editorId is always the same as the id of the tab which contains the editor.
 type editorTabData = {
-    editorId:string, 
+    tabId:string, 
     initialStateLocStor:MM_wrk_editor_json.editorStateLocStor,
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     updateTabTitle: ref<option<string=>unit>>,
@@ -109,12 +108,13 @@ let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
             open Expln_utils_jsonParse
             let parseRes = orderStr->parseJson(asArr(_, asObj(_, o => {
                 {
+                    // Tab ids used to be stored under the "editorId" attribute.
                     // Editor ids used to be integers. Such ids are read as strings ("0", "1", ...),
                     // so the keys of editors' data in the local storage don't change.
-                    editorId:switch o->json("editorId") {
-                        | Number(num) => num->Float.toInt->Int.toString
-                        | String(str) => str
-                        | _ => Expln_utils_common.exn("editorId must be a string or a number.")
+                    tabId:switch o->jsonOpt("tabId")->Option.orElse(o->jsonOpt("editorId")) {
+                        | Some(Number(num)) => num->Float.toInt->Int.toString
+                        | Some(String(str)) => str
+                        | _ => Expln_utils_common.exn("tabId must be a string or a number.")
                     },
                 }
             })), ~default=()=>[])
@@ -130,8 +130,8 @@ let saveEditorsOrderToLocStor = (editorsOrder: array<editorTabDataLocStor>):unit
     Local_storage_utils.locStorWriteString(editorsOrderLocStorKey, Expln_utils_common.stringify(editorsOrder))
 }
 
-let getNewEditorIdFromEditorsOrder = (~editorsOrder: array<editorTabDataLocStor>):string => {
-    Expln_React_UseTabs.makeUniqueTabId(id => editorsOrder->Array.some(ord => ord.editorId == id))
+let getNewTabIdFromEditorsOrder = (~editorsOrder: array<editorTabDataLocStor>):string => {
+    Expln_React_UseTabs.makeUniqueTabId(id => editorsOrder->Array.some(ord => ord.tabId == id))
 }
 
 let updateEditorsDataInLocStor = () => {
@@ -143,15 +143,15 @@ let updateEditorsDataInLocStor = () => {
         | None => ()
         | Some(oldEditorStateStr) => {
             let editorsOrder = readEditorsOrderFromLocStor()
-            let newEditorId = getNewEditorIdFromEditorsOrder(~editorsOrder=editorsOrder)
-            editorsOrder->Array.splice( ~start=0, ~remove=0, ~insert=[ {editorId:newEditorId} ] )
+            let newTabId = getNewTabIdFromEditorsOrder(~editorsOrder=editorsOrder)
+            editorsOrder->Array.splice( ~start=0, ~remove=0, ~insert=[ {tabId:newTabId} ] )
             saveEditorsOrderToLocStor(editorsOrder)
-            Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorLocStorKey(newEditorId), oldEditorStateStr)
+            Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorLocStorKey(newTabId), oldEditorStateStr)
             switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorHistRegLocStorKey) {
                 | None => ()
                 | Some(oldHistReg) => {
                     Local_storage_utils.locStorWriteString(
-                        MM_cmp_editor.getEditorHistLocStorKey(newEditorId), oldHistReg
+                        MM_cmp_editor.getEditorHistLocStorKey(newTabId), oldHistReg
                     )
                 }
             }
@@ -164,10 +164,10 @@ let updateEditorsDataInLocStor = () => {
 updateEditorsDataInLocStor()
 
 let deleteOutdatedEditorsDataInLocStor = () => {
-    let existingEditorIds = readEditorsOrderFromLocStor()->Array.map(d => d.editorId)
+    let existingTabIds = readEditorsOrderFromLocStor()->Array.map(d => d.tabId)
     let allowedLocStorKeys = Array.concat(
-        existingEditorIds->Array.map(MM_cmp_editor.getEditorLocStorKey),
-        existingEditorIds->Array.map(MM_cmp_editor.getEditorHistLocStorKey)
+        existingTabIds->Array.map(MM_cmp_editor.getEditorLocStorKey),
+        existingTabIds->Array.map(MM_cmp_editor.getEditorHistLocStorKey)
     )->Belt_SetString.fromArray
     let locStorLen = Local_storage_utils.locStorLength()
     let keysToDelete = Belt_MutableSetString.make()
@@ -238,7 +238,7 @@ let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a
     let editorsOrder = []
     existingTabs->Array.forEach(tab => {
         switch tab.data {
-            | Editor({editorId}) => editorsOrder->Array.push({editorId:editorId})
+            | Editor({tabId}) => editorsOrder->Array.push({tabId:tabId})
             | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) | DbInfo | Mcp => ()
         }
     })
@@ -251,7 +251,7 @@ let contextFromUrlHasBeenReloaded = ref(false)
 @react.component
 let make = () => {
     let modalRef = useModalRef()
-    let (lastOpenedEditorId, setLastOpenedEditorId) = React.useState(() => None)
+    let (lastOpenedTabId, setLastOpenedTabId) = React.useState(() => None)
     let globalAddAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let globalMaxFrmOrd: React.ref<option<ref<int>>> = React.useRef(None)
 
@@ -263,18 +263,18 @@ let make = () => {
                 MM_mcp_client.disconnect()
                 Promise.resolve(true)
             }
-            | Editor({editorId}) => {
+            | Editor({tabId}) => {
                 openOkCancelDialog(
                     ~modalRef, 
                     ~title="Close editor tab?",
                     ~text=tab.label,
                 )->Promise.thenResolve(confirmed => {
                     if (confirmed) {
-                        MM_api_editor.deleteEditor(editorId)
+                        MM_api_editor.deleteEditor(tabId)
                         globalAddAsrtByLabel.current = None
                         globalMaxFrmOrd.current = None
-                        if (lastOpenedEditorId == Some(editorId)) {
-                            setLastOpenedEditorId(_ => None)
+                        if (lastOpenedTabId == Some(tabId)) {
+                            setLastOpenedTabId(_ => None)
                         }
                     }
                     confirmed
@@ -358,9 +358,9 @@ let make = () => {
             | Some(tab) => {
                 switch isEditorTab(tab.data) {
                     | None => ()
-                    | Some({editorId, addAsrtByLabel, maxFrmOrd}) => {
-                        setLastOpenedEditorId(_ => Some(editorId))
-                        MM_api_editor.setLastOpenedEditorId(editorId)
+                    | Some({tabId, addAsrtByLabel, maxFrmOrd}) => {
+                        setLastOpenedTabId(_ => Some(tabId))
+                        MM_api_editor.setLastOpenedTabId(tabId)
                         globalAddAsrtByLabel.current = addAsrtByLabel.contents->Option.map(addAsrtByLabelOrig => {
                             str => {
                                 addAsrtByLabelOrig(str)->Promise.thenResolve(res => {
@@ -566,14 +566,14 @@ let make = () => {
                     MM_wrk_editor_json.makeEmptyEditorStateLocStor(~tabTitle=newTabTitle)
                 }
             }
-            let newEditorId = tabsSt->Expln_React_UseTabs.makeNewTabId
+            let newTabId = tabsSt->Expln_React_UseTabs.makeNewTabId
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
-                ~id=newEditorId,
+                ~id=newTabId,
                 ~label=initialStateLocStor.tabTitle,
                 ~icon=pencilSymbol,
                 ~closable=true, 
                 ~data=Editor({
-                    editorId:newEditorId, 
+                    tabId:newTabId, 
                     initialStateLocStor,
                     addAsrtByLabel:ref(None),
                     updateTabTitle:ref(None),
@@ -602,10 +602,10 @@ let make = () => {
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="Tabs", ~closable=false, ~singleton=true, ~data=TabsManager
                 )
-                let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId},idx) => {
-                    switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {
+                let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{tabId},idx) => {
+                    switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(tabId)) {
                         | None => st
-                        | Some(_) if st->Expln_React_UseTabs.tabExists(editorId) => st
+                        | Some(_) if st->Expln_React_UseTabs.tabExists(tabId) => st
                         | Some(editorStateJsonStr) => {
                             switch readEditorStateFromJsonStr(editorStateJsonStr) {
                                 | None => st
@@ -615,11 +615,11 @@ let make = () => {
                                         ~existingTabs=st->Expln_React_UseTabs.getTabs,
                                     )
                                     let (st, _) = st->Expln_React_UseTabs.addTab(
-                                        ~id=editorId,
+                                        ~id=tabId,
                                         ~label=editorStateLocStor.tabTitle, ~icon=pencilSymbol, ~closable=true, 
                                         ~doOpen= idx==0 && editorInitialStateFromUrl->Option.isNone,
                                         ~data=Editor({
-                                            editorId, 
+                                            tabId, 
                                             initialStateLocStor:editorStateLocStor,
                                             addAsrtByLabel:ref(None),
                                             updateTabTitle:ref(None),
@@ -719,9 +719,9 @@ let make = () => {
                                 })
                             }
                         />
-                    | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle, maxFrmOrd}) => 
+                    | Editor({tabId, initialStateLocStor, addAsrtByLabel, updateTabTitle, maxFrmOrd}) => 
                         <MM_cmp_editor
-                            editorId
+                            tabId
                             top
                             modalRef
                             preCtxData=state.preCtxData
