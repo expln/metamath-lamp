@@ -17,7 +17,12 @@ Tools which work with an editor tab take its id in the required `tabId` paramete
 Tab ids are random strings, e.g. `k3f9x2m7qa`.
 Ids of editor tabs don't change when metamath-lamp is reloaded.
 Editors created before tab ids were introduced keep their old numeric ids as strings, e.g. `0`.
+Use `list_tabs` to find the ids.
 
+* `list_tabs` - returns all tabs, including Settings and Tabs, in the order they are displayed,
+  as a JSON array of `{tabId, type, title, isVisible}`.
+  `type` is one of `settings`, `tabs`, `editor`, `explorer`, `assertion`, `db-info`, `mcp`.
+  `isVisible` is true only for the currently displayed tab.
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.

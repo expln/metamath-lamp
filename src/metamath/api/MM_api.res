@@ -146,6 +146,10 @@ type contextApi = {
     "load": api,
 }
 
+type tabsApi = {
+    "list": api,
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let uiRef:ref<option<uiApi>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
@@ -153,6 +157,7 @@ let macroRef:ref<option<macroApi>> = ref(None)
 let settingsRef:ref<option<settingsApi>> = ref(None)
 let explorerRef:ref<option<explorerApi>> = ref(None)
 let contextRef:ref<option<contextApi>> = ref(None)
+let tabsRef:ref<option<tabsApi>> = ref(None)
 
 let makeSingleUiApi = (methodGetter:uiApi=>api):api => {
     apiInput => {
@@ -199,6 +204,15 @@ let makeSingleContextApi = (methodGetter:contextApi=>api):api => {
     }
 }
 
+let makeSingleTabsApi = (methodGetter:tabsApi=>api):api => {
+    apiInput => {
+        switch tabsRef.contents {
+            | None => Promise.resolve(errResp("The tabs API function is not defined."))
+            | Some(tabsApi) => methodGetter(tabsApi)(apiInput)
+        }
+    }
+}
+
 let makeUiApi = ():uiApi => {
     {
         "showInfoMsg": makeSingleUiApi(a => a["showInfoMsg"]),
@@ -236,6 +250,12 @@ let makeContextApi = ():contextApi => {
     }
 }
 
+let makeTabsApi = ():tabsApi => {
+    {
+        "list": makeSingleTabsApi(a => a["list"]),
+    }
+}
+
 // Editor ids used to be integers. Editors created before that keep their old ids as strings ("0", "1", ...).
 // This lets macros which pass an old integer id keep working.
 // The id comes from JS code, so it may be of any type: anything other than undefined or null is converted to a string,
@@ -257,6 +277,7 @@ let api = {
     "settings": makeSettingsApi(),
     "explorer": makeExplorerApi(),
     "context": makeContextApi(),
+    "tabs": makeTabsApi(),
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
@@ -293,4 +314,8 @@ let setExplorerApi = ( explorerApi:explorerApi ):unit => {
 
 let setContextApi = ( contextApi:contextApi ):unit => {
     contextRef:= Some(contextApi)
+}
+
+let setTabsApi = ( tabsApi:tabsApi ):unit => {
+    tabsRef:= Some(tabsApi)
 }

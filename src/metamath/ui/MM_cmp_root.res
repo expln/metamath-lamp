@@ -266,6 +266,32 @@ let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a
     deleteOutdatedEditorsDataInLocStor()
 }
 
+// Tab types as they are exposed via api.tabs.
+let getTabTypeName = (tabData:tabData):string => {
+    switch tabData {
+        | Settings => "settings"
+        | TabsManager => "tabs"
+        | Editor(_) => "editor"
+        | ExplorerIndex(_) => "explorer"
+        | ExplorerFrame(_) => "assertion"
+        | DbInfo => "db-info"
+        | Mcp => "mcp"
+    }
+}
+
+let tabToTabInfo = (tab:Expln_React_UseTabs.tab<tabData>, ~activeTabId:string):MM_api_tabs.tabInfo => {
+    {
+        tabId:tab.id,
+        typ:getTabTypeName(tab.data),
+        title:switch tab.data {
+            // The Settings tab is displayed with an icon only.
+            | Settings => "Settings"
+            | _ => tab.label
+        },
+        isVisible:tab.id == activeTabId,
+    }
+}
+
 let contextFromUrlHasBeenReloaded = ref(false)
 
 @react.component
@@ -348,6 +374,21 @@ let make = () => {
         )
         None
     }, [state.preCtxData])
+
+    React.useEffect0(() => {
+        MM_api_tabs.updateTabsApi(
+            // The tabs are read inside a state updater (which doesn't change the state),
+            // so the result reflects all previously requested changes, even if they are not rendered yet.
+            ~listTabs=() => Promise.make((resolve,_) => {
+                updateTabs(st => {
+                    let activeTabId = st->Expln_React_UseTabs.getActiveTabId
+                    resolve(st->Expln_React_UseTabs.getTabs->Array.map(tabToTabInfo(_, ~activeTabId)))
+                    st
+                })
+            })
+        )
+        None
+    })
 
     let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
 

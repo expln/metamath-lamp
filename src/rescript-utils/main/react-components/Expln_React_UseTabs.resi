@@ -16,6 +16,7 @@ type tab<'a> = {
 
 type state<'a>
 let getTabs: state<'a> => array<tab<'a>>
+let getActiveTabId: state<'a> => tabId
 let tabExists: (state<'a>, tabId) => bool
 /**
 Returns a new random tab id for which `isTaken` returns false.

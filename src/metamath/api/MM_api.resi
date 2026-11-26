@@ -65,6 +65,10 @@ type contextApi = {
     "load": api,
 }
 
+type tabsApi = {
+    "list": api,
+}
+
 let api: {
     "setLogApiCallsToConsole": api,
     "ui" : uiApi,
@@ -73,6 +77,7 @@ let api: {
     "settings" : settingsApi,
     "explorer" : explorerApi,
     "context" : contextApi,
+    "tabs" : tabsApi,
 }
 
 let setUiApi: uiApi => unit
@@ -81,5 +86,6 @@ let setMacroApi: macroApi => unit
 let setSettingsApi: settingsApi => unit
 let setExplorerApi: explorerApi => unit
 let setContextApi: contextApi => unit
+let setTabsApi: tabsApi => unit
 
 let makeEmptySingleEditorApi: string => singleEditorApi

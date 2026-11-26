@@ -24,6 +24,7 @@ const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
 const UNIFY_ALL_TIMEOUT_MS = 60_000
 const GET_STATE_TIMEOUT_MS = 30_000
+const LIST_TABS_TIMEOUT_MS = 10_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
@@ -105,6 +106,14 @@ function withConnectedTab(handler) {
         }
         return handler(args, extra)
     }
+}
+
+/*
+* Lists all tabs of metamath-lamp in the order they are displayed.
+* Resolves to the API response: res is [{tabId, type, title, isVisible}].
+* */
+function listTabs() {
+    return bridge.call({path: 'tabs.list', timeoutMs: LIST_TABS_TIMEOUT_MS})
 }
 
 /*
@@ -258,6 +267,42 @@ function getInsertIdx({steps, beforeLabel, afterLabel}) {
 const server = new McpServer({name: 'metamath-lamp', version: '0.0.1'})
 
 server.registerTool(
+    'list_tabs',
+    {
+        title: 'List tabs',
+        description: `Returns all tabs of metamath-lamp in the order they are displayed, \
+as a JSON array of \`{tabId, type, title, isVisible}\`.
+
+type is one of:
+* settings - the Settings tab
+* tabs - the Tabs tab, which manages the other tabs
+* editor - an editor tab with a proof
+* explorer - an explorer tab, which lists assertions of the loaded database
+* assertion - a tab which shows a single assertion of the loaded database
+* db-info - the tab with information about the loaded database
+* mcp - the MCP tab, which connects metamath-lamp to this MCP server
+
+isVisible is true only for the tab which is currently displayed in metamath-lamp.
+
+Use the tabId of an editor tab in the tools which work with editors.`,
+        inputSchema: {},
+        annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async () => {
+        const resp = await listTabs()
+        if (!resp.isOk) {
+            return errorResult(`Could not list the tabs: ${resp.err}`)
+        }
+        return textResult(JSON.stringify(resp.res))
+    })
+)
+
+server.registerTool(
     'get_editor_state',
     {
         title: 'Get editor state',
@@ -295,7 +340,7 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
                 'Show only bookmarked steps, hypotheses, the goal, unproved steps, and steps with errors. '
                 + 'Use it to save context on large proofs when only the unfinished part matters.'
             ),
-            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
         },
         annotations: {
             readOnlyHint: false,
@@ -345,7 +390,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
                     + 'Omit to leave the step without a justification. Ignored for hypotheses.'
                 ),
             })).min(1).describe('Steps to add, in order.'),
-            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
         },
         annotations: {
             readOnlyHint: false,
@@ -418,7 +463,7 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
                     + 'Proved steps which are not bookmarked are hidden in the returned editor state.'
                 ),
             })).min(1).describe('Steps to update.'),
-            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
         },
         annotations: {
             readOnlyHint: false,
@@ -465,7 +510,7 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
 (only relevant steps).`,
         inputSchema: {
             labels: z.array(z.string()).min(1).describe('Labels of the steps to delete.'),
-            tabId: z.string().trim().min(1).describe('Id of the editor tab.'),
+            tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
         },
         annotations: {
             readOnlyHint: false,

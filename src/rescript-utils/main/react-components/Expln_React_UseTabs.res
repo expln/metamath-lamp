@@ -72,6 +72,7 @@ let makeUniqueTabId = (isTaken:tabId=>bool):tabId => {
 }
 
 let getTabs = (st:state<'a>) => st.tabs
+let getActiveTabId = (st:state<'a>):tabId => st.activeTabId
 
 let tabExists = (st:state<'a>, tabId:tabId):bool => st.tabs->Array.some(t => t.id == tabId)
 
