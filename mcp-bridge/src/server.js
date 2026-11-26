@@ -267,18 +267,25 @@ function setLocation({tabId, place, label}) {
     return callBridge({path: 'editor.setLocation', tabId, params: {place, label}, timeoutMs: SET_LOCATION_TIMEOUT_MS})
 }
 
+function isBlank(str) {
+    return str === undefined || str.trim() === ''
+}
+
 /*
-* Searches assertions by a pattern (discouraged and deprecated assertions are excluded).
+* Searches assertions by a pattern and a label (discouraged and deprecated assertions are excluded).
+* pattern - if undefined or blank, assertions are not filtered by a pattern.
+* label - if defined and not blank, only assertions whose label contains at least one of
+* its space-separated parts (case-insensitive) are returned.
 * editorTabId - if defined, only assertions which can be used in that editor tab are returned;
 * if undefined, the whole loaded context is searched.
 * pageNum is 1-based.
 * Resolves to the API response: res is
 * {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
 * */
-function findAssertions({pattern, pageNum, pageSize, editorTabId}) {
+function findAssertions({label, pattern, pageNum, pageSize, editorTabId}) {
     return callBridge({
         path: 'explorer.findAssertions',
-        params: {pattern, pageNum, pageSize, editorTabId},
+        params: {label, pattern, pageNum, pageSize, editorTabId},
         timeoutMs: FIND_ASSERTIONS_TIMEOUT_MS,
     })
 }
@@ -895,12 +902,16 @@ server.registerTool(
     'find_assertions',
     {
         title: 'Find assertions',
-        description: `Searches assertions (theorems and axioms) by a pattern in the loaded Metamath database. \
-Discouraged and deprecated assertions are excluded.
+        description: `Searches assertions (theorems and axioms) by a pattern and/or a label \
+in the loaded Metamath database. Discouraged and deprecated assertions are excluded. \
+Both pattern and label are optional; an assertion is returned only if it matches all given criteria.
 
 Pass editorTabId to return only assertions which can be used in that editor tab \
 (an editor may be limited to assertions declared before or up to some label). \
 Without editorTabId, the whole database is searched.
+
+Pass label to return only assertions whose label contains (case-insensitive) at least one of \
+its space-separated parts, e.g. \`addcom addass\` returns assertions with \`addcom\` or \`addass\` in the label.
 
 The simplest pattern is a space-separated sequence of math symbols, e.g. \`A + B = B + A\`. \
 Variables match any variable of the same type, typecodes match any variable of that type, \
@@ -915,8 +926,13 @@ one \`hyp:\` line per essential hypothesis, and \`asrt:\` the assertion statemen
 
 The search may open a progress dialog in metamath-lamp, and the user may cancel it.`,
         inputSchema: {
-            pattern: z.string().min(1).describe('The search pattern, e.g. "|- $+a A + B = B + A".'),
+            pattern: z.string().optional().describe(
+                'The search pattern, e.g. "|- $+a A + B = B + A". Omit to not filter by a pattern.'
+            ),
             page: z.number().int().min(1).default(1).describe('Number of the page to return, starting from 1.'),
+            label: z.string().optional().describe(
+                'Space-separated parts of labels; only assertions whose label contains at least one part are returned.'
+            ),
             editorTabId: z.string().trim().min(1).optional().describe(
                 'Id of an editor tab to return only assertions available in it. Omit to search the whole database.'
             ),
@@ -928,22 +944,29 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({pattern, page, editorTabId}) => {
-        const resp = await findAssertions({pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId})
+    withConnectedTab(async ({label, pattern, page, editorTabId}) => {
+        const resp = await findAssertions({
+            label, pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId
+        })
         if (!resp.isOk) {
             return errorResult(`Could not find assertions: ${resp.err}`)
         }
         const {totalCount, numOfPages, editorScope, asrts} = resp.res
         const scope = editorScope === undefined ? '' : ` (scope of editor ${editorTabId}: ${editorScope})`
+        const criteria = [
+            ...(isBlank(pattern) ? [] : [`the pattern '${pattern}'`]),
+            ...(isBlank(label) ? [] : [`the label '${label}'`]),
+        ].join(' and ')
+        const matchText = criteria === '' ? 'found' : `match ${criteria}`
         if (totalCount === 0) {
-            return textResult(`No assertions match the pattern '${pattern}'${scope}.`)
+            return textResult(`No assertions ${matchText}${scope}.`)
         }
         if (asrts.length === 0) {
             return errorResult(
-                `Page ${page} doesn't exist: ${totalCount} assertions match the pattern, ${numOfPages} pages in total.`
+                `Page ${page} doesn't exist: ${totalCount} assertions ${matchText}, ${numOfPages} pages in total.`
             )
         }
-        const header = `${totalCount} assertions match the pattern '${pattern}'${scope}. Page ${page} of ${numOfPages}:`
+        const header = `${totalCount} assertions ${matchText}${scope}. Page ${page} of ${numOfPages}:`
         return textResult([header, ...asrts.map(assertionToText)].join('\n\n'))
     })
 )

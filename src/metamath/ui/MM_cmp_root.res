@@ -355,12 +355,12 @@ let make = () => {
         MM_api_explorer.updateExplorerApi(
             ~preCtxData,
             ~getEditorScope=MM_api_editor.getEditorScope,
-            ~searchAssertions = (~pattern:string):promise<result<array<frame>,string>> => {
+            ~searchAssertions = (~label:string, ~pattern:string):promise<result<array<frame>,string>> => {
                 MM_cmp_search_asrt.searchAssertions(
                     ~modalRef,
                     ~preCtxData,
                     ~typ=None,
-                    ~label="",
+                    ~label,
                     ~patternStr=pattern,
                     ~patternVersion=2,
                     ~isDisc=false,
