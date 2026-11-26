@@ -155,7 +155,8 @@ let doSearchAssertions = (
         | Ok(pattern) => pattern
     }
 
-    let labelTrim = label->String.trim->String.toLowerCase
+    let labelParts = label->String.trim->String.toLowerCase
+        ->String.splitByRegExp(/\s+/)->Array.filterMap(x => x)->Array.filter(s => s != "")
     allFramesInDeclarationOrder->Array.map(frame => {
         switch onProgress {
             | None => ()
@@ -168,7 +169,10 @@ let doSearchAssertions = (
         }
         let matched = isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
             && typ->Option.mapOr( true, typ => typ == frame.asrt->Array.getUnsafe(0) )
-            && frame.label->String.toLowerCase->String.includes(labelTrim)
+            && (labelParts->Array.length == 0 || {
+                let frameLabel = frame.label->String.toLowerCase
+                labelParts->Array.some(part => frameLabel->String.includes(part))
+            })
             && (threeStateBoolMatchesTwoStateBool(isDisc, frame.isDisc))
             && (threeStateBoolMatchesTwoStateBool(isDepr, frame.isDepr))
             && (threeStateBoolMatchesTwoStateBool(isTranDepr, frame.isTranDepr))
