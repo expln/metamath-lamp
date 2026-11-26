@@ -38,6 +38,7 @@ let addTab: (
     ~color:string=?, ~data:'a, ~doOpen:bool=?
 ) => (state<'a>, tabId)
 let openTab: (state<'a>, tabId) => state<'a>
+let setLabel: (state<'a>, tabId, string) => state<'a>
 let removeTab: (state<'a>, tabId) => state<'a>
 
 type tabMethods<'a> = {

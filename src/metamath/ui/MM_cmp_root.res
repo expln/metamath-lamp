@@ -701,6 +701,36 @@ let make = () => {
                     }
                 })
             }),
+            ~renameTab=(~tabId:string, ~title:string) => {
+                Promise.make((resolve,_) => {
+                    updateTabs(st => {
+                        switch st->Expln_React_UseTabs.getTabs->Array.find(tab => tab.id == tabId) {
+                            | None => {
+                                resolve(Error(`There is no tab with id '${tabId}'.`))
+                                st
+                            }
+                            | Some({data:Settings | TabsManager}) => {
+                                resolve(Error(`The tab '${tabId}' cannot be renamed.`))
+                                st
+                            }
+                            | Some(tab) => {
+                                resolve(Ok(tab))
+                                st->Expln_React_UseTabs.setLabel(tabId, title)
+                            }
+                        }
+                    })
+                })->Promise.thenResolve(res => {
+                    res->Result.map(tab => {
+                        // The same as actRenameTab does: an editor keeps its title in its own state too.
+                        switch tab.data {
+                            | Editor({updateTabTitle}) => {
+                                updateTabTitle.contents->Option.forEach(updateTabTitle => updateTabTitle(title))
+                            }
+                            | _ => ()
+                        }
+                    })
+                })
+            },
             ~createEditorTab=(~doOpen:bool, ~title:option<string>) => Promise.make((resolve,_) => {
                 // The id is generated outside of the state updater,
                 // because React may call an updater twice, and both calls must add a tab with the same id.

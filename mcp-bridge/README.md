@@ -30,6 +30,8 @@ Use `list_tabs` to find the ids.
   Closing an editor tab deletes its content.
   Settings, Tabs, and MCP tabs cannot be closed by this tool.
 * `open_tab` - makes an existing tab visible, as if the user clicked it.
+* `rename_tab` - changes the title of a tab.
+  Settings and Tabs cannot be renamed.
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.

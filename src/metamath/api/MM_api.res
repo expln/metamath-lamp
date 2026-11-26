@@ -151,6 +151,7 @@ type tabsApi = {
     "createEditorTab": api,
     "close": api,
     "open": api,
+    "rename": api,
 }
 
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
@@ -259,6 +260,7 @@ let makeTabsApi = ():tabsApi => {
         "createEditorTab": makeSingleTabsApi(a => a["createEditorTab"]),
         "close": makeSingleTabsApi(a => a["close"]),
         "open": makeSingleTabsApi(a => a["open"]),
+        "rename": makeSingleTabsApi(a => a["rename"]),
     }
 }
 

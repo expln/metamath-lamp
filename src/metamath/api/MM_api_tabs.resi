@@ -16,10 +16,13 @@ type tabInfo = {
 * (only some tabs, e.g. editors, need a confirmation). It resolves to false if the user didn't confirm,
 * and to an error if the tab doesn't exist or cannot be closed (Settings, Tabs, and MCP tabs cannot be closed).
 * openTab must make the tab visible. It resolves to an error if the tab doesn't exist.
+* renameTab must change the title of the tab (title is not blank).
+* It resolves to an error if the tab doesn't exist or cannot be renamed (Settings and Tabs cannot be renamed).
 * */
 let updateTabsApi: (
     ~listTabs:unit=>promise<array<tabInfo>>,
     ~createEditorTab:(~doOpen:bool, ~title:option<string>)=>promise<result<string,string>>,
     ~closeTab:(~tabId:string, ~askConfirmation:bool)=>promise<result<bool,string>>,
     ~openTab:string=>promise<result<unit,string>>,
+    ~renameTab:(~tabId:string, ~title:string)=>promise<result<unit,string>>,
 ) => unit

@@ -75,16 +75,36 @@ let apiOpenTab = (~params:apiInput, ~openTab:string=>promise<result<unit,string>
     }
 }
 
+// params: {tabId:string, title:string}.
+let apiRenameTab = (~params:apiInput, ~renameTab:(~tabId:string, ~title:string)=>promise<result<unit,string>>):promise<result<JSON.t,string>> => {
+    let parsed = Raw_js_utils.invokeExnFunc("Parsing parameters of tabs.rename", () => {
+        let params = params->apiInputToObjExn("got empty parameters")
+        (
+            Raw_js_utils.reqStrExn(params["tabId"], "'tabId' must be a string"),
+            Raw_js_utils.reqStrExn(params["title"], "'title' must be a string"),
+        )
+    })
+    switch parsed {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok((_, title)) if title->String.trim == "" => Promise.resolve(Error("The title must not be empty."))
+        | Ok((tabId, title)) => {
+            renameTab(~tabId, ~title)->Promise.thenResolve(res => res->Result.map(() => JSON.Encode.null))
+        }
+    }
+}
+
 let updateTabsApi = (
     ~listTabs:unit=>promise<array<tabInfo>>,
     ~createEditorTab:(~doOpen:bool, ~title:option<string>)=>promise<result<string,string>>,
     ~closeTab:(~tabId:string, ~askConfirmation:bool)=>promise<result<bool,string>>,
     ~openTab:string=>promise<result<unit,string>>,
+    ~renameTab:(~tabId:string, ~title:string)=>promise<result<unit,string>>,
 ):unit => {
     setTabsApi({
         "list": makeApiFunc("tabs.list", _ => apiListTabs(~listTabs)),
         "createEditorTab": makeApiFunc("tabs.createEditorTab", params => apiCreateEditorTab(~params, ~createEditorTab)),
         "close": makeApiFunc("tabs.close", params => apiCloseTab(~params, ~closeTab)),
         "open": makeApiFunc("tabs.open", params => apiOpenTab(~params, ~openTab)),
+        "rename": makeApiFunc("tabs.rename", params => apiRenameTab(~params, ~renameTab)),
     })
 }

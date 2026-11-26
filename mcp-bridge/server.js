@@ -28,6 +28,7 @@ const LIST_TABS_TIMEOUT_MS = 10_000
 const CREATE_EDITOR_TAB_TIMEOUT_MS = 30_000
 const CLOSE_TAB_TIMEOUT_MS = 10_000
 const OPEN_TAB_TIMEOUT_MS = 10_000
+const RENAME_TAB_TIMEOUT_MS = 10_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
@@ -151,6 +152,14 @@ function closeTab({tabId}) {
 * */
 function openTab({tabId}) {
     return bridge.call({path: 'tabs.open', params: {tabId}, timeoutMs: OPEN_TAB_TIMEOUT_MS})
+}
+
+/*
+* Changes the title of a tab.
+* Resolves to the API response: res is null.
+* */
+function renameTab({tabId, title}) {
+    return bridge.call({path: 'tabs.rename', params: {tabId, title}, timeoutMs: RENAME_TAB_TIMEOUT_MS})
 }
 
 /*
@@ -425,6 +434,33 @@ Use it to show the user the result of your work, e.g. an editor tab with a proof
             return errorResult(`Could not open the tab: ${resp.err}`)
         }
         return textResult(`The tab '${tabId}' is visible now.`)
+    })
+)
+
+server.registerTool(
+    'rename_tab',
+    {
+        title: 'Rename tab',
+        description: `Changes the title of an existing tab of metamath-lamp. \
+The Settings and Tabs tabs cannot be renamed. \
+Titles of editor tabs are saved with the editor content.`,
+        inputSchema: {
+            tabId: z.string().trim().min(1).describe('Id of the tab to rename (see list_tabs).'),
+            title: z.string().trim().min(1).describe('New title of the tab.'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({tabId, title}) => {
+        const resp = await renameTab({tabId, title})
+        if (!resp.isOk) {
+            return errorResult(`Could not rename the tab: ${resp.err}`)
+        }
+        return textResult(`Renamed the tab '${tabId}' to '${title}'.`)
     })
 )
 
