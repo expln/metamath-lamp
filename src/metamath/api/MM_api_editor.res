@@ -579,13 +579,29 @@ let proveBottomUp = (
 }
 
 let unifyAll = (
+    ~params:apiInput,
     ~canStartUnifyAll:bool,
-    ~startUnifyAll:unit=>promise<unit>,
+    ~startUnifyAll:(~showProofDialog:bool)=>promise<unit>,
 ):promise<result<JSON.t,string>> => {
-    if (!canStartUnifyAll) {
-        Promise.resolve(Ok(JSON.Encode.bool(false)))
-    } else {
-        startUnifyAll()->Promise.thenResolve(_ => Ok(JSON.Encode.bool(true)))
+    // Params are optional: macros call unifyAll() without arguments.
+    let showProofDialog:result<bool,string> = switch params->apiInputToNullableObj->Nullable.toOption {
+        | None => Ok(true)
+        | Some(_) => {
+            open Expln_utils_jsonParse
+            fromJson(params->apiInputToJson, asObj(_, d=>{
+                d->bool("showProofDialog", ~default=()=>true)
+            }))
+        }
+    }
+    switch showProofDialog {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(showProofDialog) => {
+            if (!canStartUnifyAll) {
+                Promise.resolve(Ok(JSON.Encode.bool(false)))
+            } else {
+                startUnifyAll(~showProofDialog)->Promise.thenResolve(_ => Ok(JSON.Encode.bool(true)))
+            }
+        }
     }
 }
 
@@ -1258,7 +1274,7 @@ type editorData = {
     canStartProvingBottomUp:bool,
     startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     canStartUnifyAll:bool,
-    startUnifyAll:unit=>promise<unit>,
+    startUnifyAll:(~showProofDialog:bool)=>promise<unit>,
     buildSyntaxTrees:(array<string>,array<string>/*untyped,typed*/)=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     addAsrtByLabel: string=>promise<result<unit,string>>,
@@ -1285,7 +1301,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             "editor.proveBottomUp",
             params => proveBottomUp( ~paramsJson=params, ~state, ~canStartProvingBottomUp, ~startProvingBottomUp, )
         ),
-        "unifyAll": makeApiFunc("editor.unifyAll", _ => unifyAll( ~canStartUnifyAll, ~startUnifyAll, )),
+        "unifyAll": makeApiFunc("editor.unifyAll", params => unifyAll( ~params, ~canStartUnifyAll, ~startUnifyAll, )),
         "addSteps": makeApiFunc("editor.addSteps", params => addSteps( ~state, ~paramsJson=params, ~setState, )),
         "updateSteps": makeApiFunc("editor.updateSteps", params => updateSteps( ~paramsJson=params, ~setState, )),
         "renameSteps": makeApiFunc("editor.renameSteps", params => apiRenameSteps( ~params, ~setState, )),
@@ -1365,7 +1381,7 @@ let updateEditorData = (
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
-    ~startUnifyAll:unit=>promise<unit>,
+    ~startUnifyAll:(~showProofDialog:bool)=>promise<unit>,
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,

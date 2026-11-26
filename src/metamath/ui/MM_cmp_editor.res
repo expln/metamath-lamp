@@ -271,7 +271,7 @@ let make = (
                         !editIsActive && !thereAreCriticalErrorsInEditor 
                         && !atLeastOneStmtIsChecked && proofStatusIsMissing
                     ) {
-                        st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
+                        st->setNextAction(Some(UnifyAll({nextAction:()=>(), showProofDialog:true})))
                     } else {
                         st
                     }
@@ -298,11 +298,28 @@ let make = (
         })
     }
 
-    let actUnifyAllResultsAreReady = (proofTreeDto:result<proofTreeDto,string>, nextAction: unit=>unit) => {
+    // The last seen text and proof status of the goal step.
+    // The compressed proof dialog is shown when the goal step becomes proved compared to this value.
+    let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
+
+    let actUnifyAllResultsAreReady = (
+        proofTreeDto:result<proofTreeDto,string>,
+        nextAction: unit=>unit,
+        ~showProofDialog:bool,
+    ) => {
         switch proofTreeDto {
             | Ok(proofTreeDto) => {
                 setStatePriv(st => {
                     let st = st->applyUnifyAllResults(proofTreeDto)
+                    if (!showProofDialog) {
+                        // Mark the current goal status as already seen,
+                        // so the compressed proof dialog is not shown for this 'Unify All'.
+                        st.stmts->Array.find(stmt => stmt.isGoal)->Option.forEach(goal => {
+                            prevGoalStmtStatus.current = (
+                                goal.cont->contToStr, goal.proofStatus->Option.getOr(NoJstf)
+                            )
+                        })
+                    }
                     let st = st->saveStateToLocStorAndMakeHistSnapshot
                     let st = st->setNextAction(Some(Action(nextAction)))
                     st
@@ -1102,7 +1119,8 @@ let make = (
         ~delayBeforeStartMs:int=0,
         ~selectFirstFoundProof:option<bool>=?,
         ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit = _ => (),
-        ~nextAction: unit=>unit = ()=>()
+        ~nextAction: unit=>unit = ()=>(),
+        ~showProofDialog:bool=true,
     ) => {
         if (thereAreCriticalErrorsInEditor) {
             ()
@@ -1226,7 +1244,7 @@ let make = (
                                     modalRef, modalId, () => rndProgress( ~text=msg, ~onTerminate )
                                 )
                             )->Promise.thenResolve(proofTreeDto => {
-                                actUnifyAllResultsAreReady(proofTreeDto, nextAction)
+                                actUnifyAllResultsAreReady(proofTreeDto, nextAction, ~showProofDialog)
                                 closeModal(modalRef, modalId)
                             })
                         })->ignore
@@ -1247,7 +1265,10 @@ let make = (
                             let st = st->addNewStatements(selectedResult, ~isBkm = showBkmOnly)
                             let st = st->uncheckAllStmts
                             let st = st->setNextAction(Some(
-                                UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult)))})
+                                UnifyAll({
+                                    nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult))),
+                                    showProofDialog:true,
+                                })
                             ))
                             st
                         })
@@ -1264,7 +1285,7 @@ let make = (
             | Some(action) => {
                 setStatePriv(setNextAction(_,None))
                 switch action {
-                    | UnifyAll({nextAction}) => actUnify(~nextAction)
+                    | UnifyAll({nextAction, showProofDialog}) => actUnify(~nextAction, ~showProofDialog)
                     | MergeNextDuplicate => {
                         if (state->editorStateHasDuplicatedStmts) {
                             actMergeStmts()
@@ -1301,7 +1322,6 @@ let make = (
     let currGoalStmtStatus:option<(stmtId,string,option<proofStatus>)> = state.stmts
         ->Array.find(stmt => stmt.isGoal)
         ->Belt.Option.map(stmt => (stmt.id, stmt.cont->contToStr, stmt.proofStatus))
-    let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
     React.useEffect1(() => {
         switch state.nextAction {
             | Some(_) => ()
@@ -2491,11 +2511,11 @@ let make = (
             })
         },
         ~canStartUnifyAll=generalModificationActionIsEnabled,
-        ~startUnifyAll = () => {
+        ~startUnifyAll = (~showProofDialog) => {
             Promise.make((resolve,_) => {
                 setState(st => {
                     let st = st->uncheckAllStmts
-                    let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(())})))
+                    let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(()), showProofDialog})))
                     st
                 })
             })

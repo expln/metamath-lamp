@@ -165,9 +165,12 @@ function renameTab({tabId, title}) {
 /*
 * Runs 'Unify All' in an editor tab.
 * Resolves to the API response: res is true if 'Unify All' ran, false if it could not start.
+* The compressed proof dialog is suppressed, so it does not pop up in the browser when the goal gets proved.
 * */
 function unifyAll({tabId}) {
-    return bridge.call({path: 'editor.unifyAll', tabId, timeoutMs: UNIFY_ALL_TIMEOUT_MS})
+    return bridge.call({
+        path: 'editor.unifyAll', tabId, params: {showProofDialog: false}, timeoutMs: UNIFY_ALL_TIMEOUT_MS
+    })
 }
 
 /*

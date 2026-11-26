@@ -120,7 +120,7 @@ type userStmtDtoOpt = {
 }
 
 type editorStateAction = 
-    | UnifyAll({nextAction:unit=>unit})
+    | UnifyAll({nextAction:unit=>unit, showProofDialog:bool})
     | MergeNextDuplicate
     | Action(unit=>unit)
 
