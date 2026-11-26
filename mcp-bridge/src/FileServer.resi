@@ -43,6 +43,13 @@ type srcToUrlResult = {
 let localSrcToUrl: (t, string, string) => promise<srcToUrlResult>
 
 /*
+* Converts a URL returned by localSrcToUrl back to the absolute local path.
+* Returns None if the URL is not a URL of a local file served by this server.
+* baseUrl - the base URL of this server, e.g. http://127.0.0.1:8765.
+* */
+let urlToLocalPath: (string, string) => option<string>
+
+/*
 * Handles an HTTP request. Resolves to false if the request is not for this server
 * (the URL doesn't start with filesUrlPrefix), so the caller can respond to it differently.
 * */

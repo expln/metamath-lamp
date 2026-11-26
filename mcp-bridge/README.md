@@ -72,6 +72,11 @@ Use `list_tabs` to find the ids.
   The browser downloads URLs directly.
   Local files are served by the MCP server at `http://127.0.0.1:8765/files/<absolute path>`,
   and only from directories listed in the `--files-dirs` argument.
+* `get_loaded_context_info` - describes the loaded context: its sources in the order of loading,
+  how each of them is read (the whole file, or up to a `stopBefore`/`stopAfter` label),
+  and how many assertions (and axioms among them) are loaded in total, per source,
+  and per file included via `$[ ... $]`.
+  Local files served by the MCP server are shown by their local paths.
 
 ## Setup
 

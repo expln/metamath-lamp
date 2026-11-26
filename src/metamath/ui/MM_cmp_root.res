@@ -376,6 +376,7 @@ let make = () => {
                 })
             }
         )
+        MM_api_context.updateLoadedContext(~preCtxData)
         None
     }, [state.preCtxData])
 

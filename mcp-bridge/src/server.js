@@ -36,6 +36,7 @@ const DELETE_STEPS_TIMEOUT_MS = 30_000
 const SET_DESCRIPTION_TIMEOUT_MS = 10_000
 const SET_DISJOINTS_TIMEOUT_MS = 10_000
 const SET_LOCATION_TIMEOUT_MS = 10_000
+const GET_LOADED_CONTEXT_INFO_TIMEOUT_MS = 10_000
 const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
 const FIND_ASSERTIONS_PAGE_SIZE = 100
 // Includes downloading and parsing the files, loading the context,
@@ -292,6 +293,16 @@ function loadContext({srcs}) {
 }
 
 /*
+* Describes the loaded context.
+* Resolves to the API response: res is {numOfAsrts, numOfAxioms, srcs}, where each of srcs is
+* {type, url, fileName, alias, readInstr, label, numOfAsrts, numOfAxioms, files},
+* and each of files is {fileName, numOfAsrts, numOfAxioms}.
+* */
+function getLoadedContextInfo() {
+    return callBridge({path: 'context.getLoadedContextInfo', timeoutMs: GET_LOADED_CONTEXT_INFO_TIMEOUT_MS})
+}
+
+/*
 * Converts a source given to load_context into a URL which the browser can download.
 * src - an http(s) URL (returned as is), a file:// URL, or an absolute local path.
 * Resolves to {url} or {err}.
@@ -310,6 +321,46 @@ async function srcToUrl(src) {
         }
     }
     return FileServer.localSrcToUrl(fileServer, src, fileServerBaseUrl)
+}
+
+/*
+* Returns "N assertions (M axioms)".
+* */
+function asrtCountsToText({numOfAsrts, numOfAxioms}) {
+    return `${numOfAsrts} assertions (${numOfAxioms} axioms)`
+}
+
+/*
+* Converts one source of the loaded context to the text format of the get_loaded_context_info tool.
+* idx - the index of the source in the order of loading, starting from 0.
+* */
+function ctxSrcToText(src, idx) {
+    let name
+    if (src.type === 'local') {
+        name = `${src.fileName} (a local file selected in metamath-lamp, its full path is unknown)`
+    } else {
+        const localPath = fileServer === undefined ? undefined : FileServer.urlToLocalPath(src.url, fileServerBaseUrl)
+        name = localPath === undefined ? src.url : `${localPath} (served by this MCP server as ${src.url})`
+    }
+    const lines = [`${idx + 1}. ${name}`]
+    if (src.alias !== null) {
+        lines.push(`   alias: ${src.alias}`)
+    }
+    if (src.readInstr === 'stopBefore') {
+        lines.push(`   read: up to '${src.label}', excluding it`)
+    } else if (src.readInstr === 'stopAfter') {
+        lines.push(`   read: up to '${src.label}', including it`)
+    } else {
+        lines.push('   read: the whole file')
+    }
+    lines.push(`   loaded: ${asrtCountsToText(src)}`)
+    if (src.files.length > 0) {
+        lines.push('   files (the first one is the file itself, others are included via $[ ... $]):')
+        for (const file of src.files) {
+            lines.push(`     - ${file.fileName}: ${asrtCountsToText(file)}`)
+        }
+    }
+    return lines.join('\n')
 }
 
 /*
@@ -1068,6 +1119,44 @@ to a minute. Open editor tabs are not closed.`,
         }
         const {summary, numOfAsrts} = resp.res
         return textResult(`${summary}\nNumber of assertions: ${numOfAsrts}`)
+    })
+)
+
+server.registerTool(
+    'get_loaded_context_info',
+    {
+        title: 'Get loaded context info',
+        description: `Describes the Metamath database (the context) currently loaded in metamath-lamp: \
+its source files in the order of loading, how each of them is read (the whole file, \
+or only up to some assertion label), and how many assertions (and how many of them are axioms) are loaded, \
+in total, per source, and per file included via \`$[ ... $]\`.
+
+Use it to check whether a context is loaded at all and whether it is the one needed, \
+before calling load_context, which may take a long time for a big database. \
+Assertions after the stop label of a source are not loaded and cannot be used in any editor. \
+An editor tab may be limited further to a part of the context, see set_location.`,
+        inputSchema: {},
+        annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async () => {
+        const resp = await getLoadedContextInfo()
+        if (!resp.isOk) {
+            return errorResult(`Could not get the information about the loaded context: ${resp.err}`)
+        }
+        const {srcs} = resp.res
+        if (srcs.length === 0) {
+            return textResult('No context is loaded. Use load_context to load one.')
+        }
+        return textResult([
+            `Loaded: ${asrtCountsToText(resp.res)}.`,
+            `Sources, in the order of loading:`,
+            ...srcs.map(ctxSrcToText),
+        ].join('\n'))
     })
 )
 

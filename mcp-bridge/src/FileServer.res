@@ -196,6 +196,14 @@ let localSrcToUrl = async (t:t, src:string, baseUrl:string):srcToUrlResult => {
     }
 }
 
+let urlToLocalPath = (url:string, baseUrl:string):option<string> => {
+    if (url->String.startsWith(baseUrl ++ filesUrlPrefix ++ "/")) {
+        urlPathToAbsPath(url->String.substring(~start=baseUrl->String.length))
+    } else {
+        None
+    }
+}
+
 let sendText = (res:Http.response, status:int, text:string, headers:array<(string,string)>):unit => {
     res->Http.writeHead(
         status,

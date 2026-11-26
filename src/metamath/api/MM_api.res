@@ -148,6 +148,7 @@ type explorerApi = {
 
 type contextApi = {
     "load": api,
+    "getLoadedContextInfo": api,
 }
 
 type tabsApi = {
@@ -255,6 +256,7 @@ let makeExplorerApi = ():explorerApi => {
 let makeContextApi = ():contextApi => {
     {
         "load": makeSingleContextApi(a => a["load"]),
+        "getLoadedContextInfo": makeSingleContextApi(a => a["getLoadedContextInfo"]),
     }
 }
 

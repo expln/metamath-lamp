@@ -65,6 +65,7 @@ type explorerApi = {
 
 type contextApi = {
     "load": api,
+    "getLoadedContextInfo": api,
 }
 
 type tabsApi = {
