@@ -25,6 +25,7 @@ Use `list_tabs` to find the ids.
   `isVisible` is true only for the currently displayed tab.
 * `create_editor_tab` - creates a new empty editor tab and returns its id as `{tabId}`.
   With `open` (true by default), the new tab becomes visible.
+  `title` is optional, by default a title like `EDITOR [2]` is generated.
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.

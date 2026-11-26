@@ -661,7 +661,7 @@ let make = () => {
                     st
                 })
             }),
-            ~createEditorTab=(~doOpen:bool) => Promise.make((resolve,_) => {
+            ~createEditorTab=(~doOpen:bool, ~title:option<string>) => Promise.make((resolve,_) => {
                 // The id is generated outside of the state updater,
                 // because React may call an updater twice, and both calls must add a tab with the same id.
                 let newTabId = Expln_React_UseTabs.makeUniqueTabId(_ => false)
@@ -672,7 +672,15 @@ let make = () => {
                         resolve(Error(`Could not create a tab: the generated id '${newTabId}' is already used.`))
                         st
                     } else {
-                        addEditorTab(st, ~newTabId, ~initialStateLocStor=None, ~doOpen)
+                        addEditorTab(
+                            st,
+                            ~newTabId,
+                            // A blank title is replaced with a default one by addEditorTab.
+                            ~initialStateLocStor=title->Option.map(tabTitle =>
+                                MM_wrk_editor_json.makeEmptyEditorStateLocStor(~tabTitle)
+                            ),
+                            ~doOpen
+                        )
                     }
                 })
             }),

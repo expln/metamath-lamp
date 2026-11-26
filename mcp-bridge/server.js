@@ -120,10 +120,15 @@ function listTabs() {
 /*
 * Creates a new empty editor tab.
 * open - whether to make the new tab visible.
+* title - the title of the new tab; undefined means a default title.
 * Resolves to the API response: res is the id of the new tab.
 * */
-function createEditorTab({open}) {
-    return bridge.call({path: 'tabs.createEditorTab', params: {open}, timeoutMs: CREATE_EDITOR_TAB_TIMEOUT_MS})
+function createEditorTab({open, title}) {
+    return bridge.call({
+        path: 'tabs.createEditorTab',
+        params: {open, title},
+        timeoutMs: CREATE_EDITOR_TAB_TIMEOUT_MS,
+    })
 }
 
 /*
@@ -324,6 +329,9 @@ The new editor can be used right away in the tools which work with editors.`,
             open: z.boolean().default(true).describe(
                 'Make the new tab visible. If false, the currently visible tab stays visible.'
             ),
+            title: z.string().trim().min(1).optional().describe(
+                'Title of the new tab. Omit to get a default title like "EDITOR [2]".'
+            ),
         },
         annotations: {
             readOnlyHint: false,
@@ -332,8 +340,8 @@ The new editor can be used right away in the tools which work with editors.`,
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({open}) => {
-        const resp = await createEditorTab({open})
+    withConnectedTab(async ({open, title}) => {
+        const resp = await createEditorTab({open, title})
         if (!resp.isOk) {
             return errorResult(`Could not create the tab: ${resp.err}`)
         }
