@@ -29,6 +29,7 @@ Use `list_tabs` to find the ids.
 * `close_tab` - closes a tab by id without asking the user for a confirmation.
   Closing an editor tab deletes its content.
   Settings, Tabs, and MCP tabs cannot be closed by this tool.
+* `open_tab` - makes an existing tab visible, as if the user clicked it.
 * `get_editor_state` - returns the content of an editor tab: variables, disjoints, and steps with statuses,
   justifications and errors.
   By default it runs "Unify All" first, so statuses are up to date.

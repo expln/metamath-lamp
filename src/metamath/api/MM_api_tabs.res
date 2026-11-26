@@ -63,14 +63,28 @@ let apiCloseTab = (
     }
 }
 
+// params: {tabId:string}.
+let apiOpenTab = (~params:apiInput, ~openTab:string=>promise<result<unit,string>>):promise<result<JSON.t,string>> => {
+    let parsed = Raw_js_utils.invokeExnFunc("Parsing parameters of tabs.open", () => {
+        let params = params->apiInputToObjExn("got empty parameters")
+        Raw_js_utils.reqStrExn(params["tabId"], "'tabId' must be a string")
+    })
+    switch parsed {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok(tabId) => openTab(tabId)->Promise.thenResolve(res => res->Result.map(() => JSON.Encode.null))
+    }
+}
+
 let updateTabsApi = (
     ~listTabs:unit=>promise<array<tabInfo>>,
     ~createEditorTab:(~doOpen:bool, ~title:option<string>)=>promise<result<string,string>>,
     ~closeTab:(~tabId:string, ~askConfirmation:bool)=>promise<result<bool,string>>,
+    ~openTab:string=>promise<result<unit,string>>,
 ):unit => {
     setTabsApi({
         "list": makeApiFunc("tabs.list", _ => apiListTabs(~listTabs)),
         "createEditorTab": makeApiFunc("tabs.createEditorTab", params => apiCreateEditorTab(~params, ~createEditorTab)),
         "close": makeApiFunc("tabs.close", params => apiCloseTab(~params, ~closeTab)),
+        "open": makeApiFunc("tabs.open", params => apiOpenTab(~params, ~openTab)),
     })
 }

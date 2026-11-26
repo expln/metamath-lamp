@@ -15,9 +15,11 @@ type tabInfo = {
 * closeTab must close the tab, asking the user for a confirmation if askConfirmation is true
 * (only some tabs, e.g. editors, need a confirmation). It resolves to false if the user didn't confirm,
 * and to an error if the tab doesn't exist or cannot be closed (Settings, Tabs, and MCP tabs cannot be closed).
+* openTab must make the tab visible. It resolves to an error if the tab doesn't exist.
 * */
 let updateTabsApi: (
     ~listTabs:unit=>promise<array<tabInfo>>,
     ~createEditorTab:(~doOpen:bool, ~title:option<string>)=>promise<result<string,string>>,
     ~closeTab:(~tabId:string, ~askConfirmation:bool)=>promise<result<bool,string>>,
+    ~openTab:string=>promise<result<unit,string>>,
 ) => unit

@@ -690,6 +690,17 @@ let make = () => {
                     }
                 })
             },
+            ~openTab=(tabId:string) => Promise.make((resolve,_) => {
+                updateTabs(st => {
+                    if (st->Expln_React_UseTabs.tabExists(tabId)) {
+                        resolve(Ok(()))
+                        st->Expln_React_UseTabs.openTab(tabId)
+                    } else {
+                        resolve(Error(`There is no tab with id '${tabId}'.`))
+                        st
+                    }
+                })
+            }),
             ~createEditorTab=(~doOpen:bool, ~title:option<string>) => Promise.make((resolve,_) => {
                 // The id is generated outside of the state updater,
                 // because React may call an updater twice, and both calls must add a tab with the same id.

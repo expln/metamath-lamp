@@ -69,6 +69,7 @@ type tabsApi = {
     "list": api,
     "createEditorTab": api,
     "close": api,
+    "open": api,
 }
 
 let api: {

@@ -27,6 +27,7 @@ const GET_STATE_TIMEOUT_MS = 30_000
 const LIST_TABS_TIMEOUT_MS = 10_000
 const CREATE_EDITOR_TAB_TIMEOUT_MS = 30_000
 const CLOSE_TAB_TIMEOUT_MS = 10_000
+const OPEN_TAB_TIMEOUT_MS = 10_000
 const ADD_STEPS_TIMEOUT_MS = 30_000
 const UPDATE_STEPS_TIMEOUT_MS = 30_000
 const DELETE_STEPS_TIMEOUT_MS = 30_000
@@ -142,6 +143,14 @@ function closeTab({tabId}) {
         params: {tabId, askConfirmation: false},
         timeoutMs: CLOSE_TAB_TIMEOUT_MS,
     })
+}
+
+/*
+* Makes a tab visible.
+* Resolves to the API response: res is null.
+* */
+function openTab({tabId}) {
+    return bridge.call({path: 'tabs.open', params: {tabId}, timeoutMs: OPEN_TAB_TIMEOUT_MS})
 }
 
 /*
@@ -389,6 +398,33 @@ The Settings, Tabs, and MCP tabs cannot be closed by this tool.`,
             return errorResult(`The tab '${tabId}' was not closed.`)
         }
         return textResult(`Closed the tab '${tabId}'.`)
+    })
+)
+
+server.registerTool(
+    'open_tab',
+    {
+        title: 'Open tab',
+        description: `Makes an existing tab of metamath-lamp visible, as if the user clicked it. \
+Only one tab is visible at a time, so the previously visible tab gets hidden.
+
+Use it to show the user the result of your work, e.g. an editor tab with a proof.`,
+        inputSchema: {
+            tabId: z.string().trim().min(1).describe('Id of the tab to make visible (see list_tabs).'),
+        },
+        annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
+    },
+    withConnectedTab(async ({tabId}) => {
+        const resp = await openTab({tabId})
+        if (!resp.isOk) {
+            return errorResult(`Could not open the tab: ${resp.err}`)
+        }
+        return textResult(`The tab '${tabId}' is visible now.`)
     })
 )
 
