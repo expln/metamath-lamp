@@ -675,25 +675,17 @@ let make = () => {
                     switch st->Expln_React_UseTabs.getTabs->Array.find(tab => tab.id == tabId) {
                         | None => Promise.resolve(Error(`There is no tab with id '${tabId}'.`))
                         | Some(tab) if !tab.closable => Promise.resolve(Error(`The tab '${tabId}' cannot be closed.`))
+                        // Closing the MCP tab would disconnect metamath-lamp from the MCP server in the middle of a call.
+                        | Some({data:Mcp}) => {
+                            Promise.resolve(Error(`The MCP tab '${tabId}' cannot be closed via the API.`))
+                        }
                         | Some(tab) => {
-                            let remove = () => {
-                                confirmTabRemoval(tab, ~askConfirmation)->Promise.thenResolve(confirmed => {
-                                    if (confirmed) {
-                                        updateTabs(Expln_React_UseTabs.removeTab(_, tabId))
-                                    }
-                                    confirmed
-                                })
-                            }
-                            switch tab.data {
-                                | Mcp => {
-                                    // Closing the MCP tab disconnects from the MCP server.
-                                    // The tab is closed after this call returns,
-                                    // so that the MCP server can still get the response.
-                                    setTimeout(() => remove()->Promise.ignore, 0)->ignore
-                                    Promise.resolve(Ok(true))
+                            confirmTabRemoval(tab, ~askConfirmation)->Promise.thenResolve(confirmed => {
+                                if (confirmed) {
+                                    updateTabs(Expln_React_UseTabs.removeTab(_, tabId))
                                 }
-                                | _ => remove()->Promise.thenResolve(confirmed => Ok(confirmed))
-                            }
+                                Ok(confirmed)
+                            })
                         }
                     }
                 })

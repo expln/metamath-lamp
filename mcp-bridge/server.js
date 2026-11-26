@@ -369,9 +369,7 @@ server.registerTool(
         description: `Closes a tab of metamath-lamp without asking the user for a confirmation.
 
 Closing an editor tab permanently deletes its content. \
-The Settings and Tabs tabs cannot be closed. \
-Closing the MCP tab disconnects metamath-lamp from this MCP server, \
-so all tools stop working until the user opens the MCP tab and connects again.`,
+The Settings, Tabs, and MCP tabs cannot be closed by this tool.`,
         inputSchema: {
             tabId: z.string().trim().min(1).describe('Id of the tab to close (see list_tabs).'),
         },
