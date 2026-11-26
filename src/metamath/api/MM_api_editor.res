@@ -633,14 +633,12 @@ let getCompressedProof = (~params:apiInput, ~state:editorState):promise<result<J
                     | Some(stmt) if stmt.proofStatus != Some(Ready) => Error(`The step '${label}' is not proved.`)
                     | Some(stmt) => {
                         let state = includeDescription ? state : {...state, descr:""}
-                        let proof = try {
-                            Ok(generateCompressedProof(state, stmt.id, ~useAllLocalEHyps=false))
-                        } catch {
-                            | MmException({msg}) => Error(msg)
-                            | exn => Error(jsErrorToExnData(exn).msg)
-                        }
+                        let proof = Raw_js_utils.invokeExnFunc(
+                            `Could not generate a proof for the step '${label}'`,
+                            () => generateCompressedProof(state, stmt.id, ~useAllLocalEHyps=false)
+                        )
                         switch proof {
-                            | Error(msg) => Error(`Could not generate a proof for the step '${label}': ${msg}`)
+                            | Error(msg) => Error(msg)
                             | Ok(None) => Error(`Could not generate a proof for the step '${label}'.`)
                             | Ok(Some((proofText,_,_))) => Ok(proofText->JSON.Encode.string)
                         }
