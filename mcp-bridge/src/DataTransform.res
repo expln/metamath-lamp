@@ -150,3 +150,130 @@ let editorStateToText = ({state, ?onlyRelevantSteps, ?notes}:editorStateToTextPa
     res->Array.push("--- editor state end ---")
     res->Array.join("\n")
 }
+
+type foundAssertion = {
+    label: string,
+    isAxiom: bool,
+    disj: array<array<string>>,
+    hyps: array<string>,
+    asrt: string,
+}
+
+let assertionToText = ({label, isAxiom, disj, hyps, asrt}:foundAssertion):string => {
+    let lines = [`${label}${isAxiom ? " (axiom)" : ""}`]
+    if (disj->Array.length > 0) {
+        lines->Array.push(`  disj: ${disj->Array.map(grp => grp->Array.join(" "))->Array.join(" , ")}`)
+    }
+    hyps->Array.forEach(hyp => lines->Array.push(`  hyp: ${hyp}`))
+    lines->Array.push(`  asrt: ${asrt}`)
+    lines->Array.join("\n")
+}
+
+type ctxFileInfo = {
+    fileName: string,
+    numOfAsrts: int,
+    numOfAxioms: int,
+}
+
+type ctxSrcInfo = {
+    @as("type") type_: string,
+    url: string,
+    fileName: string,
+    alias: Nullable.t<string>,
+    readInstr: string,
+    label: Nullable.t<string>,
+    numOfAsrts: int,
+    numOfAxioms: int,
+    files: array<ctxFileInfo>,
+}
+
+type loadedContextInfo = {
+    numOfAsrts: int,
+    numOfAxioms: int,
+    srcs: array<ctxSrcInfo>,
+}
+
+type loadedContextInfoToTextParams = {
+    info: loadedContextInfo,
+    urlToLocalPath: string => option<string>,
+}
+
+let asrtCountsToText = (~numOfAsrts:int, ~numOfAxioms:int):string => {
+    `${numOfAsrts->Int.toString} assertions (${numOfAxioms->Int.toString} axioms)`
+}
+
+/*
+* Converts one source of the loaded context to text.
+* idx - the index of the source in the order of loading, starting from 0.
+* */
+let ctxSrcToText = (src:ctxSrcInfo, ~idx:int, ~urlToLocalPath:string => option<string>):string => {
+    let name = if (src.type_ == "local") {
+        `${src.fileName} (a local file selected in metamath-lamp, its full path is unknown)`
+    } else {
+        switch urlToLocalPath(src.url) {
+            | None => src.url
+            | Some(localPath) => `${localPath} (served by this MCP server as ${src.url})`
+        }
+    }
+    let label = src.label->Nullable.getOr("")
+    let lines = [`${(idx + 1)->Int.toString}. ${name}`]
+    src.alias->Nullable.toOption->Option.forEach(alias => lines->Array.push(`   alias: ${alias}`))
+    lines->Array.push(
+        switch src.readInstr {
+            | "stopBefore" => `   read: up to '${label}', excluding it`
+            | "stopAfter" => `   read: up to '${label}', including it`
+            | _ => "   read: the whole file"
+        }
+    )
+    lines->Array.push(`   loaded: ${asrtCountsToText(~numOfAsrts=src.numOfAsrts, ~numOfAxioms=src.numOfAxioms)}`)
+    if (src.files->Array.length > 0) {
+        lines->Array.push("   files (the first one is the file itself, others are included via $[ ... $]):")
+        src.files->Array.forEach(file => {
+            let counts = asrtCountsToText(~numOfAsrts=file.numOfAsrts, ~numOfAxioms=file.numOfAxioms)
+            lines->Array.push(`     - ${file.fileName}: ${counts}`)
+        })
+    }
+    lines->Array.join("\n")
+}
+
+let loadedContextInfoToText = ({info, urlToLocalPath}:loadedContextInfoToTextParams):string => {
+    if (info.srcs->Array.length == 0) {
+        "No context is loaded. Use load_context to load one."
+    } else {
+        [
+            `Loaded: ${asrtCountsToText(~numOfAsrts=info.numOfAsrts, ~numOfAxioms=info.numOfAxioms)}.`,
+            "Sources, in the order of loading:",
+        ]->Array.concat(
+            info.srcs->Array.mapWithIndex((src, idx) => ctxSrcToText(src, ~idx, ~urlToLocalPath))
+        )->Array.join("\n")
+    }
+}
+
+type getInsertIdxParams = {
+    steps: array<step>,
+    beforeLabel?: string,
+    afterLabel?: string,
+}
+
+type insertIdxResult = {
+    idx?: int,
+    err?: string,
+}
+
+let getInsertIdx = ({steps, ?beforeLabel, ?afterLabel}:getInsertIdxParams):insertIdxResult => {
+    let findIdx = label => steps->Array.findIndex(step => step.label == label)
+    switch (beforeLabel, afterLabel) {
+        | (Some(beforeLabel), _) => {
+            let idx = findIdx(beforeLabel)
+            idx < 0 ? {err: `No step with label '${beforeLabel}' exists.`} : {idx: idx}
+        }
+        | (None, Some(afterLabel)) => {
+            let idx = findIdx(afterLabel)
+            idx < 0 ? {err: `No step with label '${afterLabel}' exists.`} : {idx: idx + 1}
+        }
+        | (None, None) => {
+            let goalIdx = steps->Array.findIndex(step => step.isGoal)
+            {idx: goalIdx < 0 ? steps->Array.length : goalIdx}
+        }
+    }
+}

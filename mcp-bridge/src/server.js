@@ -17,7 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import * as BrowserBridge from './BrowserBridge.res.mjs'
-import { editorStateToText } from './EditorStateFormat.res.mjs'
+import { assertionToText, editorStateToText, getInsertIdx, loadedContextInfoToText } from './DataTransform.res.mjs'
 import * as FileServer from './FileServer.res.mjs'
 
 const DEFAULT_PORT = 8765
@@ -324,61 +324,6 @@ async function srcToUrl(src) {
 }
 
 /*
-* Returns "N assertions (M axioms)".
-* */
-function asrtCountsToText({numOfAsrts, numOfAxioms}) {
-    return `${numOfAsrts} assertions (${numOfAxioms} axioms)`
-}
-
-/*
-* Converts one source of the loaded context to the text format of the get_loaded_context_info tool.
-* idx - the index of the source in the order of loading, starting from 0.
-* */
-function ctxSrcToText(src, idx) {
-    let name
-    if (src.type === 'local') {
-        name = `${src.fileName} (a local file selected in metamath-lamp, its full path is unknown)`
-    } else {
-        const localPath = fileServer === undefined ? undefined : FileServer.urlToLocalPath(src.url, fileServerBaseUrl)
-        name = localPath === undefined ? src.url : `${localPath} (served by this MCP server as ${src.url})`
-    }
-    const lines = [`${idx + 1}. ${name}`]
-    if (src.alias !== null) {
-        lines.push(`   alias: ${src.alias}`)
-    }
-    if (src.readInstr === 'stopBefore') {
-        lines.push(`   read: up to '${src.label}', excluding it`)
-    } else if (src.readInstr === 'stopAfter') {
-        lines.push(`   read: up to '${src.label}', including it`)
-    } else {
-        lines.push('   read: the whole file')
-    }
-    lines.push(`   loaded: ${asrtCountsToText(src)}`)
-    if (src.files.length > 0) {
-        lines.push('   files (the first one is the file itself, others are included via $[ ... $]):')
-        for (const file of src.files) {
-            lines.push(`     - ${file.fileName}: ${asrtCountsToText(file)}`)
-        }
-    }
-    return lines.join('\n')
-}
-
-/*
-* Converts one found assertion to the text format of the find_assertions tool.
-* */
-function assertionToText({label, isAxiom, disj, hyps, asrt}) {
-    const lines = [`${label}${isAxiom ? ' (axiom)' : ''}`]
-    if (disj.length > 0) {
-        lines.push(`  disj: ${disj.map(grp => grp.join(' ')).join(' , ')}`)
-    }
-    for (const hyp of hyps) {
-        lines.push(`  hyp: ${hyp}`)
-    }
-    lines.push(`  asrt: ${asrt}`)
-    return lines.join('\n')
-}
-
-/*
 * Optionally runs 'Unify All', then reads the editor state and returns it as a tool result in the text format.
 * notes - additional lines to show at the top of the state.
 * */
@@ -398,25 +343,6 @@ async function editorStateResult({tabId, unifyFirst, onlyRelevantSteps, includeD
         return errorResult(`Could not get the editor state: ${stateResp.err}`)
     }
     return textResult(editorStateToText({state: stateResp.res, onlyRelevantSteps, notes}))
-}
-
-/*
-* Returns the index in the editor where new steps should be inserted, or an error message.
-* beforeLabel takes precedence over afterLabel.
-* If neither is given, new steps go before the goal step, or to the end if there is no goal step.
-* */
-function getInsertIdx({steps, beforeLabel, afterLabel}) {
-    const findIdx = label => steps.findIndex(step => step.label === label)
-    if (beforeLabel !== undefined) {
-        const idx = findIdx(beforeLabel)
-        return idx < 0 ? {err: `No step with label '${beforeLabel}' exists.`} : {idx}
-    }
-    if (afterLabel !== undefined) {
-        const idx = findIdx(afterLabel)
-        return idx < 0 ? {err: `No step with label '${afterLabel}' exists.`} : {idx: idx + 1}
-    }
-    const goalIdx = steps.findIndex(step => step.isGoal)
-    return {idx: goalIdx < 0 ? steps.length : goalIdx}
 }
 
 const server = new McpServer({name: 'metamath-lamp', version: '0.0.1'})
@@ -1148,15 +1074,12 @@ An editor tab may be limited further to a part of the context, see set_location.
         if (!resp.isOk) {
             return errorResult(`Could not get the information about the loaded context: ${resp.err}`)
         }
-        const {srcs} = resp.res
-        if (srcs.length === 0) {
-            return textResult('No context is loaded. Use load_context to load one.')
-        }
-        return textResult([
-            `Loaded: ${asrtCountsToText(resp.res)}.`,
-            `Sources, in the order of loading:`,
-            ...srcs.map(ctxSrcToText),
-        ].join('\n'))
+        return textResult(loadedContextInfoToText({
+            info: resp.res,
+            urlToLocalPath: url => fileServer === undefined
+                ? undefined
+                : FileServer.urlToLocalPath(url, fileServerBaseUrl),
+        }))
     })
 )
 
