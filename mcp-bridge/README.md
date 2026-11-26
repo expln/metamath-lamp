@@ -43,7 +43,7 @@ Use `list_tabs` to find the ids.
   By default it runs "Unify All" first.
 * `add_steps` - adds steps (and optionally new variables) before or after a given step,
   or before the goal step by default.
-  Added steps are bookmarked.
+  Added steps are not bookmarked unless `isBookmarked` is true for a step.
   Returns the editor state after "Unify All".
 * `update_steps` - changes the statement, justification, type, or bookmark of existing steps, identified by labels.
   Only the passed attributes are changed.

@@ -600,7 +600,6 @@ New steps are inserted before \`beforeLabel\`, or after \`afterLabel\` (\`before
 If neither is given, they are inserted before the goal step, or at the end if there is no goal step. \
 A step can be derived only from steps above it, so the order matters.
 
-All added steps are bookmarked. \
 After adding, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
 (only relevant steps), so you can see the status of each new step.`,
         inputSchema: {
@@ -624,6 +623,10 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
                     'Justification in the form "<hypothesis labels separated by spaces> : <assertion label>", '
                     + 'e.g. "1 2 : ax-mp" or ": idi" when there are no hypotheses. '
                     + 'Omit to leave the step without a justification. Ignored for hypotheses.'
+                ),
+                isBookmarked: z.boolean().default(false).describe(
+                    'Bookmark the step. '
+                    + 'Proved steps which are not bookmarked are hidden in the returned editor state.'
                 ),
             })).min(1).describe('Steps to add, in order.'),
             tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
@@ -653,7 +656,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
                 type: step.type.toLowerCase(),
                 stmt: step.statement,
                 jstf: step.justification,
-                isBkm: true,
+                isBkm: step.isBookmarked,
             })),
         })
         if (!addResp.isOk) {
