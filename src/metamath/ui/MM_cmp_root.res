@@ -99,6 +99,14 @@ let mainTheme = ThemeProvider.createTheme(
 @val external window: {..} = "window"
 @val external document: {..} = "document"
 
+// Fixed ids of the tabs which are always present.
+// Editor tabs are restored with the ids saved in the local storage, so the ids of other tabs must never clash with them.
+// Random tab ids (Expln_React_UseTabs.makeRandomId) consist of letters and digits only,
+// and old editor ids are numbers, so ids starting with a dot can't clash with any of them,
+// even if the length of random ids changes.
+let settingsTabId = ".settings"
+let tabsManagerTabId = ".tabs-manager"
+
 let editorsOrderLocStorKey = "editors-order"
 
 let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
@@ -120,7 +128,19 @@ let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
             })), ~default=()=>[])
             switch parseRes {
                 | Error(_) => []
-                | Ok(res) => res
+                | Ok(res) => {
+                    // Duplicate ids must not happen, but if they do, only the first occurrence is kept,
+                    // because tab ids must be unique.
+                    let seenIds = Belt_MutableSetString.make()
+                    res->Array.filter(({tabId}) => {
+                        if (seenIds->Belt_MutableSetString.has(tabId)) {
+                            false
+                        } else {
+                            seenIds->Belt_MutableSetString.add(tabId)
+                            true
+                        }
+                    })
+                }
             }
         }
     }
@@ -597,15 +617,16 @@ let make = () => {
         updateTabs(st => {
             let st = if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(
+                    ~id=settingsTabId,
                     ~label="", ~closable=false, ~singleton=true, ~data=Settings, ~icon=settingsSymbol,
                 )
                 let (st, _) = st->Expln_React_UseTabs.addTab(
+                    ~id=tabsManagerTabId,
                     ~label="Tabs", ~closable=false, ~singleton=true, ~data=TabsManager
                 )
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{tabId},idx) => {
                     switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(tabId)) {
                         | None => st
-                        | Some(_) if st->Expln_React_UseTabs.tabExists(tabId) => st
                         | Some(editorStateJsonStr) => {
                             switch readEditorStateFromJsonStr(editorStateJsonStr) {
                                 | None => st
