@@ -9,7 +9,9 @@ type testLog = {
     advanceMs: float => unit,
 }
 
-let startTime = Date.makeWithYMDHMSM(~year=2026, ~month=10, ~day=27, ~hours=14, ~minutes=5, ~seconds=12, ~milliseconds=345)
+let startTime = Date.makeWithYMDHMSM(
+    ~year=2026, ~month=10, ~day=27, ~hours=14, ~minutes=5, ~seconds=12, ~milliseconds=345
+)
 
 let makeTestLog = ():testLog => {
     let text = ref("")
@@ -50,7 +52,7 @@ describe("make", () => {
         let _ = RequestLog.make({write: str => text := text.contents ++ str, now: () => startTime})
 
         //then
-        assertEq(text.contents, `${String.repeat("#", 100)}\n### 2026-11-27 14:05:12.345 LOG STARTED\n`)
+        assertEq(text.contents, `\n${String.repeat("#", 100)}\n### 2026-11-27 14:05:12.345 LOG STARTED`)
     })
 })
 
@@ -78,18 +80,18 @@ describe("messageReceived and messageSent", () => {
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #7 tools/call add_steps
 {"tabId":"k3f","steps":[{"statement":"|- ph"}]}
 <<< 2026-11-27 14:05:13.012 RESPONSE #7 (667 ms)
 Added steps: 1
 Steps:
-  1 |- ph
-`
+  1 |- ph`
         )
     })
 
-    it("marks a tool result with isError", () => {
+    it("marks a tool result with isError and drops one new line symbol at the end of the text", () => {
         //given
         let t = makeTestLog()
 
@@ -104,12 +106,12 @@ Steps:
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #a1 tools/call list_tabs
 {}
 <<< 2026-11-27 14:05:12.345 RESPONSE #a1 (0 ms) TOOL ERROR
-Failed.
-`
+Failed.`
         )
     })
 
@@ -129,14 +131,14 @@ Failed.
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #1 tools/call x
 {}
 <<< 2026-11-27 14:05:12.345 RESPONSE #1 (0 ms)
 first
 --- content item 2 ---
-{"type":"image","data":"AAA","mimeType":"image/png"}
-`
+{"type":"image","data":"AAA","mimeType":"image/png"}`
         )
     })
 
@@ -158,7 +160,8 @@ first
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #1 ping
 <<< 2026-11-27 14:05:12.350 RESPONSE #1 (5 ms)
 {}
@@ -166,8 +169,7 @@ ${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #0 initialize
 {"protocolVersion":"2025-06-18"}
 <<< 2026-11-27 14:05:12.350 RESPONSE #0 (5 ms)
-{"serverInfo":{"name":"metamath-lamp"}}
-`
+{"serverInfo":{"name":"metamath-lamp"}}`
         )
     })
 
@@ -184,11 +186,11 @@ ${delim}
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #4 nope
 <<< 2026-11-27 14:05:12.345 RESPONSE #4 (0 ms) JSON-RPC ERROR
-{"code":-32601,"message":"Method not found"}
-`
+{"code":-32601,"message":"Method not found"}`
         )
     })
 
@@ -206,15 +208,15 @@ ${delim}
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 NOTIFICATION notifications/initialized
 ${delim}
 >>> 2026-11-27 14:05:12.345 NOTIFICATION notifications/cancelled
 {"requestId":3}
 ${delim}
 <<< 2026-11-27 14:05:12.345 MESSAGE
-{"jsonrpc":"2.0","id":99,"result":{}}
-`
+{"jsonrpc":"2.0","id":99,"result":{}}`
         )
     })
 })
@@ -235,11 +237,11 @@ describe("writePending", () => {
         //then
         assertEq(
             t.getText(),
-            `${delim}
+            `
+${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #5 tools/call list_tabs
 {}
-<<< 2026-11-27 14:05:13.845 NO RESPONSE (the server exited after 1500 ms)
-`
+<<< 2026-11-27 14:05:13.845 NO RESPONSE (the server exited after 1500 ms)`
         )
     })
 })

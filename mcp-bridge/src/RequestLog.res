@@ -49,19 +49,28 @@ let idToString = (id:JSON.t):string => {
     }
 }
 
-// Makes the text end with a new line, so the next line of the log starts at the beginning of a line.
-let toLines = (text:string):string => {
-    if (text == "" || text->String.endsWith("\n")) {
-        text
+// Every line of the log starts with a new line symbol, instead of ending with it.
+let line = (text:string):string => "\n" ++ text
+
+/*
+* Formats a multi-line text as is. One new line symbol at the end of the text is dropped,
+* because the next line of the log starts with its own new line symbol.
+* An empty text produces no lines.
+* */
+let textLines = (text:string):string => {
+    if (text == "") {
+        ""
+    } else if (text->String.endsWith("\n")) {
+        line(text->String.slice(~start=0, ~end=text->String.length - 1))
     } else {
-        text ++ "\n"
+        line(text)
     }
 }
 
 let jsonLine = (json:option<JSON.t>):string => {
     switch json {
         | None => ""
-        | Some(json) => JSON.stringify(json) ++ "\n"
+        | Some(json) => line(JSON.stringify(json))
     }
 }
 
@@ -78,15 +87,15 @@ let formatRequest = (~time:Date.t, ~msg:JSON.t, ~id:JSON.t, ~method:string):stri
     } else {
         (method, jsonLine(params))
     }
-    `>>> ${formatTimestamp(time)} REQUEST #${idToString(id)} ${title}\n${body}`
+    line(`>>> ${formatTimestamp(time)} REQUEST #${idToString(id)} ${title}`) ++ body
 }
 
 // The text items of the content are written as is, other items as JSON.
 let formatToolContent = (content:array<JSON.t>):string => {
     content->Array.mapWithIndex((item, i) => {
-        let separator = i == 0 ? "" : `--- content item ${(i + 1)->Int.toString} ---\n`
+        let separator = i == 0 ? "" : line(`--- content item ${(i + 1)->Int.toString} ---`)
         let text = switch (item->getString("type"), item->getString("text")) {
-            | (Some("text"), Some(text)) => toLines(text)
+            | (Some("text"), Some(text)) => textLines(text)
             | _ => jsonLine(Some(item))
         }
         separator ++ text
@@ -108,7 +117,7 @@ let formatResponse = (~req:pendingRequest, ~time:Date.t, ~msg:JSON.t, ~id:JSON.t
         | (None, result) => ("", jsonLine(result))
     }
     let duration = durationMs(~from=req.time, ~to=time)
-    `<<< ${formatTimestamp(time)} RESPONSE #${idToString(id)} (${duration} ms)${status}\n${body}`
+    line(`<<< ${formatTimestamp(time)} RESPONSE #${idToString(id)} (${duration} ms)${status}`) ++ body
 }
 
 /*
@@ -119,16 +128,16 @@ let formatResponse = (~req:pendingRequest, ~time:Date.t, ~msg:JSON.t, ~id:JSON.t
 let formatSingleMessage = (~arrow:string, ~time:Date.t, ~msg:JSON.t):string => {
     let ts = formatTimestamp(time)
     switch (msg->getString("method"), msg->getField("id")) {
-        | (Some(method), None) => `${arrow} ${ts} NOTIFICATION ${method}\n${jsonLine(msg->getField("params"))}`
+        | (Some(method), None) => line(`${arrow} ${ts} NOTIFICATION ${method}`) ++ jsonLine(msg->getField("params"))
         | (Some(method), Some(id)) => {
-            `${arrow} ${ts} REQUEST #${idToString(id)} ${method}\n${jsonLine(msg->getField("params"))}`
+            line(`${arrow} ${ts} REQUEST #${idToString(id)} ${method}`) ++ jsonLine(msg->getField("params"))
         }
-        | (None, _) => `${arrow} ${ts} MESSAGE\n${jsonLine(Some(msg))}`
+        | (None, _) => line(`${arrow} ${ts} MESSAGE`) ++ jsonLine(Some(msg))
     }
 }
 
 let writeEntry = (t:t, text:string):unit => {
-    t.write(`${entryDelimiter}\n${text}`)
+    t.write(line(entryDelimiter) ++ text)
 }
 
 type makeParams = {
@@ -138,7 +147,7 @@ type makeParams = {
 
 let make = ({write, now}:makeParams):t => {
     let t = {write, now, pending: Map.make()}
-    t.write(`${startDelimiter}\n### ${formatTimestamp(now())} LOG STARTED\n`)
+    t.write(line(startDelimiter) ++ line(`### ${formatTimestamp(now())} LOG STARTED`))
     t
 }
 
@@ -189,7 +198,7 @@ let writePending = (t:t):unit => {
     t.pending->Map.values->Array.fromIterator->Array.forEach(req => {
         let duration = durationMs(~from=req.time, ~to=time)
         t->writeEntry(
-            req.text ++ `<<< ${formatTimestamp(time)} NO RESPONSE (the server exited after ${duration} ms)\n`
+            req.text ++ line(`<<< ${formatTimestamp(time)} NO RESPONSE (the server exited after ${duration} ms)`)
         )
     })
     t.pending->Map.clear
