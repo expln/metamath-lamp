@@ -149,9 +149,15 @@ For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists ar
 
 The request log shows how the agent uses the tools.
 It is meant to be read by a human.
+Each message is written as soon as it is received or sent,
+so the log can be followed in real time with `tail -f`.
 Each run of the server starts with a line of `#` characters, so several runs can be appended to one file.
 Each entry starts with a line of `=` characters.
-An entry is a request together with its response, or a single notification.
+An entry is a request together with its response, or a single message.
+A response is written in the entry of its request only if nothing else was written in between,
+otherwise it starts a new entry.
+The header of a response repeats the id of the request and the name of the method or tool, e.g.
+`<<< 2026-11-27 14:05:13.012 RESPONSE #7 tools/call add_steps (667 ms)`.
 Text written to stderr (by the server, libraries, or Node.js) is written as separate `STDERR` entries.
 Errors which crash the server are written as `UNCAUGHT EXCEPTION` or `UNHANDLED REJECTION` entries.
 

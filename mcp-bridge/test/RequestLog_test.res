@@ -68,7 +68,13 @@ describe("messageReceived and messageSent", () => {
         }`))
 
         //then
-        assertEq(t.getText(), "")
+        assertEq(
+            t.getText(),
+            `
+${delim}
+>>> 2026-11-27 14:05:12.345 REQUEST #7 tools/call add_steps
+{"tabId":"k3f","steps":[{"statement":"|- ph"}]}`
+        )
 
         //when
         t.advanceMs(667.)
@@ -84,7 +90,7 @@ describe("messageReceived and messageSent", () => {
 ${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #7 tools/call add_steps
 {"tabId":"k3f","steps":[{"statement":"|- ph"}]}
-<<< 2026-11-27 14:05:13.012 RESPONSE #7 (667 ms)
+<<< 2026-11-27 14:05:13.012 RESPONSE #7 tools/call add_steps (667 ms)
 Added steps: 1
 Steps:
   1 |- ph`
@@ -110,7 +116,7 @@ Steps:
 ${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #a1 tools/call list_tabs
 {}
-<<< 2026-11-27 14:05:12.345 RESPONSE #a1 (0 ms) TOOL ERROR
+<<< 2026-11-27 14:05:12.345 RESPONSE #a1 tools/call list_tabs (0 ms) TOOL ERROR
 Failed.`
         )
     })
@@ -135,14 +141,14 @@ Failed.`
 ${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #1 tools/call x
 {}
-<<< 2026-11-27 14:05:12.345 RESPONSE #1 (0 ms)
+<<< 2026-11-27 14:05:12.345 RESPONSE #1 tools/call x (0 ms)
 first
 --- content item 2 ---
 {"type":"image","data":"AAA","mimeType":"image/png"}`
         )
     })
 
-    it("writes params and results of other requests as JSON", () => {
+    it("writes params and results of other requests as JSON, and a response not following its request apart", () => {
         //given
         let t = makeTestLog()
 
@@ -162,13 +168,14 @@ first
             t.getText(),
             `
 ${delim}
->>> 2026-11-27 14:05:12.345 REQUEST #1 ping
-<<< 2026-11-27 14:05:12.350 RESPONSE #1 (5 ms)
-{}
-${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #0 initialize
 {"protocolVersion":"2025-06-18"}
-<<< 2026-11-27 14:05:12.350 RESPONSE #0 (5 ms)
+${delim}
+>>> 2026-11-27 14:05:12.345 REQUEST #1 ping
+<<< 2026-11-27 14:05:12.350 RESPONSE #1 ping (5 ms)
+{}
+${delim}
+<<< 2026-11-27 14:05:12.350 RESPONSE #0 initialize (5 ms)
 {"serverInfo":{"name":"metamath-lamp"}}`
         )
     })
@@ -189,8 +196,34 @@ ${delim}
             `
 ${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #4 nope
-<<< 2026-11-27 14:05:12.345 RESPONSE #4 (0 ms) JSON-RPC ERROR
+<<< 2026-11-27 14:05:12.345 RESPONSE #4 nope (0 ms) JSON-RPC ERROR
 {"code":-32601,"message":"Method not found"}`
+        )
+    })
+
+    it("writes a response as a new entry if something else was written after its request", () => {
+        //given
+        let t = makeTestLog()
+
+        //when
+        t.log->RequestLog.messageReceived(parse(
+            `{"jsonrpc":"2.0", "id":2, "method":"tools/call", "params":{"name":"list_tabs", "arguments":{}}}`
+        ))
+        t.log->RequestLog.stderrWritten("[mm-lamp-bridge] A metamath-lamp tab connected.\n")
+        t.log->RequestLog.messageSent(parse(`{"jsonrpc":"2.0", "id":2, "result":{"content":[]}}`))
+
+        //then
+        assertEq(
+            t.getText(),
+            `
+${delim}
+>>> 2026-11-27 14:05:12.345 REQUEST #2 tools/call list_tabs
+{}
+${delim}
+!!! 2026-11-27 14:05:12.345 STDERR
+[mm-lamp-bridge] A metamath-lamp tab connected.
+${delim}
+<<< 2026-11-27 14:05:12.345 RESPONSE #2 tools/call list_tabs (0 ms)`
         )
     })
 
@@ -241,7 +274,7 @@ describe("writePending", () => {
 ${delim}
 >>> 2026-11-27 14:05:12.345 REQUEST #5 tools/call list_tabs
 {}
-<<< 2026-11-27 14:05:13.845 NO RESPONSE (the server exited after 1500 ms)`
+<<< 2026-11-27 14:05:13.845 NO RESPONSE #5 tools/call list_tabs (the server exited after 1500 ms)`
         )
     })
 })

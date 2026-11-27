@@ -1,6 +1,8 @@
 // Writes the MCP messages exchanged with the agent to a log, in a format meant to be read by a human.
 //
-// Each request is written together with its response, when the response is sent.
+// Each message is written as soon as it is received or sent, so the log can be followed with tail -f.
+// A response is written right below its request if nothing else was written in between,
+// otherwise it starts a new entry; either way its header repeats the id and the title of the request.
 // Tool arguments, params and results which are JSON are written in a single line.
 // Text content of tool results and text written to stderr are written as is.
 // See the example in README.md.
