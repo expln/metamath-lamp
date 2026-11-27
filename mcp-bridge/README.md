@@ -24,6 +24,8 @@ A tool starts only after the previous one has finished,
 so the calls one tool makes to the browser tab never interleave with calls of another tool.
 A slow tool (e.g. `load_context` waiting for the user to confirm downloads) delays all tools called after it.
 `get_pattern_syntax` doesn't use the browser tab, so it never waits.
+Each call to the browser tab has a timeout.
+After a timeout the next call is sent, even though the tab may still be running the timed out one.
 
 * `list_tabs` - returns all tabs, including Settings and Tabs, in the order they are displayed,
   as a JSON array of `{tabId, type, title, isVisible}`.
