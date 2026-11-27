@@ -1096,6 +1096,9 @@ Files included via \`$[ ... $]\` are loaded automatically, relative to the inclu
 For each source, reading may be limited to the assertions before \`stopBefore\` or up to \`stopAfter\` \
 (assertion labels), e.g. to prove a theorem without using itself and the theorems after it.
 
+Proofs in the loaded files are not checked: a successful load does not mean that the database is correct \
+or that its theorems are proved.
+
 If a URL is not marked as trusted in metamath-lamp, the user is asked to confirm downloading from it, \
 so this call may take a while. Loading a big database such as set.mm takes from several seconds \
 to a minute. Open editor tabs are not closed.`,
