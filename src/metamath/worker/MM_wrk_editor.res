@@ -565,8 +565,14 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
     }
 }
 
-let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false):string => {
+let createNewLabel = (
+    st:editorState,
+    ~prefix:option<string>=?,
+    ~forHyp:bool=false,
+    ~reservedLabels as extraReservedLabels:array<string>=[],
+):string => {
     let reservedLabels = Belt_HashSetString.fromArray(st.stmts->Array.map(stmt=>stmt.label))
+    extraReservedLabels->Array.forEach(label => reservedLabels->Belt_HashSetString.add(label))
     switch textToVarDefs(st.varsText) {
         | Error(_) => ()
         | Ok(varDefs) => {
@@ -622,7 +628,12 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?):(editorState,stmtId) => {
+let addNewStmt = (
+    st:editorState,
+    ~isHyp:bool=false,
+    ~isBkm:option<bool>=?,
+    ~reservedLabels:array<string>=[],
+):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let pCnt = st.stmts->Array.reduce(
         0,
@@ -631,13 +642,16 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?):(edi
     let defaultStmtLabel = st.preCtxData.settingsV.val.defaultStmtLabel->String.trim
     let newLabel = 
         if (pCnt == 0 && defaultStmtLabel->String.length > 0) {
-            if (st.stmts->Array.some(stmt => stmt.label == defaultStmtLabel)) {
-                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp)
+            if (
+                st.stmts->Array.some(stmt => stmt.label == defaultStmtLabel)
+                || reservedLabels->Array.includes(defaultStmtLabel)
+            ) {
+                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp, ~reservedLabels)
             } else {
                 defaultStmtLabel
             }
         } else {
-            createNewLabel(st, ~prefix="", ~forHyp=isHyp)
+            createNewLabel(st, ~prefix="", ~forHyp=isHyp, ~reservedLabels)
         }
     let isGoal = pCnt == 0 && st.preCtxData.settingsV.val.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
@@ -676,7 +690,12 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?):(edi
     )
 }
 
-let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false):(editorState,stmtId) => {
+let addNewStmtAtIdx = (
+    st:editorState,
+    ~idx:int,
+    ~isHyp:bool=false,
+    ~reservedLabels:array<string>=[],
+):(editorState,stmtId) => {
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
     let st = if (0 <= idx && idx < st.stmts->Array.length) {
@@ -684,7 +703,7 @@ let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false):(editorState
     } else {
         st
     }
-    let (st,stmtId) = st->addNewStmt(~isHyp)
+    let (st,stmtId) = st->addNewStmt(~isHyp, ~reservedLabels)
     let st = {...st, checkedStmtIds:savedCheckedStmtIds}
     (st,stmtId)
 }
@@ -2424,10 +2443,44 @@ let isHyp = (stmtTyp:option<userStmtTypeExtended>):bool => {
     }
 }
 
+let symbolNotAllowedInLabelRegex = %re("/[\s:]/")
+
+let validateNewStepLabels = (st:editorState, steps:array<userStmtDtoOpt>):result<array<string>,string> => {
+    let existingLabels = Belt_HashSetString.fromArray(st.stmts->Array.map(stmt=>stmt.label))
+    let newLabels = Belt_HashSetString.make(~hintSize=steps->Array.length)
+    steps->Array.reduce(Ok([]), (res, step) => {
+        switch res {
+            | Error(_) => res
+            | Ok(labels) => {
+                switch step.label {
+                    | None => res
+                    | Some(label) => {
+                        let label = label->String.trim
+                        if (label == "") {
+                            Error(`Steps must not have empty labels.`)
+                        } else if (symbolNotAllowedInLabelRegex->RegExp.test(label)) {
+                            Error(`label '${label}' must not contain whitespace or ':'.`)
+                        } else if (existingLabels->Belt_HashSetString.has(label)) {
+                            Error(`label '${label}' is used by another step.`)
+                        } else if (newLabels->Belt_HashSetString.has(label)) {
+                            Error(`label '${label}' is used by more than one of the new steps.`)
+                        } else {
+                            newLabels->Belt_HashSetString.add(label)
+                            labels->Array.push(label)
+                            Ok(labels)
+                        }
+                    }
+                }
+            }
+        }
+    })
+}
+
 let addStepsWithoutVars = (
     st:editorState,
     ~atIdx:option<int>=?,
-    ~steps:array<userStmtDtoOpt>
+    ~steps:array<userStmtDtoOpt>,
+    ~reservedLabels:array<string>,
 ):result<(editorState,array<stmtId>),string> => {
     let updates:array<(editorState,stmtId,userStmtDtoOpt)=>result<editorState,string>> = [
         (st,stmtId,step) => {
@@ -2445,13 +2498,7 @@ let addStepsWithoutVars = (
         (st,stmtId,step) => {
             switch step.label {
                 | None => Ok(st)
-                | Some(label) => {
-                    if (label->String.trim == "") {
-                        Error(`Steps must not have empty labels.`)
-                    } else {
-                        Ok(st->completeLabelEditMode(stmtId, label))
-                    }
-                }
+                | Some(label) => Ok(st->completeLabelEditMode(stmtId, label))
             }
         },
         (st,stmtId,step) => {
@@ -2484,8 +2531,8 @@ let addStepsWithoutVars = (
                 | Error(_) => res
                 | Ok(st) => {
                     let (st,stmtId) = switch atIdx {
-                        | None => st->addNewStmt(~isHyp=isHyp(step.typ))
-                        | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ))
+                        | None => st->addNewStmt(~isHyp=isHyp(step.typ), ~reservedLabels)
+                        | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ), ~reservedLabels)
                     }
                     stmtIds->Array.push(stmtId)
                     updates->Array.reduce(Ok(st), (res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)))
@@ -2511,16 +2558,16 @@ let correctJstfForHyp = (step:userStmtDtoOpt):userStmtDtoOpt => {
     }
 }
 
-let addSteps = (
+let addStepsWithVars = (
     st:editorState,
     ~atIdx:option<int>=?,
     ~steps:array<userStmtDtoOpt>,
-    ~vars:array<(string,option<string>)>=[],
-    ~dontAddVariablesToContext:bool
+    ~vars:array<(string,option<string>)>,
+    ~dontAddVariablesToContext:bool,
+    ~reservedLabels:array<string>,
 ):result<(editorState,array<stmtId>),string> => {
-    let steps = steps->Array.map(correctJstfForHyp)
     if (vars->Array.length == 0) {
-        st->addStepsWithoutVars( ~atIdx?, ~steps )
+        st->addStepsWithoutVars( ~atIdx?, ~steps, ~reservedLabels )
     } else {
         switch st.wrkCtx {
             | None => Error("Cannot add new variables because of errors in the editor.")
@@ -2543,10 +2590,28 @@ let addSteps = (
                             let (st, _) = createNewVars(st, ~varTypes, ~varNames, ~dontAddVariablesToContext)
                             st
                         }
-                        st->addStepsWithoutVars( ~atIdx?, ~steps )
+                        st->addStepsWithoutVars( ~atIdx?, ~steps, ~reservedLabels )
                     }
                 }
             }
+        }
+    }
+}
+
+let addSteps = (
+    st:editorState,
+    ~atIdx:option<int>=?,
+    ~steps:array<userStmtDtoOpt>,
+    ~vars:array<(string,option<string>)>=[],
+    ~dontAddVariablesToContext:bool
+):result<(editorState,array<stmtId>),string> => {
+    switch validateNewStepLabels(st, steps) {
+        | Error(msg) => Error(msg)
+        | Ok(reservedLabels) => {
+            let steps = steps->Array.map(step => {
+                {...correctJstfForHyp(step), label:step.label->Belt_Option.map(String.trim)}
+            })
+            st->addStepsWithVars(~atIdx?, ~steps, ~vars, ~dontAddVariablesToContext, ~reservedLabels)
         }
     }
 }

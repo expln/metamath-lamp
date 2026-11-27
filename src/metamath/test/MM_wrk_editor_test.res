@@ -2506,3 +2506,80 @@ describe("makeCommentFromDescription", () => {
         assertEq(makeCommentFromDescription("\nabc\n"), "$(\nabc\n$)")
     })
 })
+describe("addSteps", () => {
+    let mkStep = (~label:option<string>=?, cont:string):userStmtDtoOpt => {
+        { id:None, label, typ:Some(P), cont:Some(cont), jstf:None, isBkm:None }
+    }
+    let addStepsErr = (st, steps):string => {
+        switch st->addSteps(~steps, ~dontAddVariablesToContext=false) {
+            | Ok(_) => "Ok"
+            | Error(msg) => msg
+        }
+    }
+    let addStepsLabels = (st, steps):array<string> => {
+        switch st->addSteps(~steps, ~dontAddVariablesToContext=false) {
+            | Error(msg) => Exn.raiseError(msg)
+            | Ok((st,_)) => st.stmts->Array.map(stmt => stmt.label)
+        }
+    }
+
+    it("adds steps with unique labels", () => {
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        assertEq(
+            st->addStepsLabels([mkStep(~label="s1", "|- t = t"), mkStep(~label=" s2 ", "|- 0 = 0")]),
+            ["1", "s1", "s2"]
+        )
+    })
+
+    it("rejects a label used by an existing step", () => {
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let st = st->updateStmt((st.stmts->Array.getUnsafe(0)).id, stmt => {...stmt, label:"s1"})
+        assertEq(
+            st->addStepsErr([mkStep(~label="s2", "|- t = t"), mkStep(~label="s1", "|- 0 = 0")]),
+            "label 's1' is used by another step."
+        )
+    })
+
+    it("rejects a label used twice among the new steps", () => {
+        let st = createEditorState(demo0)
+        assertEq(
+            st->addStepsErr([mkStep(~label="s1", "|- t = t"), mkStep(~label="s1", "|- 0 = 0")]),
+            "label 's1' is used by more than one of the new steps."
+        )
+    })
+
+    it("rejects labels with whitespace or a colon", () => {
+        let st = createEditorState(demo0)
+        assertEq(
+            st->addStepsErr([mkStep(~label="s 1", "|- t = t")]),
+            "label 's 1' must not contain whitespace or ':'."
+        )
+        assertEq(
+            st->addStepsErr([mkStep(~label="s:1", "|- t = t")]),
+            "label 's:1' must not contain whitespace or ':'."
+        )
+    })
+
+    it("rejects an empty label", () => {
+        let st = createEditorState(demo0)
+        assertEq( st->addStepsErr([mkStep(~label="  ", "|- t = t")]), "Steps must not have empty labels." )
+    })
+
+    it("doesn't generate a label which is given to a later new step", () => {
+        let st = createEditorState(demo0)
+        assertEq(
+            st->addStepsLabels([mkStep("|- t = t"), mkStep(~label="1", "|- 0 = 0")]),
+            ["2", "1"]
+        )
+    })
+
+    it("doesn't use the default label if it is given to a later new step", () => {
+        let st = createEditorState(demo0, ~defaultStmtLabel="qed")
+        assertEq(
+            st->addStepsLabels([mkStep("|- t = t"), mkStep(~label="qed", "|- 0 = 0")]),
+            ["qed1", "qed"]
+        )
+    })
+})

@@ -183,7 +183,7 @@ let moveCheckedBookmarkedStmts: (editorState, bool) => editorState
 let moveCheckedStmtsToTop: editorState => editorState
 let moveCheckedStmtsToBottom: editorState => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
-let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?) => (editorState,stmtId)
+let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?, ~reservedLabels:array<string>=?) => (editorState,stmtId)
 let addNewStatements: (editorState, stmtsDto, ~isBkm:bool=?) => editorState
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool, ~isBkm:bool=?) => editorState

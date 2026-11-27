@@ -689,7 +689,8 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             ),
             steps: z.array(z.object({
                 label: z.string().optional().describe(
-                    'Label of the step, without whitespace. Omit to generate a new unique label.'
+                    'Label of the step, without whitespace and ":". It must not be used by any other step. '
+                    + 'Omit to generate a new unique label.'
                 ),
                 type: z.enum(['H', 'P', 'G']).default('P').describe(
                     'H - hypothesis, P - provable step, G - the goal step.'
