@@ -38,7 +38,8 @@ const SET_DISJOINTS_TIMEOUT_MS = 10_000
 const SET_LOCATION_TIMEOUT_MS = 10_000
 const GET_LOADED_CONTEXT_INFO_TIMEOUT_MS = 10_000
 const FIND_ASSERTIONS_TIMEOUT_MS = 120_000
-const FIND_ASSERTIONS_PAGE_SIZE = 100
+const FIND_ASSERTIONS_DEFAULT_PAGE_SIZE = 20
+const FIND_ASSERTIONS_MAX_PAGE_SIZE = 100
 // Includes downloading and parsing the files, loading the context,
 // and waiting for the user to confirm downloading from untrusted URLs.
 const LOAD_CONTEXT_TIMEOUT_MS = 15 * 60_000
@@ -914,7 +915,7 @@ and other symbols may occur in between the pattern symbols. \
 Patterns support more features: adjacency, restricting matches to hypotheses or the assertion statement, \
 operators, negation. Call get_pattern_syntax once to learn the full syntax.
 
-Results are returned in pages of ${FIND_ASSERTIONS_PAGE_SIZE} assertions, in the order of their declaration \
+Results are returned in pages of pageSize assertions, in the order of their declaration \
 in the database. Each assertion is printed as its label, optionally followed by \
 \`(axiom)\`, then indented lines: \`disj:\` disjoint variable groups separated by commas, \
 one \`hyp:\` line per essential hypothesis, and \`asrt:\` the assertion statement.
@@ -925,6 +926,9 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
                 'The search pattern, e.g. "|- $+a A + B = B + A". Omit to not filter by a pattern.'
             ),
             page: z.number().int().min(1).default(1).describe('Number of the page to return, starting from 1.'),
+            pageSize: z.number().int().min(1).max(FIND_ASSERTIONS_MAX_PAGE_SIZE)
+                .default(FIND_ASSERTIONS_DEFAULT_PAGE_SIZE)
+                .describe(`Number of assertions per page, at most ${FIND_ASSERTIONS_MAX_PAGE_SIZE}.`),
             label: z.string().optional().describe(
                 'Space-separated parts of labels; only assertions whose label contains at least one part are returned.'
             ),
@@ -942,10 +946,8 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             openWorldHint: false,
         },
     },
-    async ({label, strictLabel, pattern, page, editorTabId}) => {
-        const resp = await findAssertions({
-            label, strictLabel, pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId
-        })
+    async ({label, strictLabel, pattern, page, pageSize, editorTabId}) => {
+        const resp = await findAssertions({label, strictLabel, pattern, pageNum: page, pageSize, editorTabId})
         if (!resp.isOk) {
             return errorResult(`Could not find assertions: ${resp.err}`)
         }

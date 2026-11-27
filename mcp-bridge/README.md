@@ -65,7 +65,7 @@ Use `list_tabs` to find the ids.
   otherwise the whole loaded context is searched.
   With `label`, only assertions whose label contains at least one of its space-separated parts are returned.
   With `strictLabel`, only assertions whose label is equal to one of its space-separated labels are returned.
-  Results are paginated, 100 assertions per page.
+  Results are paginated, 20 assertions per page by default (`pageSize`, at most 100).
   The full result of the last search is cached in the browser tab,
   so requesting other pages of the same pattern and labels (in any editor scope) doesn't repeat the search.
 * `get_pattern_syntax` - returns the full description of the pattern syntax (from `src/pattern-syntax.md`).
