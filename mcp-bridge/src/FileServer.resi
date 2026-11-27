@@ -5,6 +5,11 @@
 let filesUrlPrefix: string
 
 /*
+* Expands a leading ~ to the home directory.
+* */
+let expandHome: string => string
+
+/*
 * Parses a list of directories separated by path.delimiter (':' on Linux and macOS, ';' on Windows).
 * Relative directories are resolved against the current directory of the process.
 * Returns the real paths (with symbolic links resolved) of the directories.

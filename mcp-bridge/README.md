@@ -139,6 +139,20 @@ For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists ar
   claude mcp add mm-lamp -- node /absolute/path/to/metamath-lamp/mcp-bridge/src/server.js --files-dirs ~/metamath
   ```
 
+* `--log-file <path>` - a file to which all MCP requests of the agent and the responses to them are appended,
+  see [Request log](#request-log).
+  A leading `~` means the home directory.
+  If omitted, nothing is logged.
+  If the file cannot be opened (e.g. its directory doesn't exist), the server doesn't start.
+
+## Request log
+
+The request log shows how the agent uses the tools.
+It is meant to be read by a human.
+Each run of the server starts with a line of `#` characters, so several runs can be appended to one file.
+Each entry starts with a line of `=` characters.
+An entry is a request together with its response, or a single notification.
+
 ## Trusted URLs
 
 metamath-lamp asks the user to confirm downloading from URLs which are not marked as trusted,

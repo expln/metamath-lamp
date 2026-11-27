@@ -62,6 +62,11 @@ module Fs = {
     @module("node:fs") external realpathSync: string => string = "realpathSync"
     @module("node:fs") external statSync: string => stats = "statSync"
 
+    // Opens a file for appending (creating it if it doesn't exist) and returns its descriptor. Throws on failure.
+    @module("node:fs") external openForAppendSync: (string, @as("a") _) => int = "openSync"
+    // Appends the whole text to the file with this descriptor. Throws on failure.
+    @module("node:fs") external appendFileSync: (int, string) => unit = "appendFileSync"
+
     // Both reject if the file doesn't exist.
     @module("node:fs/promises") external realpath: string => promise<string> = "realpath"
     @module("node:fs/promises") external stat: string => promise<stats> = "stat"

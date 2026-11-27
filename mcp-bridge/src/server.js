@@ -10,6 +10,8 @@
 //                           separated by ':' (';' on Windows). Entries which are not existing directories
 //                           are ignored. If no valid directories remain, local files cannot be loaded,
 //                           and no HTTP server is started (only the WebSocket server).
+//   --log-file <path>     - file to which all MCP requests of the agent and the responses to them are appended,
+//                           in a human-readable format (see README.md). If omitted, nothing is logged.
 
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
@@ -20,6 +22,7 @@ import * as BrowserBridge from './BrowserBridge.res.mjs'
 import * as SerialQueue from './SerialQueue.res.mjs'
 import { assertionToText, editorStateToText, getInsertIdx, loadedContextInfoToText } from './DataTransform.res.mjs'
 import * as FileServer from './FileServer.res.mjs'
+import * as RequestLog from './RequestLog.res.mjs'
 
 const DEFAULT_PORT = 8765
 const DEFAULT_ALLOWED_ORIGINS = ['https://expln.github.io']
@@ -63,6 +66,7 @@ const CLI_OPTIONS = {
     port: {type: 'string'},
     origins: {type: 'string'},
     'files-dirs': {type: 'string'},
+    'log-file': {type: 'string'},
 }
 
 /*
@@ -90,6 +94,58 @@ const fileServer = allowedDirs.length === 0 ? undefined : FileServer.make({
     allowedDirs,
     isOriginAllowed: origin => BrowserBridge.isOriginAllowed(origin, allowedOrigins),
 })
+/*
+* Creates the log of MCP messages, or returns undefined if logging is switched off.
+* Exits the process if the log file cannot be opened.
+* */
+function makeRequestLog(logFile) {
+    if (logFile === undefined || logFile.trim() === '') {
+        return undefined
+    }
+    const path = FileServer.expandHome(logFile.trim())
+    let write
+    try {
+        write = RequestLog.makeFileWriter(path)
+    } catch (e) {
+        BrowserBridge.log(`Could not open the log file '${path}': ${e.message}`)
+        process.exit(1)
+    }
+    const requestLog = RequestLog.make({write, now: () => new Date()})
+    // Requests which are still running when the process exits are written without responses.
+    process.on('exit', () => RequestLog.writePending(requestLog))
+    // By default, these signals kill the process without emitting 'exit'.
+    process.on('SIGINT', () => process.exit(130))
+    process.on('SIGTERM', () => process.exit(143))
+    BrowserBridge.log(`Logging MCP messages to ${path}`)
+    return requestLog
+}
+
+/*
+* Wraps an MCP transport, so that all messages it receives and sends are written to the request log.
+* */
+function withRequestLog(transport, requestLog) {
+    if (requestLog === undefined) {
+        return transport
+    }
+    const wrapper = {
+        start: () => transport.start(),
+        close: () => transport.close(),
+        send: (message, options) => {
+            RequestLog.messageSent(requestLog, message)
+            return transport.send(message, options)
+        },
+    }
+    // The MCP server sets onmessage, onerror and onclose of the wrapper when it connects.
+    transport.onmessage = (message, extra) => {
+        RequestLog.messageReceived(requestLog, message)
+        wrapper.onmessage?.(message, extra)
+    }
+    transport.onerror = error => wrapper.onerror?.(error)
+    transport.onclose = () => wrapper.onclose?.()
+    return wrapper
+}
+
+const requestLog = makeRequestLog(cliArgs['log-file'])
 const fileServerBaseUrl = `http://127.0.0.1:${port}`
 const bridge = BrowserBridge.make({
     port,
@@ -1100,7 +1156,7 @@ An editor tab may be limited further to a part of the context, see set_location.
     })
 )
 
-await server.connect(new StdioServerTransport())
+await server.connect(withRequestLog(new StdioServerTransport(), requestLog))
 
 // The WebSocket server keeps the process alive, so exit explicitly when the MCP client goes away.
 // Otherwise an orphaned process would keep the port busy for the next agent session.

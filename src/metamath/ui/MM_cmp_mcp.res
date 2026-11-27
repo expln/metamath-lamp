@@ -7,6 +7,7 @@ let defaultPortStr = MM_mcp_client.defaultPort->Int.toString
 let locStorKeyPort = "mcp-port"
 let locStorKeyCmdOrigins = "mcp-cmd-origins"
 let locStorKeyCmdFilesDirs = "mcp-cmd-files-dirs"
+let locStorKeyCmdLogFile = "mcp-cmd-log-file"
 let locStorKeyCmdServerJsPath = "mcp-cmd-server-js-path"
 
 let parsePort = (str:string):option<int> => {
@@ -47,7 +48,9 @@ let quoteShellArg = (arg:string):string => {
     }
 }
 
-let buildCommand = (~serverJsPath:string, ~port:string, ~origins:string, ~filesDirs:string):string => {
+let buildCommand = (
+    ~serverJsPath:string, ~port:string, ~origins:string, ~filesDirs:string, ~logFile:string
+):string => {
     let serverJsPath = serverJsPath->String.trim
     let parts = [
         "node",
@@ -64,6 +67,7 @@ let buildCommand = (~serverJsPath:string, ~port:string, ~origins:string, ~filesD
     parts->Array.push(quoteShellArg(port->String.trim))
     addArg("--origins", origins)
     addArg("--files-dirs", filesDirs)
+    addArg("--log-file", logFile)
     parts->Array.join(" ")
 }
 
@@ -74,6 +78,7 @@ let make = () => {
 
     let (cmdOrigins, setCmdOrigins) = useStateFromLocalStorageStr(~key=locStorKeyCmdOrigins, ~default="")
     let (cmdFilesDirs, setCmdFilesDirs) = useStateFromLocalStorageStr(~key=locStorKeyCmdFilesDirs, ~default="")
+    let (cmdLogFile, setCmdLogFile) = useStateFromLocalStorageStr(~key=locStorKeyCmdLogFile, ~default="")
     let (cmdServerJsPath, setCmdServerJsPath) = useStateFromLocalStorageStr(
         ~key=locStorKeyCmdServerJsPath, ~default=""
     )
@@ -101,7 +106,8 @@ let make = () => {
     let port = parsePort(portStr)
 
     let command = buildCommand(
-        ~serverJsPath=cmdServerJsPath, ~port=portStr, ~origins=cmdOrigins, ~filesDirs=cmdFilesDirs
+        ~serverJsPath=cmdServerJsPath, ~port=portStr, ~origins=cmdOrigins, ~filesDirs=cmdFilesDirs,
+        ~logFile=cmdLogFile
     )
 
     let actConnect = () => {
@@ -184,12 +190,14 @@ let make = () => {
             )}
             {rndCmdParam(~label="--origins", ~value=cmdOrigins, ~setter=setCmdOrigins, ~width="600px")}
             {rndCmdParam(~label="--files-dirs", ~value=cmdFilesDirs, ~setter=setCmdFilesDirs, ~width="600px")}
+            {rndCmdParam(~label="--log-file", ~value=cmdLogFile, ~setter=setCmdLogFile, ~width="600px")}
             <span style={fontSize:"0.9em", color:"grey"}>
                 {React.string(
                     "--port: the WebSocket port, 8765 by default. "
                     ++ "--origins: comma separated list of additional page origins allowed to connect. "
                     ++ "--files-dirs: directories from which local files may be loaded, "
-                    ++ "separated by ':' (';' on Windows)."
+                    ++ "separated by ':' (';' on Windows). "
+                    ++ "--log-file: file to which all requests of the agent and the responses are appended."
                 )}
             </span>
             <Row alignItems=#center>
