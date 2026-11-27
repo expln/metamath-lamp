@@ -407,7 +407,7 @@ async function editorStateResult({tabId, unifyFirst, onlyRelevantSteps, includeD
             return errorResult(`'Unify All' failed: ${unifyResp.err}`)
         }
         if (unifyResp.res === false) {
-            notes.push("'Unify All' could not start (another action may be running), statuses may be outdated.")
+            notes.push("'Unify All' could not start, statuses may be outdated.")
         }
     }
     const stateResp = await getEditorState({tabId, includeDescription})
