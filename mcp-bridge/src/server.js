@@ -725,7 +725,7 @@ ${EDITOR_ERRORS_NOTE}`,
                 ),
                 justification: z.string().optional().describe(
                     'Justification in the form "<hypothesis labels separated by spaces> : <assertion label>", '
-                    + 'e.g. "1 2 : ax-mp" or ": idi" when there are no hypotheses. '
+                    + 'e.g. "1 2 : ax-mp" or ": id" when there are no hypotheses. '
                     + 'Omit to leave the step without a justification. Ignored for hypotheses.'
                 ),
                 isBookmarked: z.boolean().default(false).describe(
@@ -1015,7 +1015,7 @@ server.registerTool(
         description: `Searches assertions (theorems and axioms) by a pattern and/or labels \
 in the loaded Metamath database. Discouraged and deprecated assertions are included and marked as such. \
 Discouraged and deprecated assertions cannot be used in justifications in the editor: \
-they will cause errors in the editor. \
+a step justified by such an assertion gets status \`x\` without any error message. \
 pattern, label, and strictLabel are optional; an assertion is returned only if it matches all given criteria.
 
 Pass editorTabId to return only assertions which can be used in that editor tab \
