@@ -113,20 +113,6 @@ function errorResult(text) {
 }
 
 /*
-* Wraps a tool handler, so it runs only when a metamath-lamp tab is connected.
-* Otherwise the tool returns an error explaining why there is no connection.
-* */
-function withConnectedTab(handler) {
-    return async (args, extra) => {
-        const notConnectedErr = await BrowserBridge.ensureConnected(bridge)
-        if (notConnectedErr !== undefined) {
-            return errorResult(notConnectedErr)
-        }
-        return handler(args, extra)
-    }
-}
-
-/*
 * Lists all tabs of metamath-lamp in the order they are displayed.
 * Resolves to the API response: res is [{tabId, type, title, isVisible}].
 * */
@@ -362,13 +348,13 @@ Use the tabId of an editor tab in the tools which work with editors.`,
             openWorldHint: false,
         },
     },
-    withConnectedTab(async () => {
+    async () => {
         const resp = await listTabs()
         if (!resp.isOk) {
             return errorResult(`Could not list the tabs: ${resp.err}`)
         }
         return textResult(JSON.stringify(resp.res))
-    })
+    }
 )
 
 server.registerTool(
@@ -394,13 +380,13 @@ The new editor can be used right away in the tools which work with editors.`,
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({open, title}) => {
+    async ({open, title}) => {
         const resp = await createEditorTab({open, title})
         if (!resp.isOk) {
             return errorResult(`Could not create the tab: ${resp.err}`)
         }
         return textResult(JSON.stringify({tabId: resp.res}))
-    })
+    }
 )
 
 server.registerTool(
@@ -421,7 +407,7 @@ The Settings, Tabs, and MCP tabs cannot be closed by this tool.`,
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({tabId}) => {
+    async ({tabId}) => {
         const resp = await closeTab({tabId})
         if (!resp.isOk) {
             return errorResult(`Could not close the tab: ${resp.err}`)
@@ -430,7 +416,7 @@ The Settings, Tabs, and MCP tabs cannot be closed by this tool.`,
             return errorResult(`The tab '${tabId}' was not closed.`)
         }
         return textResult(`Closed the tab '${tabId}'.`)
-    })
+    }
 )
 
 server.registerTool(
@@ -451,13 +437,13 @@ Use it to show the user the result of your work, e.g. an editor tab with a proof
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({tabId}) => {
+    async ({tabId}) => {
         const resp = await openTab({tabId})
         if (!resp.isOk) {
             return errorResult(`Could not open the tab: ${resp.err}`)
         }
         return textResult(`The tab '${tabId}' is visible now.`)
-    })
+    }
 )
 
 server.registerTool(
@@ -478,13 +464,13 @@ Titles of editor tabs are saved with the editor content.`,
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({tabId, title}) => {
+    async ({tabId, title}) => {
         const resp = await renameTab({tabId, title})
         if (!resp.isOk) {
             return errorResult(`Could not rename the tab: ${resp.err}`)
         }
         return textResult(`Renamed the tab '${tabId}' to '${title}'.`)
-    })
+    }
 )
 
 server.registerTool(
@@ -537,9 +523,9 @@ Pass unifyFirst=false to read the editor exactly as it is, including the selecte
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({unifyFirst, onlyRelevantSteps, includeDescription, tabId}) => {
+    async ({unifyFirst, onlyRelevantSteps, includeDescription, tabId}) => {
         return editorStateResult({tabId, unifyFirst, onlyRelevantSteps, includeDescription})
-    })
+    }
 )
 
 server.registerTool(
@@ -575,7 +561,7 @@ By default 'Unify All' runs first, so statuses are up to date. \
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({label, includeDescription, unifyFirst, tabId}) => {
+    async ({label, includeDescription, unifyFirst, tabId}) => {
         if (unifyFirst) {
             const unifyResp = await unifyAll({tabId})
             if (!unifyResp.isOk) {
@@ -589,7 +575,7 @@ By default 'Unify All' runs first, so statuses are up to date. \
             )
         }
         return textResult(proofResp.res)
-    })
+    }
 )
 
 server.registerTool(
@@ -640,7 +626,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({beforeLabel, afterLabel, variables, steps, tabId}) => {
+    async ({beforeLabel, afterLabel, variables, steps, tabId}) => {
         const stateResp = await getEditorState({tabId})
         if (!stateResp.isOk) {
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
@@ -670,7 +656,7 @@ After adding, 'Unify All' runs and the editor state is returned in the same form
             onlyRelevantSteps: true,
             notes: [`Added steps: ${addResp.res.join(' ')}`],
         })
-    })
+    }
 )
 
 server.registerTool(
@@ -713,7 +699,7 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({steps, tabId}) => {
+    async ({steps, tabId}) => {
         const updateResp = await updateSteps({
             tabId,
             steps: steps.map(step => ({
@@ -733,7 +719,7 @@ After updating, 'Unify All' runs and the editor state is returned in the same fo
             onlyRelevantSteps: true,
             notes: [`Updated steps: ${steps.map(step => step.label).join(' ')}`],
         })
-    })
+    }
 )
 
 server.registerTool(
@@ -760,7 +746,7 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({labels, tabId}) => {
+    async ({labels, tabId}) => {
         const stateResp = await getEditorState({tabId})
         if (!stateResp.isOk) {
             return errorResult(`Could not get the editor state: ${stateResp.err}`)
@@ -780,7 +766,7 @@ After deleting, 'Unify All' runs and the editor state is returned in the same fo
             onlyRelevantSteps: true,
             notes: [`Deleted steps: ${labels.join(' ')}`],
         })
-    })
+    }
 )
 
 server.registerTool(
@@ -803,13 +789,13 @@ Pass an empty string to clear the description.`,
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({descr, tabId}) => {
+    async ({descr, tabId}) => {
         const resp = await setDescription({tabId, descr})
         if (!resp.isOk) {
             return errorResult(`Could not set the description: ${resp.err}`)
         }
         return textResult(descr === '' ? 'Cleared the description.' : 'Set the description.')
-    })
+    }
 )
 
 server.registerTool(
@@ -837,7 +823,7 @@ After setting, 'Unify All' runs and the editor state is returned in the same for
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({disj, tabId}) => {
+    async ({disj, tabId}) => {
         const resp = await setDisjoints({tabId, disj})
         if (!resp.isOk) {
             return errorResult(`Could not set the disjoints: ${resp.err}`)
@@ -848,7 +834,7 @@ After setting, 'Unify All' runs and the editor state is returned in the same for
             onlyRelevantSteps: true,
             notes: [disj.length === 0 ? 'Removed all disjoints.' : `Set ${disj.length} disjoint variable groups.`],
         })
-    })
+    }
 )
 
 server.registerTool(
@@ -881,7 +867,7 @@ After setting, 'Unify All' runs and the editor state is returned in the same for
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({place, label, tabId}) => {
+    async ({place, label, tabId}) => {
         if (place === 'last' && label !== undefined) {
             return errorResult("'label' must be omitted when 'place' is 'last'.")
         }
@@ -900,7 +886,7 @@ After setting, 'Unify All' runs and the editor state is returned in the same for
                 place === 'last' ? 'Set the location to all assertions.' : `Set the location to ${place} '${label}'.`
             ],
         })
-    })
+    }
 )
 
 server.registerTool(
@@ -956,7 +942,7 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
             openWorldHint: false,
         },
     },
-    withConnectedTab(async ({label, strictLabel, pattern, page, editorTabId}) => {
+    async ({label, strictLabel, pattern, page, editorTabId}) => {
         const resp = await findAssertions({
             label, strictLabel, pattern, pageNum: page, pageSize: FIND_ASSERTIONS_PAGE_SIZE, editorTabId
         })
@@ -981,7 +967,7 @@ The search may open a progress dialog in metamath-lamp, and the user may cancel 
         }
         const header = `${totalCount} assertions ${matchText}${scope}. Page ${page} of ${numOfPages}:`
         return textResult([header, ...asrts.map(assertionToText)].join('\n\n'))
-    })
+    }
 )
 
 server.registerTool(
@@ -1042,7 +1028,7 @@ to a minute. Open editor tabs are not closed.`,
             openWorldHint: true,
         },
     },
-    withConnectedTab(async ({sources}) => {
+    async ({sources}) => {
         const srcs = []
         for (const {url, stopBefore, stopAfter} of sources) {
             if (stopBefore !== undefined && stopAfter !== undefined) {
@@ -1060,7 +1046,7 @@ to a minute. Open editor tabs are not closed.`,
         }
         const {summary, numOfAsrts} = resp.res
         return textResult(`${summary}\nNumber of assertions: ${numOfAsrts}`)
-    })
+    }
 )
 
 server.registerTool(
@@ -1084,7 +1070,7 @@ An editor tab may be limited further to a part of the context, see set_location.
             openWorldHint: false,
         },
     },
-    withConnectedTab(async () => {
+    async () => {
         const resp = await getLoadedContextInfo()
         if (!resp.isOk) {
             return errorResult(`Could not get the information about the loaded context: ${resp.err}`)
@@ -1095,7 +1081,7 @@ An editor tab may be limited further to a part of the context, see set_location.
                 ? undefined
                 : FileServer.urlToLocalPath(url, fileServerBaseUrl),
         }))
-    })
+    }
 )
 
 await server.connect(new StdioServerTransport())

@@ -395,24 +395,29 @@ type callMsg = {
     params?: JSON.t,
 }
 
-let call = (t:t, {path, ?params, ?tabId, timeoutMs}:callParams):promise<apiResp> => {
-    switch t.connection {
-        | None => Promise.resolve({isOk: false, err: ?getNotConnectedError(t)})
-        | Some(conn) => {
-            let id = t.nextCallId
-            t.nextCallId = id + 1
-            Promise.make((resolve, _) => {
-                let timer = setTimeout(() => {
-                    t.pendingCalls->Map.delete(id)->ignore
-                    resolve({
-                        isOk: false,
-                        err: `metamath-lamp did not respond to '${path}' within ${timeoutMs->Int.toString} ms.`,
+let call = async (t:t, {path, ?params, ?tabId, timeoutMs}:callParams):apiResp => {
+    switch await ensureConnected(t) {
+        | Some(notConnectedErr) => {isOk: false, err: notConnectedErr}
+        | None => {
+            switch t.connection {
+                | None => {isOk: false, err: ?getNotConnectedError(t)}
+                | Some(conn) => {
+                    let id = t.nextCallId
+                    t.nextCallId = id + 1
+                    await Promise.make((resolve, _) => {
+                        let timer = setTimeout(() => {
+                            t.pendingCalls->Map.delete(id)->ignore
+                            resolve({
+                                isOk: false,
+                                err: `metamath-lamp did not respond to '${path}' within ${timeoutMs->Int.toString} ms.`,
+                            })
+                        }, timeoutMs)
+                        t.pendingCalls->Map.set(id, {resolve, timer})
+                        let msg:callMsg = {type_: "call", id, path, ?tabId, ?params}
+                        conn.ws->Ws.send(stringifyAny(msg))
                     })
-                }, timeoutMs)
-                t.pendingCalls->Map.set(id, {resolve, timer})
-                let msg:callMsg = {type_: "call", id, path, ?tabId, ?params}
-                conn.ws->Ws.send(stringifyAny(msg))
-            })
+                }
+            }
         }
     }
 }

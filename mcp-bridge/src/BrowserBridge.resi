@@ -34,15 +34,9 @@ type makeParams = {
 }
 
 /*
-* Creates a bridge. The port is opened lazily, on the first call of ensureConnected.
+* Creates a bridge. The port is opened lazily, on the first call of call.
 * */
 let make: makeParams => t
-
-/*
-* Makes sure a browser tab is connected, waiting for it to (re)connect if needed.
-* Resolves to None if a tab is connected, otherwise to an error message.
-* */
-let ensureConnected: t => promise<option<string>>
 
 type callParams = {
     // e.g. "editor.getState" or "editor.unifyAll".
@@ -55,6 +49,8 @@ type callParams = {
 
 /*
 * Calls a metamath-lamp API function in the connected browser tab.
+* If no tab is connected, it first opens the port (if not yet open) and waits for a tab to (re)connect;
+* if none connects in time, it resolves to an error response explaining why there is no connection.
 * Resolves to the API response {isOk, res, err}. Never rejects.
 * */
 let call: (t, callParams) => promise<apiResp>
