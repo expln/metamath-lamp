@@ -11,7 +11,8 @@
 //                           are ignored. If no valid directories remain, local files cannot be loaded,
 //                           and no HTTP server is started (only the WebSocket server).
 //   --log-file <path>     - file to which all MCP requests of the agent and the responses to them are appended,
-//                           in a human-readable format (see README.md). If omitted, nothing is logged.
+//                           in a human-readable format (see README.md), together with everything written to stderr.
+//                           If omitted, nothing is logged.
 
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
@@ -111,6 +112,7 @@ function makeRequestLog(logFile) {
         process.exit(1)
     }
     const requestLog = RequestLog.make({write, now: () => new Date()})
+    mirrorStderr(requestLog)
     // Requests which are still running when the process exits are written without responses.
     process.on('exit', () => RequestLog.writePending(requestLog))
     // By default, these signals kill the process without emitting 'exit'.
@@ -118,6 +120,23 @@ function makeRequestLog(logFile) {
     process.on('SIGTERM', () => process.exit(143))
     BrowserBridge.log(`Logging MCP messages to ${path}`)
     return requestLog
+}
+
+/*
+* Makes everything written to stderr (by this server, libraries, or Node.js) be written to the request log too.
+* Errors which crash the process are written as well, because Node.js prints them bypassing process.stderr.
+* */
+function mirrorStderr(requestLog) {
+    const writeToStderr = process.stderr.write.bind(process.stderr)
+    process.stderr.write = (chunk, ...rest) => {
+        const text = typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8')
+        RequestLog.stderrWritten(requestLog, text)
+        return writeToStderr(chunk, ...rest)
+    }
+    // Only observes the error: the process still crashes as without this listener.
+    process.on('uncaughtExceptionMonitor', (err, origin) => {
+        RequestLog.uncaughtException(requestLog, origin, err instanceof Error ? err.stack ?? String(err) : String(err))
+    })
 }
 
 /*

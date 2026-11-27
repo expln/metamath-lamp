@@ -140,7 +140,7 @@ For example, `--files-dirs ~/a --files-dirs ~/b` allows only `~/b` (the lists ar
   ```
 
 * `--log-file <path>` - a file to which all MCP requests of the agent and the responses to them are appended,
-  see [Request log](#request-log).
+  together with everything written to stderr, see [Request log](#request-log).
   A leading `~` means the home directory.
   If omitted, nothing is logged.
   If the file cannot be opened (e.g. its directory doesn't exist), the server doesn't start.
@@ -152,6 +152,8 @@ It is meant to be read by a human.
 Each run of the server starts with a line of `#` characters, so several runs can be appended to one file.
 Each entry starts with a line of `=` characters.
 An entry is a request together with its response, or a single notification.
+Text written to stderr (by the server, libraries, or Node.js) is written as separate `STDERR` entries.
+Errors which crash the server are written as `UNCAUGHT EXCEPTION` or `UNHANDLED REJECTION` entries.
 
 ## Trusted URLs
 

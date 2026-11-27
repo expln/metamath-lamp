@@ -193,6 +193,15 @@ let messageSent = (t:t, msg:JSON.t):unit => {
     }
 }
 
+let stderrWritten = (t:t, text:string):unit => {
+    t->writeEntry(line(`!!! ${formatTimestamp(t.now())} STDERR`) ++ textLines(text))
+}
+
+let uncaughtException = (t:t, origin:string, text:string):unit => {
+    let title = origin == "unhandledRejection" ? "UNHANDLED REJECTION" : "UNCAUGHT EXCEPTION"
+    t->writeEntry(line(`!!! ${formatTimestamp(t.now())} ${title}`) ++ textLines(text))
+}
+
 let writePending = (t:t):unit => {
     let time = t.now()
     t.pending->Map.values->Array.fromIterator->Array.forEach(req => {

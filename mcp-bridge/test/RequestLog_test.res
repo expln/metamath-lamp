@@ -245,3 +245,47 @@ ${delim}
         )
     })
 })
+
+describe("stderrWritten", () => {
+    it("writes the text as is in a separate entry, dropping one new line symbol at the end", () => {
+        //given
+        let t = makeTestLog()
+
+        //when
+        t.log->RequestLog.stderrWritten("[mm-lamp-bridge] The tab disconnected.\n  details\n")
+
+        //then
+        assertEq(
+            t.getText(),
+            `
+${delim}
+!!! 2026-11-27 14:05:12.345 STDERR
+[mm-lamp-bridge] The tab disconnected.
+  details`
+        )
+    })
+})
+
+describe("uncaughtException", () => {
+    it("writes an uncaught exception and an unhandled rejection with different titles", () => {
+        //given
+        let t = makeTestLog()
+
+        //when
+        t.log->RequestLog.uncaughtException("uncaughtException", "Error: boom\n    at f (server.js:1:1)")
+        t.log->RequestLog.uncaughtException("unhandledRejection", "Error: rejected")
+
+        //then
+        assertEq(
+            t.getText(),
+            `
+${delim}
+!!! 2026-11-27 14:05:12.345 UNCAUGHT EXCEPTION
+Error: boom
+    at f (server.js:1:1)
+${delim}
+!!! 2026-11-27 14:05:12.345 UNHANDLED REJECTION
+Error: rejected`
+        )
+    })
+})
