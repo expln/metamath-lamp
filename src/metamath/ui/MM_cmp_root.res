@@ -366,8 +366,6 @@ let make = () => {
                     ~strictLabel,
                     ~patternStr=pattern,
                     ~patternVersion=2,
-                    ~isDisc=false,
-                    ~isDepr=false,
                 )->Promise.thenResolve(foundLabels => {
                     foundLabels->Result.map(foundLabels =>
                         foundLabels->Array.map(((label,_)) =>

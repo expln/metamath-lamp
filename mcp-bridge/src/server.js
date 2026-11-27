@@ -348,7 +348,7 @@ function isBlank(str) {
 }
 
 /*
-* Searches assertions by a pattern and labels (discouraged and deprecated assertions are excluded).
+* Searches assertions by a pattern and labels (discouraged and deprecated assertions are included).
 * pattern - if undefined or blank, assertions are not filtered by a pattern.
 * label - if defined and not blank, only assertions whose label contains at least one of
 * its space-separated parts (case-insensitive) are returned.
@@ -358,7 +358,7 @@ function isBlank(str) {
 * if undefined, the whole loaded context is searched.
 * pageNum is 1-based.
 * Resolves to the API response: res is
-* {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, disj, hyps, asrt}]}.
+* {totalCount, pageNum, pageSize, numOfPages, editorScope?, asrts:[{label, isAxiom, isDisc, isDepr, disj, hyps, asrt}]}.
 * */
 function findAssertions({label, strictLabel, pattern, pageNum, pageSize, editorTabId}) {
     return callBridge({
@@ -998,7 +998,9 @@ server.registerTool(
     {
         title: 'Find assertions',
         description: `Searches assertions (theorems and axioms) by a pattern and/or labels \
-in the loaded Metamath database. Discouraged and deprecated assertions are excluded. \
+in the loaded Metamath database. Discouraged and deprecated assertions are included and marked as such. \
+Discouraged and deprecated assertions cannot be used in justifications in the editor: \
+they will cause errors in the editor. \
 pattern, label, and strictLabel are optional; an assertion is returned only if it matches all given criteria.
 
 Pass editorTabId to return only assertions which can be used in that editor tab \
@@ -1020,7 +1022,9 @@ operators, negation. Call get_pattern_syntax once to learn the full syntax.
 
 Results are returned in pages of pageSize assertions, in the order of their declaration \
 in the database. Each assertion is printed as its label, optionally followed by \
-\`(axiom)\`, then indented lines: \`disj:\` disjoint variable groups separated by commas, \
+marks in parentheses: \`axiom\`, \`discouraged\`, \`deprecated\` \
+(e.g. \`(axiom)\` or \`(discouraged, deprecated)\`), \
+then indented lines: \`disj:\` disjoint variable groups separated by commas, \
 one \`hyp:\` line per essential hypothesis, and \`asrt:\` the assertion statement.
 
 The search may open a progress dialog in metamath-lamp, and the user may cancel it.`,

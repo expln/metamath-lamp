@@ -67,7 +67,7 @@ After a timeout the next call is sent, even though the tab may still be running 
 * `set_location` - sets which assertions can be used in an editor tab:
   those `before` a label, those up to and including (`after`) a label, or all of them (`last`).
   Returns the editor state after "Unify All".
-* `find_assertions` - searches assertions by a pattern and/or labels, excluding discouraged and deprecated ones.
+* `find_assertions` - searches assertions by a pattern and/or labels, marking discouraged and deprecated ones.
   `pattern`, `label`, and `strictLabel` are optional.
   With `editorTabId`, only assertions which can be used in that editor tab are returned,
   otherwise the whole loaded context is searched.

@@ -152,6 +152,8 @@ describe("assertionToText", () => {
         let asrt = {
             label: "ax-test",
             isAxiom: true,
+            isDisc: false,
+            isDepr: false,
             disj: [["x", "y"], ["x", "A"]],
             hyps: ["|- ph", "|- ps"],
             asrt: "|- ch",
@@ -178,6 +180,8 @@ describe("assertionToText", () => {
         let asrt = {
             label: "idi",
             isAxiom: false,
+            isDisc: false,
+            isDepr: false,
             disj: [],
             hyps: [],
             asrt: "|- ( ph -> ph )",
@@ -188,6 +192,38 @@ describe("assertionToText", () => {
 
         //then
         assertEq(text, "idi\n  asrt: |- ( ph -> ph )")
+    })
+
+    it("prints the discouraged and deprecated marks", () => {
+        //given
+        let mk = (~isAxiom, ~isDisc, ~isDepr) => {
+            label: "lbl",
+            isAxiom,
+            isDisc,
+            isDepr,
+            disj: [],
+            hyps: [],
+            asrt: "|- ph",
+        }
+
+        //when
+        let texts = [
+            mk(~isAxiom=false, ~isDisc=true, ~isDepr=false),
+            mk(~isAxiom=false, ~isDisc=false, ~isDepr=true),
+            mk(~isAxiom=false, ~isDisc=true, ~isDepr=true),
+            mk(~isAxiom=true, ~isDisc=true, ~isDepr=true),
+        ]->Array.map(assertionToText)
+
+        //then
+        assertEq(
+            texts,
+            [
+                "lbl (discouraged)\n  asrt: |- ph",
+                "lbl (deprecated)\n  asrt: |- ph",
+                "lbl (discouraged, deprecated)\n  asrt: |- ph",
+                "lbl (axiom, discouraged, deprecated)\n  asrt: |- ph",
+            ]
+        )
     })
 })
 

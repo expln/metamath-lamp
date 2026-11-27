@@ -19,6 +19,8 @@ let frameToJson = (~preCtxData:preCtxData, ~typeColors:Belt_HashMapString.t<stri
     Dict.fromArray([
         ("label", frm.label->JSON.Encode.string),
         ("isAxiom", frm.isAxiom->JSON.Encode.bool),
+        ("isDisc", frm.isDisc->JSON.Encode.bool),
+        ("isDepr", frm.isDepr->JSON.Encode.bool),
         ("disj", disj),
         ("hyps", hyps),
         ("asrt", ctxIntsToStrExn(preCtx, frmData.asrt)->JSON.Encode.string),

@@ -50,6 +50,8 @@ let editorStateToText: editorStateToTextParams => string
 type foundAssertion = {
     label: string,
     isAxiom: bool,
+    isDisc: bool,
+    isDepr: bool,
     disj: array<array<string>>,
     hyps: array<string>,
     asrt: string,

@@ -154,13 +154,20 @@ let editorStateToText = ({state, ?onlyRelevantSteps, ?notes}:editorStateToTextPa
 type foundAssertion = {
     label: string,
     isAxiom: bool,
+    isDisc: bool,
+    isDepr: bool,
     disj: array<array<string>>,
     hyps: array<string>,
     asrt: string,
 }
 
-let assertionToText = ({label, isAxiom, disj, hyps, asrt}:foundAssertion):string => {
-    let lines = [`${label}${isAxiom ? " (axiom)" : ""}`]
+let assertionToText = ({label, isAxiom, isDisc, isDepr, disj, hyps, asrt}:foundAssertion):string => {
+    let marks = [
+        isAxiom ? Some("axiom") : None,
+        isDisc ? Some("discouraged") : None,
+        isDepr ? Some("deprecated") : None,
+    ]->Array.filterMap(mark => mark)
+    let lines = [marks->Array.length == 0 ? label : `${label} (${marks->Array.join(", ")})`]
     if (disj->Array.length > 0) {
         lines->Array.push(`  disj: ${disj->Array.map(grp => grp->Array.join(" "))->Array.join(" , ")}`)
     }
