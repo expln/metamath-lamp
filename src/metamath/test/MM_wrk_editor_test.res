@@ -2518,7 +2518,7 @@ describe("addSteps", () => {
     }
     let addStepsLabels = (st, steps):array<string> => {
         switch st->addSteps(~steps, ~dontAddVariablesToContext=false) {
-            | Error(msg) => Exn.raiseError(msg)
+            | Error(msg) => JsError.throwWithMessage(msg)
             | Ok((st,_)) => st.stmts->Array.map(stmt => stmt.label)
         }
     }
