@@ -26,6 +26,8 @@ npm run test
 
 ! claude mcp remove mm-lamp -s local
 ! claude mcp add mm-lamp -- node ~/IdeaProjects/metamath-lamp/mcp-bridge/src/server.js --files-dirs ~/metamath
+
+claude --mcp-config "{\"mcpServers\":{\"mm-lamp\":{\"command\":\"node\",\"args\":[\"$HOME/IdeaProjects/metamath-lamp/mcp-bridge/src/server.js\",\"--files-dirs\",\"$HOME/metamath\",\"--log-file\",\"$HOME/metamath/mcp.log\"]}}}"
 ------------------------------------------------------------------------------------------------------------------------
 Migrate to Array.getUnsafe:
 \[([^\[\]]+)\]
