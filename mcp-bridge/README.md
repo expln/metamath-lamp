@@ -19,6 +19,12 @@ Ids of editor tabs don't change when metamath-lamp is reloaded.
 Editors created before tab ids were introduced keep their old numeric ids as strings, e.g. `0`.
 Use `list_tabs` to find the ids.
 
+Tools run one at a time, even if the agent calls several of them in parallel.
+A tool starts only after the previous one has finished,
+so the calls one tool makes to the browser tab never interleave with calls of another tool.
+A slow tool (e.g. `load_context` waiting for the user to confirm downloads) delays all tools called after it.
+`get_pattern_syntax` doesn't use the browser tab, so it never waits.
+
 * `list_tabs` - returns all tabs, including Settings and Tabs, in the order they are displayed,
   as a JSON array of `{tabId, type, title, isVisible}`.
   `type` is one of `settings`, `tabs`, `editor`, `explorer`, `assertion`, `db-info`, `mcp`.

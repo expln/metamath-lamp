@@ -107,6 +107,8 @@ type t = {
     mutable connection: option<connection>,
     mutable nextCallId: int,
     pendingCalls: Map.t<int, pendingCall>,
+    // Calls are sent one at a time, see call.
+    callQueue: SerialQueue.t,
 }
 
 type makeParams = {
@@ -127,6 +129,7 @@ let make = (params:makeParams):t => {
         connection: None,
         nextCallId: 1,
         pendingCalls: Map.make(),
+        callQueue: SerialQueue.make(),
     }
 }
 
@@ -395,29 +398,43 @@ type callMsg = {
     params?: JSON.t,
 }
 
-let call = async (t:t, {path, ?params, ?tabId, timeoutMs}:callParams):apiResp => {
+// Sends a call to the connected browser tab and waits for its result or for the timeout.
+let sendCall = (t:t, {path, ?params, ?tabId, timeoutMs}:callParams):promise<apiResp> => {
+    switch t.connection {
+        | None => Promise.resolve({isOk: false, err: ?getNotConnectedError(t)})
+        | Some(conn) => {
+            let id = t.nextCallId
+            t.nextCallId = id + 1
+            Promise.make((resolve, _) => {
+                let timer = setTimeout(() => {
+                    t.pendingCalls->Map.delete(id)->ignore
+                    resolve({
+                        isOk: false,
+                        err: `metamath-lamp did not respond to '${path}' within ${timeoutMs->Int.toString} ms.`,
+                    })
+                }, timeoutMs)
+                t.pendingCalls->Map.set(id, {resolve, timer})
+                let msg:callMsg = {type_: "call", id, path, ?tabId, ?params}
+                conn.ws->Ws.send(stringifyAny(msg))
+            })
+        }
+    }
+}
+
+/*
+* Calls are sent to the browser tab one at a time: a call is sent only after the previous one is finished.
+* The tab runs API functions concurrently, and they are not safe to run in parallel:
+* e.g. editor functions validate their input against the editor state at the moment of the call,
+* but apply changes to the state as it is when React runs the update.
+* Waiting for a connection is done before queueing, so that queued calls don't wait for it one after another.
+* The timeout of a call starts when the call is sent, so time spent in the queue doesn't count.
+* After a timeout the next call is sent, even though the tab may still be running the timed out one.
+* */
+let call = async (t:t, params:callParams):apiResp => {
     switch await ensureConnected(t) {
         | Some(notConnectedErr) => {isOk: false, err: notConnectedErr}
         | None => {
-            switch t.connection {
-                | None => {isOk: false, err: ?getNotConnectedError(t)}
-                | Some(conn) => {
-                    let id = t.nextCallId
-                    t.nextCallId = id + 1
-                    await Promise.make((resolve, _) => {
-                        let timer = setTimeout(() => {
-                            t.pendingCalls->Map.delete(id)->ignore
-                            resolve({
-                                isOk: false,
-                                err: `metamath-lamp did not respond to '${path}' within ${timeoutMs->Int.toString} ms.`,
-                            })
-                        }, timeoutMs)
-                        t.pendingCalls->Map.set(id, {resolve, timer})
-                        let msg:callMsg = {type_: "call", id, path, ?tabId, ?params}
-                        conn.ws->Ws.send(stringifyAny(msg))
-                    })
-                }
-            }
+            await t.callQueue->SerialQueue.run(() => sendCall(t, params))
         }
     }
 }
