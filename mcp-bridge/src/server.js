@@ -387,6 +387,14 @@ function getLoadedContextInfo() {
     return callBridge({path: 'context.getLoadedContextInfo', timeoutMs: GET_LOADED_CONTEXT_INFO_TIMEOUT_MS})
 }
 
+// How errors in the editor affect 'Unify All', for tool descriptions.
+const UNIFY_ALL_ERRORS_NOTE = `If there is at least one error in the editor, 'Unify All' doesn't work. \
+Only the first step with an error is shown with its error, even if other steps have errors too.`
+
+// How errors in the editor affect the returned editor state, for tool descriptions.
+const EDITOR_ERRORS_NOTE = `${UNIFY_ALL_ERRORS_NOTE} \
+With onlyRelevantSteps=true, the other steps with errors, if any, are not returned.`
+
 /*
 * Optionally runs 'Unify All', then reads the editor state and returns it as a tool result in the text format.
 * notes - additional lines to show at the top of the state.
@@ -592,7 +600,9 @@ detection for the whole editor)
 
 By default 'Unify All' runs before the state is read, so statuses are up to date. \
 'Unify All' may fill in missing justifications and clears the user's step selection. \
-Pass unifyFirst=false to read the editor exactly as it is, including the selected steps.`,
+Pass unifyFirst=false to read the editor exactly as it is, including the selected steps.
+
+${EDITOR_ERRORS_NOTE}`,
         inputSchema: {
             unifyFirst: z.boolean().default(true).describe(
                 "Run 'Unify All' before reading the state, so step statuses are up to date."
@@ -633,7 +643,9 @@ This is the same text which metamath-lamp shows in the "Show completed proof" di
 
 Only a provable step (P or G) with the status 'v' (proved) has a proof. \
 By default 'Unify All' runs first, so statuses are up to date. \
-'Unify All' may fill in missing justifications and clears the user's step selection.`,
+'Unify All' may fill in missing justifications and clears the user's step selection.
+
+${UNIFY_ALL_ERRORS_NOTE}`,
         inputSchema: {
             label: z.string().trim().min(1).describe('Label of the proved step.'),
             includeDescription: z.boolean().default(false).describe(
@@ -679,7 +691,7 @@ If neither is given, they are inserted before the goal step, or at the end if th
 A step can be derived only from steps above it, so the order matters.
 
 After adding, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
-(only relevant steps), so you can see the status of each new step.`,
+(only relevant steps), so you can see the status of each new step. ${EDITOR_ERRORS_NOTE}`,
         inputSchema: {
             beforeLabel: z.string().optional().describe('Label of an existing step to insert the new steps before.'),
             afterLabel: z.string().optional().describe('Label of an existing step to insert the new steps after.'),
@@ -761,7 +773,7 @@ Each step is identified by its label, which cannot be changed by this tool. \
 Only the attributes you pass are changed, all others stay as they are.
 
 After updating, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
-(only relevant steps), so you can see the effect of the changes.`,
+(only relevant steps), so you can see the effect of the changes. ${EDITOR_ERRORS_NOTE}`,
         inputSchema: {
             steps: z.array(z.object({
                 label: z.string().describe('Label of an existing step to update.'),
@@ -825,7 +837,7 @@ Justifications of other steps which reference deleted steps are not changed, \
 so such steps will show errors or become unproved.
 
 After deleting, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
-(only relevant steps).`,
+(only relevant steps). ${EDITOR_ERRORS_NOTE}`,
         inputSchema: {
             labels: z.array(z.string()).min(1).describe('Labels of the steps to delete.'),
             tabId: z.string().trim().min(1).describe('Id of the editor tab (see list_tabs).'),
@@ -899,7 +911,7 @@ Existing groups are discarded, so pass all groups which the editor must have. \
 Pass an empty list to remove all disjoints.
 
 After setting, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
-(only relevant steps). Errors in disjoints are shown in the Disjoints section.`,
+(only relevant steps). Errors in disjoints are shown in the Disjoints section. ${EDITOR_ERRORS_NOTE}`,
         inputSchema: {
             disj: z.array(
                 z.array(z.string().trim().regex(/^\S+$/, 'A variable must be a non-empty string without spaces.'))
@@ -943,7 +955,8 @@ Use it to prove an existing theorem without using the theorem itself and the the
 If the label doesn't exist, the location is not changed and an error is returned.
 
 After setting, 'Unify All' runs and the editor state is returned in the same format as get_editor_state \
-(only relevant steps), because justifications which use assertions outside of the new scope become invalid.`,
+(only relevant steps), because justifications which use assertions outside of the new scope become invalid. \
+${EDITOR_ERRORS_NOTE}`,
         inputSchema: {
             place: z.enum(['before', 'after', 'last']).describe('Where the scope of the editor ends.'),
             label: z.string().trim().min(1).optional().describe(
