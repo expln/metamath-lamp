@@ -39,7 +39,7 @@ module Os = {
 }
 
 module Url = {
-    // The global WHATWG URL class.
+    // The global URL class.
     type t
     // Both throw TypeError on an invalid URL.
     @new external make: string => t = "URL"
