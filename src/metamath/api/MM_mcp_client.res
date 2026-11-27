@@ -108,6 +108,32 @@ let exnToMsg = (exn:exn):string => {
     }
 }
 
+// API functions which the MCP server may call: exactly the ones mcp-bridge/src/server.js uses.
+// Other functions of MM_api.api are rejected, so that a malicious program listening on the port
+// cannot use more of the API than the MCP server needs.
+// When server.js starts using a new API function, add it here too.
+let allowedPaths = [
+    "tabs.list",
+    "tabs.createEditorTab",
+    "tabs.close",
+    "tabs.open",
+    "tabs.rename",
+    "editor.unifyAll",
+    "editor.getState",
+    "editor.getCompressedProof",
+    "editor.addSteps",
+    "editor.updateSteps",
+    "editor.deleteSteps",
+    "editor.setDescription",
+    "editor.setDisjoints",
+    "editor.setLocation",
+    "explorer.findAssertions",
+    "context.load",
+    "context.getLoadedContextInfo",
+]
+
+let isPathAllowed = (path:string):bool => allowedPaths->Array.includes(path)
+
 let isEditorPath = (path:string):bool => path->String.startsWith("editor.")
 
 let tabIdIsBlank = (tabId:Nullable.t<string>):bool => {
@@ -121,7 +147,9 @@ let handleCall = async (msg:callMsg):JSON.t => {
     // The MCP server always knows which editor a call is for.
     // Without this check, a missing tabId would silently fall back to the last opened editor
     // (that fallback is meant only for macros calling window.api directly).
-    if (isEditorPath(msg.path) && tabIdIsBlank(msg.tabId)) {
+    if (!isPathAllowed(msg.path)) {
+        errResp(`The API function '${msg.path}' is not allowed to be called by the MCP server.`)
+    } else if (isEditorPath(msg.path) && tabIdIsBlank(msg.tabId)) {
         errResp(`tabId is required for '${msg.path}'.`)
     } else {
         switch resolveApiFunc(MM_api.api, msg.path, msg.tabId)->Nullable.toOption {

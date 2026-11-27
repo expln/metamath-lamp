@@ -17,6 +17,12 @@ type status =
 let getStatus: unit => status
 
 /*
+* Returns true if the MCP server may call the API function with this path, e.g. "editor.getState".
+* Only the functions used by mcp-bridge/src/server.js are allowed.
+* */
+let isPathAllowed: string => bool
+
+/*
 * Returns the port of the current or the last connection.
 * */
 let getPort: unit => int
