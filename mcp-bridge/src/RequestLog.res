@@ -201,7 +201,15 @@ let messageReceived = (t:t, msg:JSON.t):unit => {
             t->writeEntry(text)
             t.lastWrittenRequest = Some(key)
         }
-        | _ => t->writeEntry(formatSingleMessage(~arrow=">>>", ~time, ~msg))
+        | (method, _) => {
+            // No response is sent to a cancelled request, so it must not stay pending.
+            if (method == Some("notifications/cancelled")) {
+                msg->getField("params")->Option.flatMap(getField(_, "requestId"))->Option.forEach(id => {
+                    t.pending->Map.delete(requestKey(id))->ignore
+                })
+            }
+            t->writeEntry(formatSingleMessage(~arrow=">>>", ~time, ~msg))
+        }
     }
 }
 

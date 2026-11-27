@@ -277,6 +277,32 @@ ${delim}
 <<< 2026-11-27 14:05:13.845 NO RESPONSE #5 tools/call list_tabs (the server exited after 1500 ms)`
         )
     })
+
+    it("forgets a request cancelled by the agent, because no response is sent to it", () => {
+        //given
+        let t = makeTestLog()
+        t.log->RequestLog.messageReceived(parse(
+            `{"jsonrpc":"2.0", "id":"r5", "method":"tools/call", "params":{"name":"list_tabs", "arguments":{}}}`
+        ))
+        t.log->RequestLog.messageReceived(parse(
+            `{"jsonrpc":"2.0", "method":"notifications/cancelled", "params":{"requestId":"r5", "reason":"aborted"}}`
+        ))
+
+        //when
+        t.log->RequestLog.writePending
+
+        //then
+        assertEq(
+            t.getText(),
+            `
+${delim}
+>>> 2026-11-27 14:05:12.345 REQUEST #r5 tools/call list_tabs
+{}
+${delim}
+>>> 2026-11-27 14:05:12.345 NOTIFICATION notifications/cancelled
+{"requestId":"r5","reason":"aborted"}`
+        )
+    })
 })
 
 describe("stderrWritten", () => {
