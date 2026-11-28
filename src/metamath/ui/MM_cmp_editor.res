@@ -43,20 +43,14 @@ let editorSaveStateToLocStor = (state:editorState, ~tabId:string):unit => {
     //     ->Array.join(", ")
     // Console.log(allIds)
     // Console.log("--------------------------------------------------")
-    locStorWriteString(getEditorLocStorKey(tabId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+    locStorWriteStringDebounced(
+        getEditorLocStorKey(tabId),
+        () => Expln_utils_common.stringify(state->editorStateToEditorStateLocStor)
+    )
 }
 
 let histSaveToLocStor = (hist:editorHistory, ~tabId:string):unit => {
-    let histStr = hist->editorHistToString
-    let locStorKey = getEditorHistLocStorKey(tabId)
-    let histChanged = switch locStorReadString(locStorKey) {
-        | None => true
-        | Some(oldHistStr) => oldHistStr != histStr
-    }
-    if (histChanged) {
-        locStorWriteString( locStorKey, histStr )
-        // hist->editorHistoryPrintIdInfo
-    }
+    locStorWriteStringDebounced(getEditorHistLocStorKey(tabId), () => hist->editorHistToString)
 }
 
 let histReadFromLocStor = (~tabId:string):option<editorHistory> => {

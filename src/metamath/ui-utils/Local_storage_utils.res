@@ -7,11 +7,74 @@ let strToBool = (str:string):option<bool> => {
     }
 }
 
+/*
+Debounced writes.
+
+A value passed to locStorWriteStringDebounced is not written to the local storage immediately.
+All pending values are written debounceDelayMs after the first of them was submitted,
+or earlier when the page gets hidden or closed.
+Values are computed lazily at the moment of writing,
+so frequent updates of the same key don't serialize the same data many times.
+A value is not written if the local storage already contains the same value under the same key.
+
+The read, delete and enumeration functions of this module take pending writes into account.
+*/
+
+let debounceDelayMs = 1000
+let pendingWrites:dict<unit=>string> = Dict.make()
+let flushTimer:ref<option<timeoutId>> = ref(None)
+let flushOnPageHideIsInstalled = ref(false)
+
+@val @scope("window") external addWindowEventListener: (string, unit=>unit) => unit = "addEventListener"
+@val @scope("document") external addDocumentEventListener: (string, unit=>unit) => unit = "addEventListener"
+@val @scope("document") external documentVisibilityState: string = "visibilityState"
+
+let flushPendingWrite = (key:string):unit => {
+    switch pendingWrites->Dict.get(key) {
+        | None => ()
+        | Some(getValue) => {
+            pendingWrites->Dict.delete(key)
+            let newValue = getValue()
+            if (Dom_storage2.localStorage->Dom_storage2.getItem(key) != Some(newValue)) {
+                Dom_storage2.localStorage->Dom_storage2.setItem(key, newValue)
+            }
+        }
+    }
+}
+
+let locStorFlushPendingWrites = ():unit => {
+    flushTimer.contents->Option.forEach(clearTimeout)
+    flushTimer := None
+    pendingWrites->Dict.keysToArray->Array.forEach(flushPendingWrite)
+}
+
+let installFlushOnPageHide = ():unit => {
+    if (!flushOnPageHideIsInstalled.contents) {
+        flushOnPageHideIsInstalled := true
+        addWindowEventListener("pagehide", locStorFlushPendingWrites)
+        addDocumentEventListener("visibilitychange", () => {
+            if (documentVisibilityState == "hidden") {
+                locStorFlushPendingWrites()
+            }
+        })
+    }
+}
+
+let locStorWriteStringDebounced = (key:string, getValue:unit=>string):unit => {
+    installFlushOnPageHide()
+    pendingWrites->Dict.set(key, getValue)
+    if (flushTimer.contents->Option.isNone) {
+        flushTimer := Some(setTimeout(locStorFlushPendingWrites, debounceDelayMs))
+    }
+}
+
 let locStorWriteString = (key:string, str:string):unit => {
+    pendingWrites->Dict.delete(key)
     Dom_storage2.localStorage->Dom_storage2.setItem(key, str)
 }
 
 let locStorReadString = (key:string):option<string> => {
+    flushPendingWrite(key)
     Dom_storage2.localStorage->Dom_storage2.getItem(key)
 }
 
@@ -40,6 +103,8 @@ let locStorReadFloat = (key:string):option<float> => {
 }
 
 let locStorLength = ():int => {
+    // Pending writes are flushed, so that enumeration of keys sees all of them.
+    locStorFlushPendingWrites()
     Dom_storage2.localStorage->Dom_storage2.length
 }
 
@@ -48,6 +113,7 @@ let locStorKey = (idx:int):option<string> => {
 }
 
 let locStorDeleteKey = (key:string):unit => {
+    pendingWrites->Dict.delete(key)
     Dom_storage2.localStorage->Dom_storage2.removeItem(key)
 }
 

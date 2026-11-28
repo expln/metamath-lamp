@@ -1,3 +1,4 @@
+let locStorWriteStringDebounced: (string, unit=>string) => unit
 let locStorWriteString: (string, string) => unit
 let locStorReadString: string => option<string>
 let locStorWriteBool: (string, bool) => unit
