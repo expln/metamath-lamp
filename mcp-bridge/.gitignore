@@ -1,0 +1,4 @@
+node_modules/
+/lib/
+/src/**/*.res.mjs
+/test/**/*.res.mjs

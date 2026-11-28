@@ -26,6 +26,7 @@ type singleEditorApi = {
     "markStepsChecked": api,
     "setDisjoints": api,
     "setDescription": api,
+    "setLocation": api,
     "resetEditorContent": api,
     "getTokenType": api,
     "substitute": api,
@@ -34,10 +35,10 @@ type singleEditorApi = {
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
     "addAsrtByLabel": api,
-    "findAssertions": api,
+    "getCompressedProof": api,
 }
 
-type editorApi = option<int> => singleEditorApi
+type editorApi = option<string> => singleEditorApi
 
 type macroApi = {
     "registerMacroModule": api,
@@ -52,19 +53,46 @@ type settingsApi = {
     "getMarkFirstProvableStepAsGoal": api,
 }
 
-let api: {
-    "setLogApiCallsToConsole": api,
+type uiApi = {
     "showInfoMsg": api,
     "showErrMsg": api,
     "multilineTextInput": api,
+}
+
+type explorerApi = {
+    "findAssertions": api,
+}
+
+type contextApi = {
+    "load": api,
+    "getLoadedContextInfo": api,
+}
+
+type tabsApi = {
+    "list": api,
+    "createEditorTab": api,
+    "close": api,
+    "open": api,
+    "rename": api,
+}
+
+let api: {
+    "setLogApiCallsToConsole": api,
+    "ui" : uiApi,
     "editor" : editorApi,
     "macro" : macroApi,
     "settings" : settingsApi,
+    "explorer" : explorerApi,
+    "context" : contextApi,
+    "tabs" : tabsApi,
 }
 
-let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ~multilineTextInput:api, ) => unit
+let setUiApi: uiApi => unit
 let setEditorApi: editorApi => unit
 let setMacroApi: macroApi => unit
 let setSettingsApi: settingsApi => unit
+let setExplorerApi: explorerApi => unit
+let setContextApi: contextApi => unit
+let setTabsApi: tabsApi => unit
 
 let makeEmptySingleEditorApi: string => singleEditorApi

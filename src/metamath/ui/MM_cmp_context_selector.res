@@ -908,12 +908,23 @@ let make = (
         }
     }
 
-    let applyChanges = ( ~mmScope:mmScope, ~settings:settings, ):promise<result<unit,string>> => {
+    /*
+    * Loads the context from mmScope and makes it the current context.
+    * Returns the summary of the loaded context and the number of assertions in it.
+    * */
+    let applyChanges = (
+        ~mmScope:mmScope, ~settings:settings,
+    ):promise<result<MM_api_context.loadedCtxInfo,string>> => {
+        let makeLoadedCtxInfo = (ctx:mmContext):MM_api_context.loadedCtxInfo => {
+            summary: getSummary(mmScope),
+            numOfAsrts: ctx->getNumOfFrames,
+        }
         if (scopeIsEmpty(mmScope.singleScopes)) {
             Promise.make((rslv,_) => {
+                let ctx = createContext(())
                 setState(_ => mmScope)
-                actNewCtxIsReady([],createContext(()))
-                rslv(Ok(()))
+                actNewCtxIsReady([],ctx)
+                rslv(Ok(makeLoadedCtxInfo(ctx)))
             })
         } else {
             loadMmContext(
@@ -965,7 +976,7 @@ let make = (
                         })
                         setState(_ => mmScope)
                         actNewCtxIsReady(mmCtxSrcDtos, ctx)
-                        Ok(())
+                        Ok(makeLoadedCtxInfo(ctx))
                     }
                 }
             })
@@ -1079,7 +1090,9 @@ let make = (
                 switch mmScope {
                     | Error(msg) => Promise.resolve(Error(msg))
                     | Ok(None) => Promise.resolve(Ok())
-                    | Ok(Some(mmScope)) => applyChanges( ~mmScope=mmScope, ~settings )
+                    | Ok(Some(mmScope)) => {
+                        applyChanges( ~mmScope=mmScope, ~settings )->Promise.thenResolve(Result.map(_, _ => ()))
+                    }
                 }
             })
             ->Promise.then(reloadRes => {
@@ -1102,6 +1115,61 @@ let make = (
             actReloadCtxPriv( ~settings, ~force, ~srcs, )
         }
     )
+
+    /*
+    * Downloads and parses the files from the given URLs (including the files they include via $[ ... $]),
+    * then replaces the loaded context with them. This is the same as selecting Web sources in the UI
+    * and clicking "Apply changes". Untrusted URLs are confirmed by the user, as in the UI.
+    * Errors are returned rather than shown, so that the caller (an API client) can handle them.
+    * */
+    let actLoadCtxFromUrls = async (
+        srcs:array<MM_api_context.ctxSrcToLoad>
+    ):result<MM_api_context.loadedCtxInfo,string> => {
+        try {
+            let localFiles = Belt_HashMapString.make(~hintSize=0)
+            let loadedScopes: array<mmSingleScope> = await loadAndParseFiles(srcs->Array.map(src => src.url), localFiles)
+            let singleScopes = []
+            let i = ref(0)
+            while (i.contents < srcs->Array.length) {
+                let src = srcs->Array.getUnsafe(i.contents)
+                let alias = settings.webSrcSettings
+                    ->Array.find(ws => ws.url == src.url && ws.alias->String.trim != "")
+                    ->Option.map(ws => ws.alias)
+                    ->Option.getOr(src.url)
+                let ss = {
+                    ...loadedScopes->Array.getUnsafe(i.contents),
+                    id: i.contents->Int.toString,
+                    fileSrc: Some(Web({alias, url:src.url})),
+                    readInstr: src.readInstr,
+                    label: src.label,
+                }
+                let ss = switch await replaceIncludes(ss, localFiles) {
+                    | Error(msg) => Common.panic(msg)
+                    | Ok(ss) => ss
+                }
+                switch ss.label {
+                    | Some(label) if !(ss.allLabels->Array.includes(label)) => {
+                        Common.panic(`The assertion '${label}' is not found in '${src.url}'.`)
+                    }
+                    | _ => ()
+                }
+                singleScopes->Array.push(ss)
+                i := i.contents + 1
+            }
+            let mmScope = {
+                nextId: singleScopes->Array.length,
+                expanded: false,
+                singleScopes,
+                loadedContextSummary: "",
+            }
+            await applyChanges(~mmScope, ~settings)
+        } catch {
+            | Common.MmException({msg}) => Error(msg)
+            | exn => Error(Common.jsErrorToExnData(exn).msg)
+        }
+    }
+
+    MM_api_context.updateContextApi(~loadContext=actLoadCtxFromUrls)
 
     doToggle.current = Nullable.make(actToggleAccordion)
 

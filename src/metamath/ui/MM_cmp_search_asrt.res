@@ -106,20 +106,18 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
-let makeActTerminate = (modalRef:modalRef, modalId:modalId):(unit=>unit) => {
-    () => {
-        MM_wrk_client.terminateWorker()
-        closeModal(modalRef, modalId)
-    }
-}
+let searchWasCancelledMsg = "Search was cancelled"
 
 let searchAssertions = (
     ~modalRef:modalRef,
     ~preCtxData:preCtxData,
     ~typ:option<int>, 
     ~label:string,
+    ~strictLabel:string="",
     ~patternStr:string,
     ~patternVersion:int,
+    ~isDisc=?,
+    ~isDepr=?,
 ):promise<result<array<(string,option<MM_wrk_pattern_search.matchedIndices>)>,string>> => {
     switch MM_wrk_pattern_search.parsePattern(~patternStr, ~patternVersion, ~ctx=preCtxData.ctxV.val.min) {
         | Error(msg) => {
@@ -127,33 +125,38 @@ let searchAssertions = (
         }
         | Ok(_) => {
             openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->Promise.then(modalId => {
-                updateModal(
-                    modalRef, modalId, () => rndProgress(
-                        ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalRef, modalId)
+                Promise.make((resolve,_) => {
+                    let actTerminate = () => {
+                        MM_wrk_client.terminateWorker()
+                        closeModal(modalRef, modalId)
+                        resolve(Error(searchWasCancelledMsg))
+                    }
+                    updateModal(
+                        modalRef, modalId, () => rndProgress( ~text="Searching", ~pct=0., ~onTerminate=actTerminate )
                     )
-                )
-                searchAssertions(
-                    ~settingsVer=preCtxData.settingsV.ver,
-                    ~settings=preCtxData.settingsV.val,
-                    ~preCtxVer=preCtxData.ctxV.ver,
-                    ~preCtx=preCtxData.ctxV.val.min,
-                    ~isAxiom=None,
-                    ~typ,
-                    ~label,
-                    ~pattern=patternStr,
-                    ~patternVersion,
-                    ~isDisc=None,
-                    ~isDepr=None,
-                    ~isTranDepr=None,
-                    ~onProgress = pct => updateModal(
-                        modalRef, modalId, () => rndProgress(
-                            ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalRef, modalId)
+                    searchAssertions(
+                        ~settingsVer=preCtxData.settingsV.ver,
+                        ~settings=preCtxData.settingsV.val,
+                        ~preCtxVer=preCtxData.ctxV.ver,
+                        ~preCtx=preCtxData.ctxV.val.min,
+                        ~isAxiom=None,
+                        ~typ,
+                        ~label,
+                        ~strictLabel,
+                        ~pattern=patternStr,
+                        ~patternVersion,
+                        ~isDisc,
+                        ~isDepr,
+                        ~isTranDepr=None,
+                        ~onProgress = pct => updateModal(
+                            modalRef, modalId, () => rndProgress( ~text="Searching", ~pct, ~onTerminate=actTerminate )
                         )
                     )
-                )
-                ->Promise.thenResolve(foundLabels => {
-                    closeModal(modalRef, modalId)
-                    Ok(foundLabels)
+                    ->Promise.thenResolve(foundLabels => {
+                        closeModal(modalRef, modalId)
+                        resolve(Ok(foundLabels))
+                    })
+                    ->ignore
                 })
             })
         }
@@ -205,6 +208,7 @@ let make = (
             ~patternVersion,
         )->Promise.then(foundLabels => {
             switch foundLabels {
+                | Error(msg) if msg == searchWasCancelledMsg => ()
                 | Error(msg) => {
                     setState(setPatternErr(_, Some(msg)))
                     actResultsRetrieved([])

@@ -736,6 +736,15 @@ let getAllFramesArr = (ctx:mmContext):array<frame> => {
     frames
 }
 
+let getNumOfFrames = (ctx:mmContext):int => {
+    let cnt = ref(0)
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        cnt := cnt.contents + ctx.frames->Belt_HashMapString.size
+        None
+    })->ignore
+    cnt.contents
+}
+
 let getAllFrames = (ctx:mmContext):Belt_MapString.t<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {

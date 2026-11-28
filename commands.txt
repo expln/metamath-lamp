@@ -16,6 +16,19 @@ https://ss64.com/nt/copy.html
 /Y   Suppress confirmation prompt, when overwriting files.
 
 ------------------------------------------------------------------------------------------------------------------------
+cd mcp-bridge
+npm run rescript-clean
+npm run compile
+npm run test
+
+- npm run rescript-clean runs rescript clean. It deletes the generated src/*.res.mjs files and the build cache in lib/.
+- npm run compile runs rescript. It compiles src/*.res into src/*.res.mjs.
+
+! claude mcp remove mm-lamp -s local
+! claude mcp add mm-lamp -- node ~/IdeaProjects/metamath-lamp/mcp-bridge/src/server.js --files-dirs ~/metamath
+
+claude --mcp-config "{\"mcpServers\":{\"mm-lamp\":{\"command\":\"node\",\"args\":[\"$HOME/IdeaProjects/metamath-lamp/mcp-bridge/src/server.js\",\"--files-dirs\",\"$HOME/metamath\",\"--log-file\",\"$HOME/metamath/mcp.log\"]}}}"
+------------------------------------------------------------------------------------------------------------------------
 Migrate to Array.getUnsafe:
 \[([^\[\]]+)\]
 ->Array.getUnsafe($1)

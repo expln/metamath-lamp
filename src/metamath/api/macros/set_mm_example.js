@@ -15,11 +15,11 @@ function getResponse(apiResponse) {
 }
 
 async function showInfoMsg(msg) {
-    getResponse(await api.showInfoMsg({msg:String(msg)}))
+    getResponse(await api.ui.showInfoMsg({msg:String(msg)}))
 }
 
 async function showErrMsg(msg) {
-    getResponse(await api.showErrMsg({msg:String(msg)}))
+    getResponse(await api.ui.showErrMsg({msg:String(msg)}))
 }
 
 async function getEditorState() {

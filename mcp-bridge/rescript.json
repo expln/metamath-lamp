@@ -1,0 +1,23 @@
+{
+  "name": "metamath-lamp-mcp-bridge",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    },
+    {
+      "dir": "test",
+      "subdirs": true,
+      "type": "dev"
+    }
+  ],
+  "package-specs": {
+    "module": "esmodule",
+    "in-source": true
+  },
+  "suffix": ".res.mjs",
+  "warnings": {
+    "number": "-45",
+    "error": "+8"
+  }
+}

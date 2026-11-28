@@ -84,6 +84,7 @@ type singleEditorApi = {
     "markStepsChecked": api,
     "setDisjoints": api,
     "setDescription": api,
+    "setLocation": api,
     "resetEditorContent": api,
     "getTokenType": api,
     "substitute": api,
@@ -92,10 +93,10 @@ type singleEditorApi = {
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
     "addAsrtByLabel": api,
-    "findAssertions": api,
+    "getCompressedProof": api,
 }
 
-type editorApi = option<int> => singleEditorApi
+type editorApi = option<string> => singleEditorApi
 
 let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
     {
@@ -109,6 +110,7 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "markStepsChecked": _ => Promise.resolve(errResp(msg)),
         "setDisjoints": _ => Promise.resolve(errResp(msg)),
         "setDescription": _ => Promise.resolve(errResp(msg)),
+        "setLocation": _ => Promise.resolve(errResp(msg)),
         "resetEditorContent": _ => Promise.resolve(errResp(msg)),
         "getTokenType": _ => Promise.resolve(errResp(msg)),
         "substitute": _ => Promise.resolve(errResp(msg)),
@@ -117,7 +119,7 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "buildSyntaxTrees": _ => Promise.resolve(errResp(msg)),
         "findAsrtsByUnif": _ => Promise.resolve(errResp(msg)),
         "addAsrtByLabel": _ => Promise.resolve(errResp(msg)),
-        "findAssertions": _ => Promise.resolve(errResp(msg)),
+        "getCompressedProof": _ => Promise.resolve(errResp(msg)),
     }
 }
 
@@ -134,13 +136,46 @@ type settingsApi = {
     "getMarkFirstProvableStepAsGoal": api,
 }
 
+type uiApi = {
+    "showInfoMsg": api,
+    "showErrMsg": api,
+    "multilineTextInput": api,
+}
+
+type explorerApi = {
+    "findAssertions": api,
+}
+
+type contextApi = {
+    "load": api,
+    "getLoadedContextInfo": api,
+}
+
+type tabsApi = {
+    "list": api,
+    "createEditorTab": api,
+    "close": api,
+    "open": api,
+    "rename": api,
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
-let showInfoMsgRef:ref<option<api>> = ref(None)
-let showErrMsgRef:ref<option<api>> = ref(None)
-let multilineTextInputRef:ref<option<api>> = ref(None)
+let uiRef:ref<option<uiApi>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
 let settingsRef:ref<option<settingsApi>> = ref(None)
+let explorerRef:ref<option<explorerApi>> = ref(None)
+let contextRef:ref<option<contextApi>> = ref(None)
+let tabsRef:ref<option<tabsApi>> = ref(None)
+
+let makeSingleUiApi = (methodGetter:uiApi=>api):api => {
+    apiInput => {
+        switch uiRef.contents {
+            | None => Promise.resolve(errResp("The UI API function is not defined."))
+            | Some(uiApi) => methodGetter(uiApi)(apiInput)
+        }
+    }
+}
 
 let makeSingleMacroApi = (methodGetter:macroApi=>api):api => {
     apiInput => {
@@ -157,6 +192,41 @@ let makeSingleSettingsApi = (methodGetter:settingsApi=>api):api => {
             | None => Promise.resolve(errResp("The settings API function is not defined."))
             | Some(settingsApi) => methodGetter(settingsApi)(apiInput)
         }
+    }
+}
+
+let makeSingleExplorerApi = (methodGetter:explorerApi=>api):api => {
+    apiInput => {
+        switch explorerRef.contents {
+            | None => Promise.resolve(errResp("The explorer API function is not defined."))
+            | Some(explorerApi) => methodGetter(explorerApi)(apiInput)
+        }
+    }
+}
+
+let makeSingleContextApi = (methodGetter:contextApi=>api):api => {
+    apiInput => {
+        switch contextRef.contents {
+            | None => Promise.resolve(errResp("The context API function is not defined."))
+            | Some(contextApi) => methodGetter(contextApi)(apiInput)
+        }
+    }
+}
+
+let makeSingleTabsApi = (methodGetter:tabsApi=>api):api => {
+    apiInput => {
+        switch tabsRef.contents {
+            | None => Promise.resolve(errResp("The tabs API function is not defined."))
+            | Some(tabsApi) => methodGetter(tabsApi)(apiInput)
+        }
+    }
+}
+
+let makeUiApi = ():uiApi => {
+    {
+        "showInfoMsg": makeSingleUiApi(a => a["showInfoMsg"]),
+        "showErrMsg": makeSingleUiApi(a => a["showErrMsg"]),
+        "multilineTextInput": makeSingleUiApi(a => a["multilineTextInput"]),
     }
 }
 
@@ -177,19 +247,51 @@ let makeSettingsApi = ():settingsApi => {
     }
 }
 
+let makeExplorerApi = ():explorerApi => {
+    {
+        "findAssertions": makeSingleExplorerApi(a => a["findAssertions"]),
+    }
+}
+
+let makeContextApi = ():contextApi => {
+    {
+        "load": makeSingleContextApi(a => a["load"]),
+        "getLoadedContextInfo": makeSingleContextApi(a => a["getLoadedContextInfo"]),
+    }
+}
+
+let makeTabsApi = ():tabsApi => {
+    {
+        "list": makeSingleTabsApi(a => a["list"]),
+        "createEditorTab": makeSingleTabsApi(a => a["createEditorTab"]),
+        "close": makeSingleTabsApi(a => a["close"]),
+        "open": makeSingleTabsApi(a => a["open"]),
+        "rename": makeSingleTabsApi(a => a["rename"]),
+    }
+}
+
+// Editor ids used to be integers. Editors created before that keep their old ids as strings ("0", "1", ...).
+// This lets macros which pass an old integer id keep working.
+// The id comes from JS code, so it may be of any type: anything other than undefined or null is converted to a string,
+// so the result is always either None or Some(string).
+let normalizeTabId: option<string> => option<string> = %raw(`
+    id => id === undefined || id === null ? undefined : String(id)
+`)
+
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
-    "showInfoMsg": makeApiFuncFromRef(showInfoMsgRef),
-    "showErrMsg": makeApiFuncFromRef(showErrMsgRef),
-    "multilineTextInput": makeApiFuncFromRef(multilineTextInputRef),
-    "editor": (editorId:option<int>) => {
+    "ui": makeUiApi(),
+    "editor": (tabId:option<string>) => {
         switch editorRef.contents {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")
-            | Some(func) => func(editorId)
+            | Some(func) => func(normalizeTabId(tabId))
         }
     },
     "macro": makeMacroApi(),
     "settings": makeSettingsApi(),
+    "explorer": makeExplorerApi(),
+    "context": makeContextApi(),
+    "tabs": makeTabsApi(),
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
@@ -204,14 +306,8 @@ let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => 
 
 setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
 
-let setUiApi = (
-    ~showInfoMsg:api,
-    ~showErrMsg:api,
-    ~multilineTextInput:api,
-):unit => {
-    showInfoMsgRef := Some(showInfoMsg)
-    showErrMsgRef := Some(showErrMsg)
-    multilineTextInputRef := Some(multilineTextInput)
+let setUiApi = ( uiApi:uiApi ):unit => {
+    uiRef:= Some(uiApi)
 }
 
 let setEditorApi = ( editorApi:editorApi ):unit => {
@@ -224,4 +320,16 @@ let setMacroApi = ( macroApi:macroApi ):unit => {
 
 let setSettingsApi = ( settingsApi:settingsApi ):unit => {
     settingsRef:= Some(settingsApi)
+}
+
+let setExplorerApi = ( explorerApi:explorerApi ):unit => {
+    explorerRef:= Some(explorerApi)
+}
+
+let setContextApi = ( contextApi:contextApi ):unit => {
+    contextRef:= Some(contextApi)
+}
+
+let setTabsApi = ( tabsApi:tabsApi ):unit => {
+    tabsRef:= Some(tabsApi)
 }

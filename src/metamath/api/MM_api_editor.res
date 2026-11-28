@@ -125,27 +125,38 @@ let getAllSteps = (~state:editorState):JSON.t => {
     state.stmts->Array.map(stmtToJson(_, ctxConstIntToSymExn))->JSON.Encode.array
 }
 
-let stateCached:Belt_HashMapInt.t<editorState> = Belt_HashMapInt.make(~hintSize=4)
-let stateJsonCached:Belt_HashMapInt.t<JSON.t> = Belt_HashMapInt.make(~hintSize=4)
-let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,string>> => {
-    let cachedResult = switch stateCached->Belt_HashMapInt.get(editorId) {
+let stateCached:Belt_HashMapString.t<editorState> = Belt_HashMapString.make(~hintSize=4)
+let stateJsonCached:Belt_HashMapString.t<Dict.t<JSON.t>> = Belt_HashMapString.make(~hintSize=4)
+let locationToScopeDescr = (loc:location):string => {
+    switch loc {
+        | Before(label) => `assertions before '${label}'`
+        | After(label) => `assertions up to and including '${label}'`
+        | Last => "all assertions"
+    }
+}
+
+// The result is cached, so it must not be mutated.
+let getEditorStateDict = (~tabId:string, ~state:editorState):Dict.t<JSON.t> => {
+    let cachedResult = switch stateCached->Belt_HashMapString.get(tabId) {
         | None => None
         | Some(stateCached) => {
             if (stateCached === state) {
-                stateJsonCached->Belt_HashMapInt.get(editorId)
+                stateJsonCached->Belt_HashMapString.get(tabId)
             } else {
                 None
             }
         }
     }
     switch cachedResult {
-        | Some(cachedResult) => Promise.resolve(Ok(cachedResult))
+        | Some(cachedResult) => cachedResult
         | None => {
             let stmtIdToLabel = Belt_HashMapString.fromArray(
                 state.stmts->Array.map(stmt => (stmt.id, stmt.label))
             )
             let stateJson = Dict.fromArray([
-                ("editorId", editorId->JSON.Encode.int),
+                ("tabId", tabId->JSON.Encode.string),
+                ("scope", state.loc->locationToScopeDescr->JSON.Encode.string),
+                ("scopeErr", state.locErr->Option.map(JSON.Encode.string)->Option.getOr(JSON.Encode.null)),
                 ("descr", state.descr->JSON.Encode.string),
                 ("varsText", state.varsText->JSON.Encode.string),
                 ("varsErr", state.varsErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
@@ -177,53 +188,43 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
                         ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->JSON.Encode.string)
                         ->JSON.Encode.array
                 ),
-            ])->JSON.Encode.object
-            stateCached->Belt_HashMapInt.set(editorId, state)
-            stateJsonCached->Belt_HashMapInt.set(editorId, stateJson)
-            Promise.resolve(Ok(stateJson))
+            ])
+            stateCached->Belt_HashMapString.set(tabId, state)
+            stateJsonCached->Belt_HashMapString.set(tabId, stateJson)
+            stateJson
         }
     }
 }
 
-let findAssertions = (
-    ~params:apiInput, 
-    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
-    ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
-):promise<result<JSON.t,string>> => {
-    open Expln_utils_jsonParse
-    let parseResult:result<{"pattern":string},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
-        {
-            "pattern": d->str("pattern"),
+/*
+* Returns the state of an editor as a JSON object.
+* params: optional {includeDescription?:bool}.
+* The description is included only when includeDescription is true (false by default),
+* because it may be long, and usually it is not needed.
+* */
+let getEditorState = (~tabId:string, ~state:editorState, ~params:apiInput):promise<result<JSON.t,string>> => {
+    // Params are optional: macros call getState() without arguments.
+    let includeDescription:result<bool,string> = switch params->apiInputToNullableObj->Nullable.toOption {
+        | None => Ok(false)
+        | Some(_) => {
+            open Expln_utils_jsonParse
+            fromJson(params->apiInputToJson, asObj(_, d=>{
+                d->bool("includeDescription", ~default=()=>false)
+            }))
         }
-    }))
-    switch parseResult {
-        | Error(msg) => Promise.resolve(Error(msg))
-        | Ok(parsedParams) => {
-            let preCtx = preCtxData.ctxV.val.min
-            let typeColors = Belt_HashMapString.make(~hintSize=0)
-            searchAssertions(parsedParams["pattern"])->Promise.thenResolve(frms => frms->Result.map(frms =>
-                frms->Array.map(frm => {
-                    let frmData = MM_cmp_pe_frame_summary_state.makeInitialState(
-                        ~preCtx,
-                        ~frame=frm,
-                        ~typeColors,
-                        ~typeOrderInDisj=preCtxData.typeOrderInDisj
-                    )
-                    let disj = frmData.disj->Option.getOr([])->Array.map(disjGrp => 
-                        disjGrp->Array.map(((var,_)) => var->JSON.Encode.string)->JSON.Encode.array
-                    )->JSON.Encode.array
-                    let hyps = frmData.eHyps->Array.map(hyp => 
-                        ctxIntsToStrExn(preCtx, hyp)->JSON.Encode.string
-                    )->JSON.Encode.array
-                    Dict.fromArray([
-                        ("label", frm.label->JSON.Encode.string),
-                        ("isAxiom", frm.isAxiom->JSON.Encode.bool),
-                        ("disj", disj),
-                        ("hyps", hyps),
-                        ("asrt", ctxIntsToStrExn(preCtx, frmData.asrt)->JSON.Encode.string),
-                    ])->JSON.Encode.object
-                })->JSON.Encode.array
-            ))
+    }
+    switch includeDescription {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(includeDescription) => {
+            let stateDict = getEditorStateDict(~tabId, ~state)
+            let stateDict = if (includeDescription) {
+                stateDict
+            } else {
+                let stateDict = stateDict->Dict.copy
+                stateDict->Dict.delete("descr")
+                stateDict
+            }
+            Promise.resolve(Ok(stateDict->JSON.Encode.object))
         }
     }
 }
@@ -612,14 +613,74 @@ let proveBottomUp = (
 }
 
 let unifyAll = (
+    ~params:apiInput,
     ~canStartUnifyAll:bool,
-    ~startUnifyAll:unit=>promise<unit>,
+    ~startUnifyAll:(~showProofDialog:bool)=>promise<unit>,
 ):promise<result<JSON.t,string>> => {
-    if (!canStartUnifyAll) {
-        Promise.resolve(Ok(JSON.Encode.bool(false)))
-    } else {
-        startUnifyAll()->Promise.thenResolve(_ => Ok(JSON.Encode.bool(true)))
+    // Params are optional: macros call unifyAll() without arguments.
+    let showProofDialog:result<bool,string> = switch params->apiInputToNullableObj->Nullable.toOption {
+        | None => Ok(true)
+        | Some(_) => {
+            open Expln_utils_jsonParse
+            fromJson(params->apiInputToJson, asObj(_, d=>{
+                d->bool("showProofDialog", ~default=()=>true)
+            }))
+        }
     }
+    switch showProofDialog {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(showProofDialog) => {
+            if (!canStartUnifyAll) {
+                Promise.resolve(Ok(JSON.Encode.bool(false)))
+            } else {
+                startUnifyAll(~showProofDialog)->Promise.thenResolve(_ => Ok(JSON.Encode.bool(true)))
+            }
+        }
+    }
+}
+
+type getCompressedProofInputParams = {
+    label: string,
+    includeDescription: bool,
+}
+
+/*
+* Returns the compressed proof of a proved step.
+* This is the same text which is shown in the "Show completed proof" dialog
+* when "proof table" and "all hypotheses" are not selected.
+* */
+let getCompressedProof = (~params:apiInput, ~state:editorState):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<getCompressedProofInputParams,string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            label: d->str("label"),
+            includeDescription: d->bool("includeDescription", ~default=()=>false),
+        }
+    }))
+    Promise.resolve(
+        switch parseResult {
+            | Error(msg) => Error(`Could not parse input parameters: ${msg}`)
+            | Ok({label, includeDescription}) => {
+                switch state->editorGetStmtByLabel(label) {
+                    | None => Error(`The step '${label}' doesn't exist.`)
+                    | Some(stmt) if stmt.typ != P => Error(`The step '${label}' is a hypothesis.`)
+                    | Some(stmt) if stmt.proofStatus != Some(Ready) => Error(`The step '${label}' is not proved.`)
+                    | Some(stmt) => {
+                        let state = includeDescription ? state : {...state, descr:""}
+                        let proof = Raw_js_utils.invokeExnFunc(
+                            `Could not generate a proof for the step '${label}'`,
+                            () => generateCompressedProof(state, stmt.id, ~useAllLocalEHyps=false)
+                        )
+                        switch proof {
+                            | Error(msg) => Error(msg)
+                            | Ok(None) => Error(`Could not generate a proof for the step '${label}'.`)
+                            | Ok(Some((proofText,_,_))) => Ok(proofText->JSON.Encode.string)
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
 
 let mergeDuplicatedSteps = (
@@ -996,6 +1057,54 @@ let setDisjoints = (
     }
 }
 
+type setLocationInputParams = {
+    place: string,
+    label: option<string>,
+}
+
+/*
+* Sets the location of the editor, i.e. which assertions of the loaded context can be used in the editor.
+* params: {place:"before"|"after"|"last", label?:string}.
+* "before" - assertions declared before the assertion with the given label.
+* "after" - assertions declared before and including the assertion with the given label.
+* "last" - all assertions; label must not be passed.
+* The location is not changed if the label doesn't exist.
+* */
+let setLocation = (
+    ~apiInput:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<setLocationInputParams,string> = fromJson(apiInput->apiInputToJson, asObj(_, d=>{
+        {
+            place: d->str("place"),
+            label: d->strOpt("label")->Option.map(String.trim),
+        }
+    }))
+    let loc:result<location,string> = switch parseResult {
+        | Error(msg) => Error(`Could not parse input parameters: ${msg}`)
+        | Ok({place:"last", label:None}) => Ok(Last)
+        | Ok({place:"last", label:Some(_)}) => Error(`'label' must not be passed when 'place' is 'last'.`)
+        | Ok({place:"before" | "after", label:None | Some("")}) => {
+            Error(`'label' must be a non-empty string when 'place' is 'before' or 'after'.`)
+        }
+        | Ok({place:"before", label:Some(label)}) => Ok(Before(label))
+        | Ok({place:"after", label:Some(label)}) => Ok(After(label))
+        | Ok({place}) => Error(`'place' must be one of: before, after, last; but got '${place}'.`)
+    }
+    switch loc {
+        | Error(msg) => Promise.resolve(Error(msg))
+        | Ok(loc) => {
+            setState(st => {
+                switch getMaxFrmOrd(st.preCtxData, loc) {
+                    | (_, Some(locErr)) => Error(locErr)
+                    | (_, None) => Ok((st->completeLocEditMode(loc), JSON.Encode.null))
+                }
+            })
+        }
+    }
+}
+
 type setDescriptionInputParams = {
     descr: string,
 }
@@ -1283,7 +1392,7 @@ let apiFindAsrtsByUnif = (
 }
 
 type editorData = {
-    editorId:int,
+    tabId:string,
     preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     state:editorState,
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -1291,15 +1400,14 @@ type editorData = {
     canStartProvingBottomUp:bool,
     startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     canStartUnifyAll:bool,
-    startUnifyAll:unit=>promise<unit>,
+    startUnifyAll:(~showProofDialog:bool)=>promise<unit>,
     buildSyntaxTrees:(array<string>,array<string>/*untyped,typed*/)=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     addAsrtByLabel: string=>promise<result<unit,string>>,
-    searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
-    let editorId = editorData.editorId
+    let tabId = editorData.tabId
     let preCtxData = editorData.preCtxData
     let unifMetavarPrefix = preCtxData.settingsV.val.unifMetavarPrefix
     let state = editorData.state
@@ -1312,15 +1420,14 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let buildSyntaxTrees = editorData.buildSyntaxTrees
     let getAsrtSyntaxTrees = editorData.getAsrtSyntaxTrees
     let addAsrtByLabel = editorData.addAsrtByLabel
-    let searchAssertions = editorData.searchAssertions
 
     {
-        "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
+        "getState": makeApiFunc("editor.getState", params => getEditorState(~tabId, ~state, ~params)),
         "proveBottomUp": makeApiFunc(
             "editor.proveBottomUp",
             params => proveBottomUp( ~paramsJson=params, ~state, ~canStartProvingBottomUp, ~startProvingBottomUp, )
         ),
-        "unifyAll": makeApiFunc("editor.unifyAll", _ => unifyAll( ~canStartUnifyAll, ~startUnifyAll, )),
+        "unifyAll": makeApiFunc("editor.unifyAll", params => unifyAll( ~params, ~canStartUnifyAll, ~startUnifyAll, )),
         "addSteps": makeApiFunc("editor.addSteps", params => addSteps( ~state, ~paramsJson=params, ~setState, )),
         "updateSteps": makeApiFunc("editor.updateSteps", params => updateSteps( ~paramsJson=params, ~setState, )),
         "renameSteps": makeApiFunc("editor.renameSteps", params => apiRenameSteps( ~params, ~setState, )),
@@ -1328,6 +1435,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "markStepsChecked": makeApiFunc("editor.markStepsChecked", params => apiMarkStepsChecked( ~params, ~setState, )),
         "setDisjoints": makeApiFunc("editor.setDisjoints", apiInput => setDisjoints( ~apiInput, ~setState, )),
         "setDescription": makeApiFunc("editor.setDescription", apiInput => setDescription( ~apiInput, ~setState, )),
+        "setLocation": makeApiFunc("editor.setLocation", apiInput => setLocation( ~apiInput, ~setState, )),
         "resetEditorContent": makeApiFunc("editor.resetEditorContent", _ => resetEditorContent(~setState, )),
         "getTokenType": makeApiFunc("editor.getTokenType", params => getTokenType( ~paramsJson=params, ~state, )),
         "substitute": makeApiFunc("editor.substitute", params => substitute( ~paramsJson=params, ~setState, )),
@@ -1345,27 +1453,26 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
         "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
-        "findAssertions": makeApiFunc(
-            "editor.findAssertions", 
-            params => findAssertions( ~params, ~searchAssertions, ~preCtxData)
+        "getCompressedProof": makeApiFunc(
+            "editor.getCompressedProof", params => getCompressedProof( ~params, ~state, )
         ),
     }
 }
 
-let editorsData: Belt_HashMapInt.t<editorData> = Belt_HashMapInt.make(~hintSize=1)
+let editorsData: Belt_HashMapString.t<editorData> = Belt_HashMapString.make(~hintSize=1)
 
-let lastOpenedEditorId:ref<option<int>> = ref(None)
+let lastOpenedEditorTabId:ref<option<string>> = ref(None)
 
-let setLastOpenedEditorId = (editorId:int):unit => {
-    lastOpenedEditorId := Some(editorId)
+let setLastOpenedEditorTabId = (tabId:string):unit => {
+    lastOpenedEditorTabId := Some(tabId)
 }
 
-let editorApi = (editorId:option<int>):singleEditorApi => {
-    switch editorId->Option.orElse(lastOpenedEditorId.contents) {
+let editorApi = (tabId:option<string>):singleEditorApi => {
+    switch tabId->Option.orElse(lastOpenedEditorTabId.contents) {
         | None => makeEmptySingleEditorApi("Cannot determine what editor tab to use.")
-        | Some(editorId) => {
-            switch editorsData->Belt_HashMapInt.get(editorId) {
-                | None => makeEmptySingleEditorApi("Cannot find an editor with id=" ++ editorId->Int.toString)
+        | Some(tabId) => {
+            switch editorsData->Belt_HashMapString.get(tabId) {
+                | None => makeEmptySingleEditorApi("Cannot find an editor with id=" ++ tabId)
                 | Some(editorData) => makeSingleEditorApi(editorData)
             }
         }
@@ -1374,17 +1481,29 @@ let editorApi = (editorId:option<int>):singleEditorApi => {
 
 setEditorApi(editorApi)
 
-let deleteEditor = (editorId:int):unit => {
-    if (lastOpenedEditorId.contents == Some(editorId)) {
-        lastOpenedEditorId := None
+let getEditorScope = (tabId:string):result<(int,string),string> => {
+    switch editorsData->Belt_HashMapString.get(tabId) {
+        | None => Error("Cannot find an editor with id=" ++ tabId)
+        | Some({state}) => {
+            switch state.locErr {
+                | Some(msg) => Error(`The scope of the editor with id=${tabId} is invalid: ${msg}`)
+                | None => Ok((state.maxFrmOrd, state.loc->locationToScopeDescr))
+            }
+        }
     }
-    editorsData->Belt_HashMapInt.remove(editorId)
-    stateCached->Belt_HashMapInt.remove(editorId)
-    stateJsonCached->Belt_HashMapInt.remove(editorId)
+}
+
+let deleteEditor = (tabId:string):unit => {
+    if (lastOpenedEditorTabId.contents == Some(tabId)) {
+        lastOpenedEditorTabId := None
+    }
+    editorsData->Belt_HashMapString.remove(tabId)
+    stateCached->Belt_HashMapString.remove(tabId)
+    stateJsonCached->Belt_HashMapString.remove(tabId)
 }
 
 let updateEditorData = (
-    ~editorId:int,
+    ~tabId:string,
     ~preCtxData:MM_wrk_pre_ctx_data.preCtxData,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -1392,14 +1511,13 @@ let updateEditorData = (
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
-    ~startUnifyAll:unit=>promise<unit>,
+    ~startUnifyAll:(~showProofDialog:bool)=>promise<unit>,
     ~buildSyntaxTrees:(array<string>,array<string>)=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
     ~addAsrtByLabel: string=>promise<result<unit,string>>,
-    ~searchAssertions: string=>promise<result<array<MM_context.frame>,string>>,
 ):unit => {
-    editorsData->Belt_HashMapInt.set(editorId, {
-        editorId,
+    editorsData->Belt_HashMapString.set(tabId, {
+        tabId,
         preCtxData,
         state,
         setState,
@@ -1411,6 +1529,5 @@ let updateEditorData = (
         buildSyntaxTrees,
         getAsrtSyntaxTrees,
         addAsrtByLabel,
-        searchAssertions,
     })
 }

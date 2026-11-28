@@ -25,15 +25,15 @@ let editorHistRegLocStorKey = "hist-reg"
 let editorHistTmpLocStorKey = "hist-tmp"
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
-let getEditorLocStorKey = (editorId:int):string => {
-    editorStateLocStorKey ++ "-" ++ Int.toString(editorId)
+let getEditorLocStorKey = (tabId:string):string => {
+    editorStateLocStorKey ++ "-" ++ tabId
 }
 
-let getEditorHistLocStorKey = (editorId:int):string => {
-    editorHistLocStorKey ++ "-" ++ Int.toString(editorId)
+let getEditorHistLocStorKey = (tabId:string):string => {
+    editorHistLocStorKey ++ "-" ++ tabId
 }
 
-let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
+let editorSaveStateToLocStor = (state:editorState, ~tabId:string):unit => {
     // Console.log("------------- Editor ids info --------------------")
     // Console.log2("nextStmtId", state.nextStmtId)
     // let allIds = state.stmts
@@ -43,24 +43,18 @@ let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
     //     ->Array.join(", ")
     // Console.log(allIds)
     // Console.log("--------------------------------------------------")
-    locStorWriteString(getEditorLocStorKey(editorId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+    locStorWriteStringDebounced(
+        getEditorLocStorKey(tabId),
+        () => Expln_utils_common.stringify(state->editorStateToEditorStateLocStor)
+    )
 }
 
-let histSaveToLocStor = (hist:editorHistory, ~editorId:int):unit => {
-    let histStr = hist->editorHistToString
-    let locStorKey = getEditorHistLocStorKey(editorId)
-    let histChanged = switch locStorReadString(locStorKey) {
-        | None => true
-        | Some(oldHistStr) => oldHistStr != histStr
-    }
-    if (histChanged) {
-        locStorWriteString( locStorKey, histStr )
-        // hist->editorHistoryPrintIdInfo
-    }
+let histSaveToLocStor = (hist:editorHistory, ~tabId:string):unit => {
+    locStorWriteStringDebounced(getEditorHistLocStorKey(tabId), () => hist->editorHistToString)
 }
 
-let histReadFromLocStor = (~editorId:int):option<editorHistory> => {
-    switch locStorReadString(getEditorHistLocStorKey(editorId)) {
+let histReadFromLocStor = (~tabId:string):option<editorHistory> => {
+    switch locStorReadString(getEditorHistLocStorKey(tabId)) {
         | None => None
         | Some(histStr) => {
             switch editorHistFromString(histStr) {
@@ -115,11 +109,11 @@ let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorSt
 }
 
 let loadEditorInitialStateFromLocStor = (
-    ~editorId:int,
+    ~tabId:string,
     ~preCtxData:preCtxData,
     ~initialStateLocStor:option<editorStateLocStor>,
 ):editorState => {
-    switch histReadFromLocStor(~editorId) {
+    switch histReadFromLocStor(~tabId) {
         | None => createInitialEditorState( ~preCtxData, ~stateLocStor=initialStateLocStor, ~nextStmtId=0, )
         | Some(hist) => {
             let nextStmtId = hist->editorHistGetMaxIntStmtId->Option.map(i => i+1)->Option.getOr(0)
@@ -155,7 +149,7 @@ let infoAboutInliningTheorems = `In order to inline theorems do the following: `
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~editorId:int,
+    ~tabId:string,
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,
@@ -204,10 +198,10 @@ let make = (
     )
 
     let (state, setStatePriv) = React.useState(_ => {
-        loadEditorInitialStateFromLocStor( ~editorId, ~preCtxData, ~initialStateLocStor, )
+        loadEditorInitialStateFromLocStor( ~tabId, ~preCtxData, ~initialStateLocStor, )
     })
     let (hist, setHistPriv) = React.useState(() => {
-        switch histReadFromLocStor(~editorId) {
+        switch histReadFromLocStor(~tabId) {
             | None => editorHistMake(~initState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
             | Some(hist) => hist->editorHistAddSnapshot(state)
         }
@@ -251,7 +245,7 @@ let make = (
     let setHist = (update:editorHistory=>editorHistory):unit => {
         setHistPriv(ht => {
             let ht = update(ht)
-            histSaveToLocStor(ht, ~editorId)
+            histSaveToLocStor(ht, ~tabId)
             ht
         })
     }
@@ -271,7 +265,7 @@ let make = (
                         !editIsActive && !thereAreCriticalErrorsInEditor 
                         && !atLeastOneStmtIsChecked && proofStatusIsMissing
                     ) {
-                        st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
+                        st->setNextAction(Some(UnifyAll({nextAction:()=>(), showProofDialog:true})))
                     } else {
                         st
                     }
@@ -283,7 +277,7 @@ let make = (
     }
 
     let saveStateToLocStorAndMakeHistSnapshot = (st:editorState):editorState => {
-        editorSaveStateToLocStor(st, ~editorId)
+        editorSaveStateToLocStor(st, ~tabId)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
     }
@@ -298,11 +292,28 @@ let make = (
         })
     }
 
-    let actUnifyAllResultsAreReady = (proofTreeDto:result<proofTreeDto,string>, nextAction: unit=>unit) => {
+    // The last seen text and proof status of the goal step.
+    // The compressed proof dialog is shown when the goal step becomes proved compared to this value.
+    let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
+
+    let actUnifyAllResultsAreReady = (
+        proofTreeDto:result<proofTreeDto,string>,
+        nextAction: unit=>unit,
+        ~showProofDialog:bool,
+    ) => {
         switch proofTreeDto {
             | Ok(proofTreeDto) => {
                 setStatePriv(st => {
                     let st = st->applyUnifyAllResults(proofTreeDto)
+                    if (!showProofDialog) {
+                        // Mark the current goal status as already seen,
+                        // so the compressed proof dialog is not shown for this 'Unify All'.
+                        st.stmts->Array.find(stmt => stmt.isGoal)->Option.forEach(goal => {
+                            prevGoalStmtStatus.current = (
+                                goal.cont->contToStr, goal.proofStatus->Option.getOr(NoJstf)
+                            )
+                        })
+                    }
                     let st = st->saveStateToLocStorAndMakeHistSnapshot
                     let st = st->setNextAction(Some(Action(nextAction)))
                     st
@@ -854,7 +865,7 @@ let make = (
         updateTabTitle.contents = Some(newTabTitle => {
             setStatePriv(st => {
                 let st = {...st, tabTitle:newTabTitle}
-                editorSaveStateToLocStor(st, ~editorId)
+                editorSaveStateToLocStor(st, ~tabId)
                 st
             })
         })
@@ -1102,7 +1113,8 @@ let make = (
         ~delayBeforeStartMs:int=0,
         ~selectFirstFoundProof:option<bool>=?,
         ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit = _ => (),
-        ~nextAction: unit=>unit = ()=>()
+        ~nextAction: unit=>unit = ()=>(),
+        ~showProofDialog:bool=true,
     ) => {
         if (thereAreCriticalErrorsInEditor) {
             ()
@@ -1226,7 +1238,7 @@ let make = (
                                     modalRef, modalId, () => rndProgress( ~text=msg, ~onTerminate )
                                 )
                             )->Promise.thenResolve(proofTreeDto => {
-                                actUnifyAllResultsAreReady(proofTreeDto, nextAction)
+                                actUnifyAllResultsAreReady(proofTreeDto, nextAction, ~showProofDialog)
                                 closeModal(modalRef, modalId)
                             })
                         })->ignore
@@ -1247,7 +1259,10 @@ let make = (
                             let st = st->addNewStatements(selectedResult, ~isBkm = showBkmOnly)
                             let st = st->uncheckAllStmts
                             let st = st->setNextAction(Some(
-                                UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult)))})
+                                UnifyAll({
+                                    nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult))),
+                                    showProofDialog:true,
+                                })
                             ))
                             st
                         })
@@ -1264,7 +1279,7 @@ let make = (
             | Some(action) => {
                 setStatePriv(setNextAction(_,None))
                 switch action {
-                    | UnifyAll({nextAction}) => actUnify(~nextAction)
+                    | UnifyAll({nextAction, showProofDialog}) => actUnify(~nextAction, ~showProofDialog)
                     | MergeNextDuplicate => {
                         if (state->editorStateHasDuplicatedStmts) {
                             actMergeStmts()
@@ -1301,7 +1316,6 @@ let make = (
     let currGoalStmtStatus:option<(stmtId,string,option<proofStatus>)> = state.stmts
         ->Array.find(stmt => stmt.isGoal)
         ->Belt.Option.map(stmt => (stmt.id, stmt.cont->contToStr, stmt.proofStatus))
-    let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
     React.useEffect1(() => {
         switch state.nextAction {
             | Some(_) => ()
@@ -2464,29 +2478,8 @@ let make = (
         }
     }
 
-    let apiSearchAssertions = (pattern:string):promise<result<array<frame>,string>> => {
-        MM_cmp_search_asrt.searchAssertions(
-            ~modalRef,
-            ~preCtxData,
-            ~typ=None,
-            ~label="",
-            ~patternStr=pattern,
-            ~patternVersion=2
-        )->Promise.thenResolve(foundLabels => {
-            foundLabels->Result.map(foundLabels => 
-                foundLabels
-                    ->Array.map(((label,_)) => label)
-                    ->Array.map(label =>
-                        preCtxData.ctxV.val.full->getFrame(label)
-                            ->Option.getOrThrow(~message=`apiSearchAssertions: cannot get frame by label '${label}'.`)
-                    )
-                    ->Array.filter(frm => frm.ord <= maxFrmOrd.contents)
-            )
-        })
-    }
-
     MM_api_editor.updateEditorData(
-        ~editorId,
+        ~tabId,
         ~preCtxData,
         ~state,
         ~setState=actSetStateFromApi,
@@ -2512,11 +2505,11 @@ let make = (
             })
         },
         ~canStartUnifyAll=generalModificationActionIsEnabled,
-        ~startUnifyAll = () => {
+        ~startUnifyAll = (~showProofDialog) => {
             Promise.make((resolve,_) => {
                 setState(st => {
                     let st = st->uncheckAllStmts
-                    let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(())})))
+                    let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(()), showProofDialog})))
                     st
                 })
             })
@@ -2524,7 +2517,6 @@ let make = (
         ~buildSyntaxTrees=actBuildSyntaxTrees,
         ~getAsrtSyntaxTrees,
         ~addAsrtByLabel=actAddAsrtByLabel,
-        ~searchAssertions=apiSearchAssertions,
     )
 
     <Expln_React_ContentWithStickyHeader

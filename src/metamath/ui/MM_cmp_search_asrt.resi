@@ -3,8 +3,11 @@ let searchAssertions: (
     ~preCtxData: MM_wrk_pre_ctx_data.preCtxData,
     ~typ: option<int>,
     ~label: string,
+    ~strictLabel: string=?,
     ~patternStr: string,
     ~patternVersion: int,
+    ~isDisc: bool=?,
+    ~isDepr: bool=?,
 ) => promise<result<array<(string, option<MM_wrk_pattern_search.matchedIndices>)>, string>>
 
 @react.component

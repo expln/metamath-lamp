@@ -31,11 +31,11 @@ function getResponse(apiResponse) {
 }
 
 async function showInfoMsg(msg) {
-    getResponse(await api.showInfoMsg({msg: String(msg)}))
+    getResponse(await api.ui.showInfoMsg({msg: String(msg)}))
 }
 
 async function showErrMsg(msg) {
-    getResponse(await api.showErrMsg({msg: String(msg)}))
+    getResponse(await api.ui.showErrMsg({msg: String(msg)}))
 }
 
 async function getEditorState() {
@@ -224,7 +224,7 @@ async function loadMmpTextToEditor(mmpText) {
 }
 
 async function importFromMmp() {
-    const {okClicked, text:mmpText} = getResponse(await api.multilineTextInput({prompt:'MMP file content:'}))
+    const {okClicked, text:mmpText} = getResponse(await api.ui.multilineTextInput({prompt:'MMP file content:'}))
     if (okClicked) {
         await loadMmpTextToEditor(mmpText)
     }
