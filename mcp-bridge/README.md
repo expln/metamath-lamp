@@ -175,6 +175,51 @@ A context loaded from local files keeps their `http://127.0.0.1:8765/files/...` 
 If metamath-lamp reloads such a context (e.g. when an editor state is restored),
 the MCP server must be running at that moment.
 
+## Manual testing
+
+The tools can be called without an AI agent.
+Any MCP client can start `src/server.js` and send it requests over stdio.
+The browser tab must still be connected (see [Setup](#setup)),
+because all tools except `get_pattern_syntax` are executed by the tab.
+
+If another server already uses the default port (e.g. the one started by an agent session),
+start the server with another port, e.g. `--port 8766`, and set the same port in the MCP tab.
+Add `--log-file` to see all requests and responses in the [request log](#request-log).
+
+### MCP Inspector
+
+[MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the official tool for testing MCP servers.
+It starts the server and opens a web page where tools can be selected, given arguments, and called:
+```
+cd mcp-bridge
+npx @modelcontextprotocol/inspector node src/server.js
+```
+Open the `http://localhost:6274/...` link it prints (the link contains an authentication token).
+Arguments of the server are passed after `src/server.js`, e.g. `node src/server.js --files-dirs ~/metamath`.
+
+MCP Inspector also has a command-line mode:
+```
+npx @modelcontextprotocol/inspector --cli node src/server.js --method tools/list
+npx @modelcontextprotocol/inspector --cli node src/server.js --method tools/call --tool-name list_tabs
+npx @modelcontextprotocol/inspector --cli node src/server.js --method tools/call --tool-name find_assertions --tool-arg pattern='|- ( ph -> ps )' --tool-arg pageSize=5
+```
+Tools with complex arguments (e.g. `add_steps`) are easier to call from the web page.
+
+### Raw JSON-RPC
+
+The server reads one JSON-RPC message per line from stdin and writes responses to stdout.
+A session must start with `initialize` and `notifications/initialized`:
+```
+cd mcp-bridge
+(printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual","version":"0"}}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_tabs","arguments":{}}}'
+ sleep 30) | node src/server.js
+```
+The `sleep` keeps stdin open, so the server keeps running while it waits for the browser tab and its responses.
+Use `"method":"tools/list"` to get the input schemas of all tools.
+
 ## Limitations
 
 * Only one browser tab can be connected at a time.
